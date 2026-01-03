@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans&display=swap');
+@import "tailwindcss";
+
+/* Chrome, Safari, Edge */
+/* ::-webkit-scrollbar {
+  display: none; 
+} */
+  
+html, body {
+  -ms-overflow-style: none;  /* IE, Edge cũ */
+  /* scrollbar-width: none;   */
+}
+
+body {
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+@keyframes pulseOut {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.75;
+    box-shadow: 0 0 6px 3px rgba(255, 0, 0, 0.25);
+  }
+  50% {
+    opacity: 0.45;
+    box-shadow: 0 0 12px 6px rgba(255, 0, 0, 0.18);
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+    box-shadow: 0 0 25px 10px rgba(255, 0, 0, 0);
+  }
+}
+
+/* mặc định tắt animation */
+.pulseSpan {
+  animation: none;
+  transform-origin: center;
+  will-change: transform, opacity, box-shadow;
+}
+
+/* bật animation khi hover vào phần tử cha .group */
+.group:hover .pulseSpan {
+  animation: pulseOut 1.25s ease-in-out infinite;
+}
+@layer components {
+  .input-field {
+    @apply w-full border border-gray-300 rounded-md px-4 py-3 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition-all duration-200;
+  }
+}
+
+/* Chrome, Edge, Safari */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+/* Firefox */
+.no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
