@@ -10,6 +10,7 @@ import { IoFolderOutline } from "react-icons/io5";
 import { useEffect } from 'react';
 import { GoPeople } from "react-icons/go";
 import { LiaClipboardListSolid } from "react-icons/lia";
+import { BsChatRightQuote } from "react-icons/bs";
 
 
 export default function SideBar({ location }) {
@@ -22,7 +23,8 @@ export default function SideBar({ location }) {
         if (path.startsWith("/categories")) return 5;
         if (path.startsWith("/orders")) return 6;
         if (path.startsWith("/promotion")) return 7;
-        if (path.startsWith("/settings")) return 8;
+        if (path.startsWith("/contents")) return 8;
+        if (path.startsWith("/settings")) return 9;
         return 1; // fallback
     };
 
@@ -175,6 +177,25 @@ export default function SideBar({ location }) {
                                     <div className='flex flex-col items-start'>
                                         <span className="!font-semibold !text-[14px]">Khuyến mãi</span>
                                         <span className="!text-[10px]">Quản lý khuyến mãi</span>
+                                    </div>
+                                </Button>
+                            </div>
+                        </Link>
+                    </li>
+
+                    {/* content */}
+                    <li className="">
+                        <Link to="/contents">
+                            <div
+                                className="w-full text-white !text-left !flex !justify-between items-center !py-[12px] !px-[15px] gap-2 !h-[80px]"
+                            >
+                                <Button variant="text" className={`${active === 9 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
+                                    <span aria-label='icon'>
+                                        <BsChatRightQuote className={`!text-[37px] !mr-[10px]`} />
+                                    </span>
+                                    <div className='flex flex-col items-start'>
+                                        <span className="!font-semibold !text-[14px]">Content</span>
+                                        <span className="!text-[10px]">Quản lý Chatbot</span>
                                     </div>
                                 </Button>
                             </div>

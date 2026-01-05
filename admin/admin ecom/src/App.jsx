@@ -19,6 +19,8 @@ import OrderList from './components/OrderList.jsx'
 import PromotionEdit from './components/PromotionEdit.jsx'
 import BrandUpload from './components/BrandUpload.jsx'
 import BrandEdit from './components/BrandEdit.jsx'
+import ContentList from './components/ContentList.jsx'
+import ContentUpload from './components/ContentUpload.jsx'
 
 function App() {
   const location = useLocation();
@@ -275,6 +277,50 @@ function App() {
                 transition={{ duration: 0.3 }}
               >
                 <PromotionUpload />
+              </motion.div>
+            }
+          />
+        </Route>
+
+
+        {/* Chatbot Content */}
+        <Route path="/contents" element={<HomePage />}>
+          <Route
+            index
+            element={
+              <motion.div
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ContentList />
+              </motion.div>
+            }
+          />
+          <Route
+            path="upload"
+            element={
+              <motion.div
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ContentUpload />
+              </motion.div>
+            }
+          />
+          <Route
+            path="edit/:id"
+            element={
+              <motion.div
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ContentUpload />
               </motion.div>
             }
           />
