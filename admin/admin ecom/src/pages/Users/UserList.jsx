@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import Pagination from '@mui/material/Pagination';
-import Boxes from './Boxes';
+import Boxes from '../../components/common/Boxes';
 import axios from "axios";
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -11,7 +11,7 @@ import { MdDelete } from "react-icons/md";
 import { IoEye } from "react-icons/io5";
 import { FaRegUser } from "react-icons/fa6";
 import { MdCardMembership } from "react-icons/md";
-import SearchBar from './SearchBar';
+import SearchBar from '../../components/common/SearchBar';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';

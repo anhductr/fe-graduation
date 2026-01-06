@@ -1,8 +1,8 @@
 import { useRef } from 'react';
-import SearchBar from './SearchBar';
+import SearchBar from '../../components/common/SearchBar';
 import { useState, useEffect } from 'react';
 import Pagination from '@mui/material/Pagination';
-import Boxes from './Boxes';
+import Boxes from '../../components/Products/Boxes';
 import axios from "axios";
 import { Link } from 'react-router';
 import { MdDelete } from "react-icons/md";

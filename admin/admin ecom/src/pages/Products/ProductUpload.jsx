@@ -11,7 +11,7 @@ import {
   MenuItem,
 } from "@mui/material";
 import { CircularProgress } from "@mui/material";
-import TextEditor from './TextEditor';
+import TextEditor from '../../components/common/TextEditor';
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import CloseIcon from "@mui/icons-material/Close";
 import { BsPlusSquare } from "react-icons/bs";
@@ -140,7 +140,7 @@ export default function ProductUpload() {
       },
     },
   });
- 
+
   // Đồng bộ lại content khi description thay đổi từ onUpdate
   useEffect(() => {
     if (editor && description !== editor.getHTML() && !editor.isDestroyed) {
@@ -1103,7 +1103,7 @@ export default function ProductUpload() {
                 </div>
               </div>
 
- 
+
               <div className='w-full flex gap-6 flex-wrap pr-[53px]'>
                 {/* Ảnh sản phẩm có drag & drop */}
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

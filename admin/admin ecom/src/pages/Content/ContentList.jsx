@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import Pagination from '@mui/material/Pagination';
-import Boxes from './Boxes';
+import Boxes from '../../components/common/Boxes';
 import axios from "axios";
 import { Button, Dialog, DialogActions, DialogTitle, Select, MenuItem } from "@mui/material";
 import { Link, useLocation } from 'react-router-dom';
 import { FiBox } from "react-icons/fi";
 import { MdOutlineDiscount } from "react-icons/md";
-import SearchBar from './SearchBar';
+import SearchBar from '../../components/common/SearchBar';
 import { VscFilter } from "react-icons/vsc";
 import { IoIosArrowUp } from "react-icons/io";
 import { FaPlus } from "react-icons/fa6";

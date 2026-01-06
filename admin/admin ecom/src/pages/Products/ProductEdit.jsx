@@ -45,7 +45,7 @@ import { IoMdArrowDropdown } from "react-icons/io";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CircularProgress } from "@mui/material";
 import { IoMdClose } from "react-icons/io";
-import TextEditor from './TextEditor';
+import TextEditor from '../../components/common/TextEditor';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';

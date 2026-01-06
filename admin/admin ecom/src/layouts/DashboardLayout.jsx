@@ -1,5 +1,5 @@
 // import Header from "../components/Header.jsx";
-import SideBar from "../components/SideBar.jsx";
+import SideBar from "../components/layout/SideBar.jsx";
 import { Outlet } from "react-router-dom";
 import { useState, createContext, useEffect } from "react";
 import { useLocation } from "react-router-dom";
@@ -15,7 +15,7 @@ import Button from '@mui/material/Button';
 import { useLoginContext } from "../context/LoginContext";
 
 
-export default function HomePage() {
+export default function DashboardLayout() {
     const location = useLocation();
 
     // useEffect(() => {
