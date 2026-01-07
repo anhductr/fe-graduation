@@ -7,9 +7,12 @@ import { CiCircleCheck } from "react-icons/ci";
 import { MdOutlineShoppingCart } from "react-icons/md";
 import Tooltip, { tooltipClasses } from '@mui/material/Tooltip';
 import { styled } from '@mui/material/styles';
+import { useNavigate } from "react-router-dom";
 
 const ProductCard = ({ product }) => {
   console.log('product: ', product);
+
+  const navigate = useNavigate();
 
   function StarRating({ rating }) {
     const fullStars = Math.floor(rating);
@@ -64,7 +67,12 @@ const ProductCard = ({ product }) => {
   }));
 
   return (
-    <div className="relative group rounded-xl bg-white [box-shadow:rgba(60,64,67,0.15)_0px_1px_2px_0px,rgba(60,64,67,0.1)_0px_2px_6px_2px] pt-4 min-w-[255px] max-w-[255px] pb-6 relative flex flex-col justify-between transition-all duration-300 hover:[box-shadow:rgba(60,64,67,0.3)_0px_2px_8px_2px,rgba(60,64,67,0.2)_0px_4px_12px_4px] hover:-translate-y-1">
+    <div
+      className="relative group rounded-xl bg-white [box-shadow:rgba(60,64,67,0.15)_0px_1px_2px_0px,rgba(60,64,67,0.1)_0px_2px_6px_2px] pt-4 min-w-[255px] max-w-[255px] pb-6 relative flex flex-col justify-between transition-all duration-300 hover:[box-shadow:rgba(60,64,67,0.3)_0px_2px_8px_2px,rgba(60,64,67,0.2)_0px_4px_12px_4px] hover:-translate-y-1"
+      onClick={() => navigate(`/${product.id}`, {
+        state: { keyword: product.name }
+      })}
+    >
 
       {/* ICONS FLOATING */}
       <div className="

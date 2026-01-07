@@ -29,11 +29,15 @@ import Button from '@mui/material/Button';
 import { FaCheck, FaCircle } from "react-icons/fa";
 import { motion } from "framer-motion";
 import SpecsPopup from './SpecsPopup';
-
+import { useLocation } from "react-router-dom";
+import { searchProducts } from "../api, function/searchApi";
 
 const ProductView = ({ setClickedIndex, openProductDetails, id }) => {
   const [openSpecsPopup, setOpenSpecsPopup] = useState(false);
-  
+  const location = useLocation();
+  const { keyword } = location.state
+  console.log('keyword: ', keyword);
+
   const productFromDB = {
     id: 1,
     name: "iPhone 16 Pro Max 256GB",
@@ -259,7 +263,7 @@ const ProductView = ({ setClickedIndex, openProductDetails, id }) => {
 
   const style = {
     width: "100%",
-    height: "530px",
+    height: "490px",
     backgroundImage:
       "linear-gradient(90deg, #ee7752, #e73c7e, #23a6d5, #23d5ab)",
     backgroundSize: "300% 300%",
@@ -305,7 +309,7 @@ const ProductView = ({ setClickedIndex, openProductDetails, id }) => {
                   {product.images.map((img, index) => (
                     <SwiperSlide key={index}>
                       <div
-                        className={`w-full transform transition-transform duration-300 ease-in-out rounded-lg shadow-lg flex items-center justify-center px-4 h-[530px] ${index === 0
+                        className={`w-full transform transition-transform duration-300 ease-in-out rounded-lg shadow-lg flex items-center justify-center px-4 h-[490px] ${index === 0
                           ? "gap-6"
                           : "bg-white"
                           }`}
@@ -362,8 +366,8 @@ const ProductView = ({ setClickedIndex, openProductDetails, id }) => {
                               playing={currentImg === 1 ? true : false}
                               volume={1}
                               muted={true}
-                              height={"530px"}
-                              width={"739px"}
+                              height={"490px"}
+                              width={"748px"}
                               url={product.video}
                             />
                           </div>
@@ -372,7 +376,7 @@ const ProductView = ({ setClickedIndex, openProductDetails, id }) => {
                           <div
                             onMouseMove={(e) => handleMouseMove(e, img)}
                             onMouseLeave={handleMouseOut}
-                            className="relative w-[530px] h-[530px] cursor-pointer"
+                            className="relative w-[490px] h-[490px] cursor-pointer"
                           >
                             <img src={img.src} alt={img.alt} className="w-full h-full object-cover" />
 
@@ -492,7 +496,7 @@ const ProductView = ({ setClickedIndex, openProductDetails, id }) => {
           <div className="relative w-5/11 space-y-4 pl-[50px]">
             {zoomImage && (
               <div
-                className="absolute right-0 z-40 rounded-[10px] border border-[#ccc] shadow-xl overflow-hidden bg-white"
+                className="absolute right-[6px] z-40 rounded-[10px] border border-[#ccc] shadow-xl overflow-hidden bg-white"
                 style={{
                   width: zoomWidth,
                   height: zoomHeight,
@@ -610,11 +614,11 @@ const ProductView = ({ setClickedIndex, openProductDetails, id }) => {
 
             {/* sellPrice box */}
             <div className="flex items-center gap-6 justify-start py-2">
-              <div className="py-2 text-red-600 font-semibold text-4xl">
+              <div className="py-2 text-red-600 font-semibold text-[32px]">
                 30.490.000₫
               </div>
 
-              <div className="py-2 line-through text-gray-500 text-xl">
+              <div className="py-2 line-through text-gray-500 text-[22px]">
                 34.990.000₫
               </div>
 

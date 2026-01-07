@@ -31,9 +31,11 @@ const SearchResult = () => {
   const cateType = searchType === "category" ? state?.cateType || "phone" : "phone";
 
   const {
-    os,
-    rom,
-    connection,
+    storage,            // Dung lượng ROM
+    connectivity,       // Hỗ trợ mạng
+    display,            // Kích thước màn hình
+    operatingSystem,    // Hệ điều hành (iOS/Android)
+    ram,
     priceRange,
     priceRangeSlider,
     sortType,
@@ -70,6 +72,59 @@ const SearchResult = () => {
   }
   const backendSortType = sortTypeMap[sortType] || "DEFAULT";
 
+  const attributes = [];
+
+  // Dung lượng ROM (Storage)
+  storage.forEach((value) => {
+    attributes.push({
+      key: "Dung lượng",
+      value: value,          // ví dụ: "256 GB" lấy trực tiếp từ aggregations
+      group: "Storage",
+      type: "TECH"
+    });
+  });
+
+  ////////////// xử lý attribute //////////////  
+  // Hỗ trợ mạng (Connectivity)
+  connectivity.forEach((value) => {
+    attributes.push({
+      key: "Hỗ trợ mạng",
+      value: value,          // ví dụ: "5G"
+      group: "Connectivity",
+      type: "TECH"
+    });
+  });
+
+  // Kích thước màn hình (Display) - giờ value là chính xác như "6.3 inch"
+  display.forEach((value) => {
+    attributes.push({
+      key: "Kích thước màn hình",
+      value: value,          // ví dụ: "6.3 inch"
+      group: "Display",
+      type: "TECH"
+    });
+  });
+
+  // RAM
+  ram.forEach((value) => {
+    attributes.push({
+      key: "Dung lượng",
+      value: value,          // ví dụ: "12 GB"
+      group: "RAM",
+      type: "TECH"
+    });
+  });
+
+  // Hệ điều hành (OperatingSystem)
+  operatingSystem.forEach((value) => {
+    attributes.push({
+      key: "Tên OS",
+      value: value,          // ví dụ: "iOS"
+      group: "OperatingSystem",
+      type: "TECH"
+    });
+  });
+
   // Use useQuery to fetch products based on the keyword
   const { data: rawApiData, isLoading, error } = useQuery({
     queryKey: [
@@ -80,11 +135,13 @@ const SearchResult = () => {
       minPrice ?? null,
       maxPrice ?? null,
       backendSortType,
+      attributes,
     ],
     queryFn: () => searchProducts({
       keyword: keyword || null,
       category: categoryId || null,
       brandName: brand || null,
+      attributes,
       minPrice: minPrice === 0 ? 0 : minPrice || null,
       maxPrice: maxPrice || null,
       sortType: backendSortType,
@@ -95,7 +152,7 @@ const SearchResult = () => {
     // staleTime: 1000 * 60 * 5,
   });
 
-  const products = rawApiData || [];
+  const products = rawApiData?.productGetVMList || [];
 
   // For now, just console.log the response
   useEffect(() => {
@@ -220,6 +277,7 @@ const SearchResult = () => {
               isClearChip={isClearChip}
               setIsClearChip={setIsClearChip}
               cateType={cateType}
+              aggregations={rawApiData?.specificationAggregations || {}}
             />
             {!isLoading && (
               <>

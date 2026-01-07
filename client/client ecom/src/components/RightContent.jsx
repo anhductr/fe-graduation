@@ -12,10 +12,16 @@ import { MdClose } from "react-icons/md";
 
 export default function RightContent({ products, isSliderDefault, min, max, setIsClearChip }) {
     const {
-        os,
-        rom,
-        connection,
-        toggleOs,
+        storage,
+        connectivity,
+        display,
+        operatingSystem,
+        ram,
+        toggleStorage,
+        toggleConnectivity,
+        toggleDisplay,
+        toggleOperatingSystem,
+        toggleRam,
         resetFilters,
         priceRange,
         togglePrice,
@@ -29,16 +35,76 @@ export default function RightContent({ products, isSliderDefault, min, max, setI
         <main className="flex-1 flex flex-col gap-2">
             {/* hiển thị người dùng chọn gì */}
             <div className="flex flex-wrap items-center gap-2">
-                {os.length > 0 &&
-                    os.map((value, index) => (
+                {/* Hệ điều hành (chỉ có trong phone) */}
+                {operatingSystem.length > 0 &&
+                    operatingSystem.map((value) => (
                         <div
-                            className="flex items-center justify-center bg-gray-200 text-gray-600 rounded-full pl-3 pr-2 py-1 text-[13px] select-none transition-transform duration-300 ease-in-out hover:scale-110"
-                            key={index}
-                            onClick={() => toggleOs(value)}
+                            key={value}
+                            className="flex items-center bg-gray-200 text-gray-600 rounded-full pl-3 pr-2 py-1 text-[13px] select-none hover:scale-110 transition-transform"
+                            onClick={() => toggleOperatingSystem(value)}
                         >
-                            {" "}
                             {value}
-                            <button aria-label="Remove iOS" class="ml-1 flex rounded-full">
+                            <button aria-label="Remove" className="ml-1">
+                                <MdClose size={20} className="text-gray-600" />
+                            </button>
+                        </div>
+                    ))}
+
+                {/* Dung lượng ROM */}
+                {storage.length > 0 &&
+                    storage.map((value) => (
+                        <div
+                            key={value}
+                            className="flex items-center bg-gray-200 text-gray-600 rounded-full pl-3 pr-2 py-1 text-[13px] select-none hover:scale-110 transition-transform"
+                            onClick={() => toggleStorage(value)}
+                        >
+                            {value}
+                            <button aria-label="Remove" className="ml-1">
+                                <MdClose size={20} className="text-gray-600" />
+                            </button>
+                        </div>
+                    ))}
+
+                {/* RAM */}
+                {ram.length > 0 &&
+                    ram.map((value) => (
+                        <div
+                            key={value}
+                            className="flex items-center bg-gray-200 text-gray-600 rounded-full pl-3 pr-2 py-1 text-[13px] select-none hover:scale-110 transition-transform"
+                            onClick={() => toggleRam(value)}
+                        >
+                            {value}
+                            <button aria-label="Remove" className="ml-1">
+                                <MdClose size={20} className="text-gray-600" />
+                            </button>
+                        </div>
+                    ))}
+
+                {/* Hỗ trợ mạng */}
+                {connectivity.length > 0 &&
+                    connectivity.map((value) => (
+                        <div
+                            key={value}
+                            className="flex items-center bg-gray-200 text-gray-600 rounded-full pl-3 pr-2 py-1 text-[13px] select-none hover:scale-110 transition-transform"
+                            onClick={() => toggleConnectivity(value)}
+                        >
+                            {value}
+                            <button aria-label="Remove" className="ml-1">
+                                <MdClose size={20} className="text-gray-600" />
+                            </button>
+                        </div>
+                    ))}
+
+                {/* Kích thước màn hình */}
+                {display.length > 0 &&
+                    display.map((value) => (
+                        <div
+                            key={value}
+                            className="flex items-center bg-gray-200 text-gray-600 rounded-full pl-3 pr-2 py-1 text-[13px] select-none hover:scale-110 transition-transform"
+                            onClick={() => toggleDisplay(value)}
+                        >
+                            {value}
+                            <button aria-label="Remove" className="ml-1">
                                 <MdClose size={20} className="text-gray-600" />
                             </button>
                         </div>
@@ -91,10 +157,23 @@ export default function RightContent({ products, isSliderDefault, min, max, setI
                     </div>
                 )}
 
-                {(os.length > 1 ||
-                    (!priceRange.includes("all") && priceRange.length > 1) ||
-                    (!priceRange.includes("all") && (priceRangeSlider[0] !== min * 1000 && priceRangeSlider[1] !== max * 1000)) ||
-                    (os.length > 0 && ((priceRangeSlider[0] !== min * 1000 || priceRangeSlider[1] !== max * 1000) || !priceRange.includes("all")))) &&
+                {
+                    (
+                        operatingSystem?.length > 0 ||
+                        storage?.length > 0 ||
+                        ram?.length > 0 ||
+                        connectivity?.length > 0 ||
+                        display?.length > 0 ||
+                        (!priceRange.includes("all") && priceRange.length > 1) ||
+                        (!priceRange.includes("all") && (priceRangeSlider[0] !== min * 1000 && priceRangeSlider[1] !== max * 1000)) ||
+                        (operatingSystem?.length > 0 ||
+                            storage?.length > 0 ||
+                            ram?.length > 0 ||
+                            connectivity?.length > 0 ||
+                            display?.length > 0 &&
+                            ((priceRangeSlider[0] !== min * 1000 || priceRangeSlider[1] !== max * 1000) || !priceRange.includes("all"))
+                        )
+                    ) &&
                     (
                         <button
                             class="text-[#0096FF] text-[13px] font-semibold transition-transform duration-300 ease-in-out hover:text-[15px]"

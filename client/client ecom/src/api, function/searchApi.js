@@ -55,7 +55,7 @@ export const searchProducts = async ({
     console.log("maxP:", maxPrice)
     console.log("sort type:", sortType)
     console.log("response: ", response.data.productGetVMList)
-    return response.data.productGetVMList; // backend trả ProductGetListVM
+    return response.data; // backend trả ProductGetListVM
 };
 
 /**

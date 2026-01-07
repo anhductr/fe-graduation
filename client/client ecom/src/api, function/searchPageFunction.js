@@ -15,12 +15,19 @@ export const sortTypeMap = {
     desc: "PRICE_DESC",       // Giá giảm dần
 };
 
-export const specFilters = {
+const baseSpecFilters = {
     phone: [
-        { group: "Dung lượng ROM", key: "rom", options: ["≤128 GB", "256 GB", "512 GB", "1 TB"] },
-        { group: "Hiệu năng & Pin", key: "performance", options: ["Pin ≥ 5000 mAh", "Sạc nhanh ≥ 65W", "Chip flagship (Snapdragon 8 Gen / A17 Pro trở lên)"] },
-        { group: "Hỗ trợ mạng", key: "network", options: ["5G", "eSIM", "Dual SIM"] },
-        { group: "Kích thước màn hình", key: "screenSize", options: ["Dưới 6.1 inch", "6.1 - 6.7 inch", "Trên 6.7 inch"] },
+        { groupName: "Dung lượng ROM", group: "Storage", key: "Dung lượng" },
+        { groupName: "Hỗ trợ mạng", group: "Connectivity", key: "Hỗ trợ mạng" },
+        { groupName: "Kích thước màn hình", group: "Display", key: "Kích thước màn hình" },
+        { groupName: "Hệ điều hành", group: "OperatingSystem", key: "Tên OS" },
+        { groupName: "RAM", group: "RAM", key: "Dung lượng" },
+    ],
+    phoneChild: [
+        { groupName: "Dung lượng ROM", group: "Storage", key: "Dung lượng" },
+        { groupName: "Hỗ trợ mạng", group: "Connectivity", key: "Hỗ trợ mạng" },
+        { groupName: "Kích thước màn hình", group: "Display", key: "Kích thước màn hình" },
+        { groupName: "RAM", group: "RAM", key: "Dung lượng" },
     ],
     default: []
 };
@@ -28,11 +35,49 @@ export const specFilters = {
 const createFilterStore = (priceOptions) => {
     return create((set, get) => ({
         priceRange: ["all"],
-        os: [],
-        rom: [],
-        connection: [],
         priceRangeSlider: [0, 46990000],
         sortType: "default", // "default" | "asc" | "desc"
+        storage: [],        // cho Dung lượng ROM
+        connectivity: [],   // cho Hỗ trợ mạng
+        display: [],        // cho Kích thước màn hình
+        operatingSystem: [],// cho Hệ điều hành (chỉ có trong phone)
+        ram: [],
+
+        // Actions toggle tương ứng với spec
+        toggleStorage: (value) =>
+            set((state) => ({
+                storage: state.storage.includes(value)
+                    ? state.storage.filter((v) => v !== value)
+                    : [...state.storage, value],
+            })),
+
+        toggleConnectivity: (value) =>
+            set((state) => ({
+                connectivity: state.connectivity.includes(value)
+                    ? state.connectivity.filter((v) => v !== value)
+                    : [...state.connectivity, value],
+            })),
+
+        toggleDisplay: (value) =>
+            set((state) => ({
+                display: state.display.includes(value)
+                    ? state.display.filter((v) => v !== value)
+                    : [...state.display, value],
+            })),
+
+        toggleOperatingSystem: (value) =>
+            set((state) => ({
+                operatingSystem: state.operatingSystem.includes(value)
+                    ? state.operatingSystem.filter((v) => v !== value)
+                    : [...state.operatingSystem, value],
+            })),
+
+        toggleRam: (value) =>
+            set((state) => ({
+                ram: state.ram.includes(value)
+                    ? state.ram.filter((v) => v !== value)
+                    : [...state.ram, value],
+            })),
 
         setSortType: (type) => set({ sortType: type }),
 
@@ -62,36 +107,46 @@ const createFilterStore = (priceOptions) => {
 
         setPriceRangeSlider: (range) => set({ priceRangeSlider: range }),
 
-        toggleOs: (value) =>
-            set((state) => ({
-                os: state.os.includes(value)
-                    ? state.os.filter((v) => v !== value)
-                    : [...state.os, value],
-            })),
-
-        toggleRom: (value) =>
-            set((state) => ({
-                rom: state.rom.includes(value)
-                    ? state.rom.filter((v) => v !== value)
-                    : [...state.rom, value],
-            })),
-
-        toggleConnection: (value) =>
-            set((state) => ({
-                connection: state.connection.includes(value)
-                    ? state.connection.filter((v) => v !== value)
-                    : [...state.connection, value],
-            })),
-
         resetFilters: () =>
             set({
                 priceRange: ["all"],
                 priceRangeSlider: [0, 46990000],
-                os: [],
-                rom: [],
-                connection: [],
+                storage: [],
+                connectivity: [],
+                display: [],
+                operatingSystem: [],
+                ram: [],
             }),
     }));
 };
+
+// Hàm tạo specFilters động từ specificationAggregations (nếu có), fallback về options mặc định nếu không có data
+export const getDynamicSpecFilters = (aggregations = {}, cateType = "phone") => {
+    const base = baseSpecFilters[cateType] || baseSpecFilters.default;
+
+    return base.map((spec) => {
+        const groupKey = spec.group;
+        const aggValues = aggregations[groupKey];
+
+        if (aggValues && Object.keys(aggValues).length > 0) {
+            // Lấy tất cả value có trong aggregation và sort để hiển thị đẹp
+            const dynamicOptions = Object.keys(aggValues).sort();
+            return { ...spec, options: dynamicOptions };
+        }
+
+        // Fallback options mặc định nếu aggregation rỗng hoặc chưa có data
+        const fallbackOptions = {
+            Storage: ["≤128 GB", "256 GB", "512 GB", "1 TB"],
+            Connectivity: ["5G"],
+            Display: ["Dưới 6.1 inch", "6.1 - 6.7 inch", "Trên 6.7 inch"],
+            OperatingSystem: ["iOS", "Android"],
+            RAM: ["16 GB", "12 GB", "8 GB", "6 GB", "4 GB", "3 GB"],
+        }[groupKey] || [];
+
+        return { ...spec, options: fallbackOptions };
+    });
+};
+
+export const specFilters = baseSpecFilters;
 
 export const useFilterStore = createFilterStore(priceOptions);

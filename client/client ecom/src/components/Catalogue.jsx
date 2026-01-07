@@ -510,7 +510,7 @@ const Catalogue = () => {
                             state: {
                               type: "category",
                               categoryId: item.id,
-                              cateType: 'phone'
+                              cateType: 'phoneChild'
                             }
                           })}
                         >

@@ -11,6 +11,7 @@ import DoublePriceRangeSlider from "./DoublePriceRangeSlider";
 import { IoFilter } from "react-icons/io5";
 import { IoIosArrowUp } from "react-icons/io";
 import { specFilters } from "../api, function/searchPageFunction";
+import { getDynamicSpecFilters } from "../api, function/searchPageFunction";
 
 function FilterToggle({ title, children }) {
     const [open, setOpen] = useState(true);
@@ -54,10 +55,13 @@ function FilterToggle({ title, children }) {
     );
 }
 
-export default function LeftFilter({ isSliderDefault, min, max, isClearChip, setIsClearChip, cateType }) {
+export default function LeftFilter({ isSliderDefault, min, max, isClearChip, setIsClearChip, cateType, aggregations = {} }) {
     const {
-        os,
-        toggleOs,
+        storage, toggleStorage,
+        connectivity, toggleConnectivity,
+        display, toggleDisplay,
+        operatingSystem, toggleOperatingSystem,
+        ram, toggleRam,
         priceRange,
         togglePrice,
         toggleAllPrices,
@@ -71,7 +75,7 @@ export default function LeftFilter({ isSliderDefault, min, max, isClearChip, set
     // THÊM STATE NÀY ĐỂ ĐIỀU KHIỂN SLIDER
     const [sliderValue, setSliderValue] = useState([min, max]); // [0, 46990]
 
-    const currentSpecs = specFilters[cateType] || specFilters.default;
+    const currentSpecs = getDynamicSpecFilters(aggregations, cateType);
 
     // Hàm reset slider khi tick checkbox
     const resetSliderToDefault = useCallback(() => {
@@ -170,18 +174,30 @@ export default function LeftFilter({ isSliderDefault, min, max, isClearChip, set
                 />
             </FilterToggle>
             {currentSpecs.map((specGroup) => (
-                <FilterToggle key={specGroup.key} title={specGroup.group}>
-                    <div className="grid grid-cols-2 gap-2 text-[12px]">
-                        {specGroup.options.map((option) => (
-                            <button
-                                key={option}
-                                type="button"
-                                className="border border-gray-300 rounded px-2 py-[3px] text-gray-600 hover:bg-gray-100"
-                            // TODO: sau này sẽ thêm toggle logic cho từng spec
-                            >
-                                {option}
-                            </button>
-                        ))}
+                <FilterToggle key={specGroup.key} title={specGroup.groupName}>
+                    <div className="text-[12px] flex flex-wrap gap-2">
+                        {specGroup.options.map((option) => {
+                            let selectedArray, toggleFunc;
+                            if (specGroup.group === "Storage") { selectedArray = storage; toggleFunc = toggleStorage; }
+                            else if (specGroup.group === "Connectivity") { selectedArray = connectivity; toggleFunc = toggleConnectivity; }
+                            else if (specGroup.group === "Display") { selectedArray = display; toggleFunc = toggleDisplay; }
+                            else if (specGroup.group === "OperatingSystem") { selectedArray = operatingSystem; toggleFunc = toggleOperatingSystem; }
+                            else if (specGroup.group === "RAM") { selectedArray = ram; toggleFunc = toggleRam; }
+                            const isSelected = selectedArray.includes(option);
+                            return (
+                                <button
+                                    key={option}
+                                    type="button"
+                                    onClick={() => toggleFunc(option)}
+                                    className={`border rounded px-3 py-1 transition-colors ${isSelected
+                                        ? "border-blue-500 bg-blue-50 text-blue-700"
+                                        : "border-gray-300 text-gray-600 hover:bg-gray-100"
+                                        }`}
+                                >
+                                    {option}
+                                </button>
+                            );
+                        })}
                     </div>
                 </FilterToggle>
             ))}
