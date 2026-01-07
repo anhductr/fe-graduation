@@ -108,11 +108,16 @@ export default function InventoryList() {
         isError: isErrorStockHistory,
         error: errorStockHistory,
     } = useQuery({
-        queryKey: ["stockins", { page, size }],
+        queryKey: ["stockins", { page, size, startDate: startDate.toISOString(), endDate: endDate.toISOString() }],
         queryFn: fetchStockInHistory,
         refetchOnMount: "always",
         keepPreviousData: true,
     });
+
+    useEffect(() => {
+        queryClient.invalidateQueries({ queryKey: ["stockins", { page, size }] });
+        setPage(1); // optional: reset về trang 1 khi thay đổi ngày
+    }, [startDate, endDate, queryClient]);
 
     // Khi có dữ liệu:
     const stockInHistory = stockInHistoryData?.data;
@@ -344,12 +349,12 @@ export default function InventoryList() {
                                 </TableHead>
                                 <TableBody>
                                     {inventory?.map((inv) => (
-                                        <TableRow key={inv.productName}>
-                                            <TableCell>{inv.productName}</TableCell>
+                                        <TableRow key={inv.id}>
+                                            <TableCell>{inv.variantName}</TableCell>
                                             <TableCell align='center'>{inv.quantity}</TableCell>
                                             <TableCell align='center'>{getStatus(inv)}</TableCell>
                                             <TableCell>
-                                                <Button variant="contained" className='!ml-auto !normal-case !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow' onClick={() => { handleOpenTransactionModal(inv.productId) }}>
+                                                <Button variant="contained" className='!ml-auto !normal-case !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow' onClick={() => { handleOpenTransactionModal(inv.sku) }}>
                                                     <span className='ml-1 text-[12px]'>Xem lịch sử giao dịch</span>
                                                 </Button>
                                             </TableCell>

@@ -444,7 +444,7 @@ export default function ProductUpload() {
       {
         nameGroup: "RAM",
         specs: [
-          { key: "Dung lượng", value: "", type: "TECH", group: "Performance" },
+          { key: "Dung lượng", value: "", type: "TECH", group: "RAM" },
         ]
       },
       {
@@ -529,9 +529,9 @@ export default function ProductUpload() {
       {
         nameGroup: "RAM",
         specs: [
-          { key: "Dung lượng", value: "", type: "TECH", group: "Performance" },
-          { key: "Loại Ram", value: "", type: "TECH", group: "Performance" },
-          { key: "Tốc độ Ram", value: "", type: "TECH", group: "Performance" },
+          { key: "Dung lượng", value: "", type: "TECH", group: "RAM" },
+          { key: "Loại Ram", value: "", type: "TECH", group: "RAM" },
+          { key: "Tốc độ Ram", value: "", type: "TECH", group: "RAM" },
         ]
       },
       {
@@ -1151,7 +1151,7 @@ export default function ProductUpload() {
                   style={{ display: "none" }}
                   onChange={handleImgFileSelect}
                 />
-                {imageList.length < 9 && (
+                {imageList.length < 10 && (
                   <IconButton
                     onClick={() => {
                       currentIndexRef.current = imageList.length;

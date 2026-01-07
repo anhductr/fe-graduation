@@ -299,25 +299,7 @@ export default function ProductList() {
 
 
     //xử lý search
-    const [searchTerm, setSearchTerm] = useState("");
-    // const filteredProducts = useMemo(() => {
-    //     return products.filter((p) => {
-    //         //Kiểm tra tên sản phẩm
-    //         const matchesName =
-    //             !searchTerm ||
-    //             p.name.toLowerCase().includes(searchTerm.toLowerCase());
-
-    //         //Kiểm tra danh mục
-    //         const matchesCategory =
-    //             listCategoryId.length === 0 ||
-    //             p.listCategory?.some((cate) =>
-    //                 listCategoryId.includes(cate.id)
-    //             );
-
-    //         // 3️⃣ Trả về nếu thỏa cả hai điều kiện
-    //         return matchesName && matchesCategory;
-    //     });
-    // }, [products, searchTerm, listCategoryId]);
+    const [searchKeyword, setSearchKeyword] = useState("");
 
 
 
@@ -362,10 +344,16 @@ export default function ProductList() {
                         }}
                     >
                         <SearchBar
-                            ref={inputSearchRef}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onSelectProduct={(selected) => {
+                                if (selected) {
+                                    setSearchKeyword(selected.label);
+                                    // Thêm logic filter hoặc invalidate query ở đây nếu cần
+                                } else {
+                                    setSearchKeyword("");
+                                }
+                            }}
                         />
-                        <Button size="medium"
+                        {/* <Button size="medium"
                             className={`${isToggleFilter ? "!border-2 !border-gray-500" : "!border !border-[#ccc]"} !text-[#403e57] !ml-4 !px-3 !rounded-[10px] !hover:bg-gray-100 !normal-case`}
                             variant="outlined"
                             onClick={isOpenFilter}
@@ -373,14 +361,14 @@ export default function ProductList() {
                             <VscFilter className='' />
                             <span className='ml-1'>Bộ lọc</span>
                             <IoIosArrowUp className={`ml-1 transition-transform duration-200 ${isToggleFilter ? "rotate-180" : "rotate-0"}`} />
-                        </Button>
+                        </Button> */}
                         <Button variant="contained" className='!ml-auto !normal-case !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow' component={Link} to="/products/products-upload">
                             <FaPlus className='mr-1' />
                             <span className='ml-1'>Thêm sản phẩm mới</span>
                         </Button>
                     </div>
                     {/* filter */}
-                    <div
+                    {/* <div
                         aria-label="submenu"
                         className={`${isToggleFilter === true ? "pointer-events-auto" : "h-[0px] opacity-0 pointer-events-none"} !text-[rgba(0,0,0,0.7)] overflow-hidden transition-all duration-300 flex flex-col gap-3`}
                     >
@@ -412,7 +400,7 @@ export default function ProductList() {
                                 </Button>
                             </div>
                         </div>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* product list */}

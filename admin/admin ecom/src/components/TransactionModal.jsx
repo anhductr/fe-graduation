@@ -47,7 +47,7 @@ export default function TransactionModal({ onClose, productId }) {
     //api function
     const getTransactionData = async (productId) => {
         const res = await axios.get(
-            `/api/v1/inventory-service/inventory/transactions?productId=${productId}`,
+            `/api/v1/inventory-service/inventory/transactions?sku=${productId}`,
             {
                 headers:
                 {

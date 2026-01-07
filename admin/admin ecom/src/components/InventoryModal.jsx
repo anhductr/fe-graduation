@@ -28,7 +28,7 @@ const style = {
     top: '50%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
-    width: 900,
+    width: 1000,
     maxWidth: '95vw',
     bgcolor: 'background.paper',
     boxShadow: 24,
@@ -53,36 +53,47 @@ export default function InventoryModal({ onClose, initialData = null }) {
     // Load danh sách items từ initialData (nếu có)
     useEffect(() => {
         if (initialData?.items && initialData.items.length > 0) {
-            const loadedItems = initialData.items.map(item => ({
-                // Cần có id tạm để React key (nếu backend không trả thì tự sinh)
-                id: `edit-${Date.now()}-${Math.random()}`,
-                productId: item.productId,
-                productName: item.productName || "", // backend nên trả kèm tên để hiển thị
-                selectedProduct: item.productId ? {
-                    id: item.productId,
-                    label: item.productName || item.productId
-                } : null,
-                quantity: item.quantity,
-                unitCost: item.unitCost,
-                totalCost: item.quantity * item.unitCost
-            }));
-            setItems(loadedItems);
+            const loadItemsWithColor = async () => {
+                const loadedItems = await Promise.all(
+                    initialData.items.map(async (item) => {
+                        const color = await fetchColorBySku(item.sku);
+                        return {
+                            id: `edit-${Date.now()}-${Math.random()}`,
+                            productId: item.productId,
+                            productName: item.productName || item.variantName || "",
+                            selectedProduct: {
+                                id: item.productId,
+                                label: item.productName || item.variantName || item.productId
+                            },
+                            sku: item.sku || '',
+                            quantity: item.quantity,
+                            unitCost: item.unitCost,
+                            totalCost: item.totalCost || item.quantity * item.unitCost,
+                            color: color  // thêm trường color để hiển thị ở chế độ xem
+                        };
+                    })
+                );
+                setItems(loadedItems);
+            };
+            loadItemsWithColor();
         }
     }, [initialData]);
 
-    //api function
-    const getInventoryData = async (productId) => {
-        const res = await axios.get(
-            `/api/v1/inventory-service/inventory/get/${productId}`,
-            {
-                headers:
-                {
-                    Authorization: `Bearer ${token}`
-                }
-            }
-        );
-        return res.data.result;
-    }
+    const fetchColorBySku = async (sku) => {
+        if (!sku) return '-';
+        console.log(sku);
+        try {
+            const res = await axios.get(`/api/v1/inventory-service/inventory/get`, {
+                headers: { Authorization: `Bearer ${token}` },
+                params: { sku }
+            });
+            // Giả sử backend trả về color trong result (ví dụ: result.color hoặc result.variant.color)
+            return res.data.result?.color || res.data.result?.variant?.color || '-';
+        } catch (err) {
+            console.error("Lỗi lấy màu từ sku:", err);
+            return '-';
+        }
+    };
 
     // Xóa dòng
     const handleRemoveItem = (id) => {
@@ -92,12 +103,14 @@ export default function InventoryModal({ onClose, initialData = null }) {
     const handleAddItem = () => {
         setItems([...items, {
             id: Date.now().toString() + Math.random(),
-            productId: null,           // lưu ID thật
-            productName: '',           // hiển thị
-            selectedProduct: null,     // lưu object {id, label}
+            productId: null,
+            productName: '',
+            selectedProduct: null,
+            sku: '',
             quantity: '',
             unitCost: 0,
-            totalCost: 0
+            totalCost: 0,
+            color: '-'  // mặc định
         }]);
     };
 
@@ -111,7 +124,6 @@ export default function InventoryModal({ onClose, initialData = null }) {
                     } else if (field === 'unitCost') {
                         updated.unitCost = Number(value) || 0;
                     }
-                    updated.totalCost = updated.quantity * updated.unitCost;
                     return updated;
                 })()
                 : item
@@ -161,14 +173,12 @@ export default function InventoryModal({ onClose, initialData = null }) {
             supplierName: supplierName.trim(),
             referenceCode: referenceCode.trim(),
             note: note.trim() || null,
-            totalAmount: items.reduce((sum, item) => sum + (item.totalCost || 0), 0),
             items: items
-                .filter(item => item.productId && item.quantity > 0 && item.unitCost >= 0)
+                .filter(item => item.quantity > 0 && item.unitCost >= 0)
                 .map(item => ({
-                    productId: item.productId,
+                    sku: item.sku,
                     quantity: Number(item.quantity),
-                    unitCost: Number(item.unitCost),
-                    totalCost: Number(item.totalCost)
+                    unitCost: Number(item.unitCost)
                 }))
         };
 
@@ -176,6 +186,8 @@ export default function InventoryModal({ onClose, initialData = null }) {
             alert("Không có sản phẩm hợp lệ để nhập kho!");
             return;
         }
+
+        console.log("payload: ", payload);
 
         // Gửi dữ liệu qua mutation
         createStockInMutation.mutate(payload);
@@ -244,24 +256,41 @@ export default function InventoryModal({ onClose, initialData = null }) {
                                 borderRight: "1px solid #e0e0e0",
                                 borderLeft: "1px solid #e0e0e0",
                             }}>
-                                <Table>
+                                <Table
+                                    sx={{
+                                        '& .MuiTableCell-body': {
+                                            fontSize: '13px'
+                                        },
+                                        // Quan trọng: override fontSize cho các input/select bên trong TableCell
+                                        '& .MuiInputBase-root': {
+                                            fontSize: '15px',
+                                        },
+                                        '& .MuiSelect-select': {
+                                            fontSize: '15px',
+                                        },
+                                        '& .MuiAutocomplete-input': {
+                                            fontSize: '13px',
+                                        }
+                                    }}
+
+                                >
                                     <TableHead
                                         sx={{
                                             backgroundColor: "#f5f5f5",
                                             '& .MuiTableCell-root': {
-                                                fontSize: '17px',
+                                                fontSize: '14px',
                                                 fontWeight: 600,
                                                 color: '#333',
                                             },
                                         }}
                                     >
                                         <TableRow>
-                                            <TableCell>Tên sản phẩm</TableCell>
-                                            <TableCell align="center">Số lượng</TableCell>
-                                            <TableCell align="center">Giá đơn vị</TableCell>
-                                            <TableCell align="center">Tổng tiền</TableCell>
+                                            <TableCell sx={{ width: "30%" }}>Tên sản phẩm</TableCell>
+                                            <TableCell sx={{ width: "16%" }} align="center">Màu</TableCell>
+                                            <TableCell sx={{ width: "8%" }} align="center">Số lượng</TableCell>
+                                            <TableCell sx={{ width: "16%" }} align="center">Giá đơn vị</TableCell>
                                             {!isWatchMode && (
-                                                <TableCell align="center" sx={{ fontWeight: 'bold' }}>Thao tác</TableCell>
+                                                <TableCell align="center" sx={{ fontWeight: 'bold', width: "14%" }}>Thao tác</TableCell>
                                             )}
                                         </TableRow>
                                     </TableHead>
@@ -279,13 +308,12 @@ export default function InventoryModal({ onClose, initialData = null }) {
                                                     <InvAddTableRow
                                                         item={item}
                                                         isWatchMode={isWatchMode}
-                                                        onChange={(field, value) => {
+                                                        onItemChange={(field, value) => {
                                                             setItems(prev => prev.map(i =>
                                                                 i.id === item.id ? { ...i, [field]: value } : i
                                                             ));
                                                         }}
                                                         onRemove={() => handleRemoveItem(item.id)}
-                                                        onItemChange={(field, value) => onItemChange(item.id, field, value)}
                                                         token={token}
                                                     />
                                                 </TableRow>

@@ -437,68 +437,63 @@ export default function CateList() {
                     <Boxes color={"#dd92f4ff"} header={"Danh mục cha"} icon={<CiBoxList />} ></Boxes>
                 </div>
 
-                <div className="shadow border-0 p-5 my-[20px] bg-white rounded-[10px]">
-                    {/* <div className="w-screen pt-2 pb-4 font-semibold text-gray-900 text-[20px]">
-                        Danh sách thể loại
-                    </div> */}
-
-                    {/* Tabs */}
-                    <Tabs
-                        value={tabValue}
-                        onChange={handleTabChange}
-                        aria-label="tabs danh mục và thương hiệu"
-                        sx={{
-                            mb: 3,
-                            '& .MuiTabs-indicator': {
-                                backgroundColor: '#4a2fcf',
-                            },
-                        }}
+                <div className="shadow border-0 p-4 my-[20px] bg-white rounded-[10px]">
+                    <div
+                        className="py-1 relative flex items-center"
                     >
-                        <Tab
-                            label="Danh sách thể loại"
+                        {/* Tabs */}
+                        <Tabs
+                            value={tabValue}
+                            onChange={handleTabChange}
+                            aria-label="tabs danh mục và thương hiệu"
                             sx={{
-                                textTransform: 'none',
-                                fontWeight: 600,
-                                fontSize: '18px',
-                                '&.Mui-selected': {
-                                    color: '#4a2fcf',
+                                mb: 1,
+                                '& .MuiTabs-indicator': {
+                                    backgroundColor: '#4a2fcf',
                                 },
                             }}
-                        />
-                        <Tab
-                            label="Quản lý thương hiệu"
-                            sx={{
-                                textTransform: 'none',
-                                fontWeight: 600,
-                                fontSize: '18px',
-                                '&.Mui-selected': {
-                                    color: '#4a2fcf',
-                                },
-                            }}
-                        />
-                    </Tabs>
+                        >
+                            <Tab
+                                label="Danh sách thể loại"
+                                sx={{
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    fontSize: '18px',
+                                    '&.Mui-selected': {
+                                        color: '#4a2fcf',
+                                    },
+                                }}
+                            />
+                            <Tab
+                                label="Quản lý thương hiệu"
+                                sx={{
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    fontSize: '18px',
+                                    '&.Mui-selected': {
+                                        color: '#4a2fcf',
+                                    },
+                                }}
+                            />
+                        </Tabs>
+
+                        {tabValue === 0 && (
+                            <Button variant="contained" className='!ml-auto !normal-case !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow' component={Link} to="/categories/categories-upload">
+                                <FaPlus className='mr-1' />
+                                <span className='ml-1'>Thêm thể loại mới</span>
+                            </Button>
+                        )}
+
+                        {tabValue === 1 && (
+                            <Button variant="contained" className='!ml-auto !normal-case !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow' component={Link} to="/categories/brand-upload">
+                                <FaPlus className='mr-1' />
+                                <span className='ml-1'>Thêm thương hiệu mới</span>
+                            </Button>
+                        )}
+                    </div>
+
                     {tabValue === 0 && (
                         <>
-                            {/* search bar + filter */}
-                            <div
-                                className="py-5 relative flex"
-                                onClick={(e) => {
-                                    if (inputSearchRef.current && e.target !== inputSearchRef.current) {
-                                        inputSearchRef.current.blur(); // click ngoài -> blur input
-                                    }
-                                }}
-                            >
-                                <SearchBar ref={inputSearchRef} />
-                                <Button size="medium" className='!text-[#403e57] !border !border-[#ccc] !ml-4 !px-3 !rounded-[10px] !hover:bg-gray-100 !normal-case' variant="outlined" >
-                                    <VscFilter className='' />
-                                    <span className='ml-1'>Bộ lọc</span>
-                                    <IoIosArrowUp className='ml-1' />
-                                </Button>
-                                <Button variant="contained" className='!ml-auto !normal-case !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow' component={Link} to="/categories/categories-upload">
-                                    <FaPlus className='mr-1' />
-                                    <span className='ml-1'>Thêm thể loại mới</span>
-                                </Button>
-                            </div>
                             {/* table */}
                             <div className=''>
                                 <TableContainer component={Paper} sx={{
@@ -529,23 +524,6 @@ export default function CateList() {
 
                     {tabValue === 1 && (
                         <>
-                            {/* search bar + filter */}
-                            <div
-                                className="py-5 relative flex"
-                                onClick={(e) => {
-                                    if (inputSearchRef.current && e.target !== inputSearchRef.current) {
-                                        inputSearchRef.current.blur(); // click ngoài -> blur input
-                                    }
-                                }}
-                            >
-                                <SearchBar ref={inputSearchRef} />
-
-                                <Button variant="contained" className='!ml-auto !normal-case !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow' component={Link} to="/categories/brand-upload">
-                                    <FaPlus className='mr-1' />
-                                    <span className='ml-1'>Thêm thương hiệu mới</span>
-                                </Button>
-                            </div>
-
                             <TableContainer component={Paper} sx={{
                                 borderTop: "1px solid #e0e0e0",
                                 borderRight: "1px solid #e0e0e0",

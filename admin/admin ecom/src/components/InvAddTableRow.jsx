@@ -3,11 +3,14 @@ import { FaTrash } from "react-icons/fa";
 import axios from "axios";
 import debounce from 'lodash.debounce';
 import { useState, useMemo, useEffect } from 'react';
+import { Select, MenuItem } from "@mui/material";
 
-export default function InvAddTableRow({ item, onChange, onRemove, token, onItemChange, isWatchMode }) {
+export default function InvAddTableRow({ item, onRemove, token, onItemChange, isWatchMode }) {
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [variantOptions, setVariantOptions] = useState([]); // Danh sách variant (màu + sku)
+  const [selectedVariantSku, setSelectedVariantSku] = useState(item.sku || '');
 
   const searchProducts = async (keyword) => {
     if (!keyword || keyword.trim().length < 2) return [];
@@ -17,8 +20,8 @@ export default function InvAddTableRow({ item, onChange, onRemove, token, onItem
         { productName: keyword.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      console.log("response search: ", res.data.result.data)
-      return res.data.result.data || [];
+      console.log("response search: ", res)
+      return res.data.result.productGetVMList || [];
     } catch (err) {
       console.error(err);
       return [];
@@ -31,7 +34,8 @@ export default function InvAddTableRow({ item, onChange, onRemove, token, onItem
       const results = await searchProducts(keyword);
       const newOpts = results.map(r => ({
         id: r.id,
-        label: r.name
+        label: r.name,
+        variants: r.variants || []
       }));
 
       // Tạo một Map với id làm key → Map tự động loại trùng key (giữ lại cái cuối cùng)
@@ -62,6 +66,30 @@ export default function InvAddTableRow({ item, onChange, onRemove, token, onItem
     }
   }, [item.unitCost]);
 
+  useEffect(() => {
+    if (item.selectedProduct && item.selectedProduct.variants) {
+      const variants = item.selectedProduct.variants || [];
+      const opts = variants.map(v => ({
+        label: v.color || 'Không có màu',
+        sku: v.sku
+      }));
+      setVariantOptions(opts);
+
+      // Nếu đã có sku cũ thì giữ lại chọn màu tương ứng
+      const existing = opts.find(o => o.sku === item.sku);
+      if (existing) {
+        setSelectedVariantSku(item.sku);
+      } else {
+        setSelectedVariantSku('');
+        onItemChange('sku', ''); // reset sku nếu không khớp
+      }
+    } else {
+      setVariantOptions([]);
+      setSelectedVariantSku('');
+      onItemChange('sku', '');
+    }
+  }, [item.selectedProduct]);
+
   // Hàm format số → tiền Việt Nam
   const formatVND = (num) => {
     if (!num) return '';
@@ -89,10 +117,15 @@ export default function InvAddTableRow({ item, onChange, onRemove, token, onItem
             noOptionsText="không có kết quả..."
 
             onChange={(e, newVal) => {
-              onChange('selectedProduct', newVal);
-              onChange('productName', newVal?.label || '');
-              onChange('productId', newVal?.id || null);
+              onItemChange('selectedProduct', newVal);
+              onItemChange('productName', newVal?.label || '');
+              onItemChange('productId', newVal?.id || null);
               if (newVal) setOptions([newVal]);
+
+              // Reset variant khi đổi sản phẩm
+              setVariantOptions([]);
+              setSelectedVariantSku('');
+              onItemChange('sku', '');
             }}
 
             onInputChange={handleInputChange}
@@ -116,6 +149,36 @@ export default function InvAddTableRow({ item, onChange, onRemove, token, onItem
           />
         </TableCell>
       )}
+
+      {/* Cột Màu (Variant) */}
+      <TableCell align="center">
+        {isWatchMode ? (
+          item.color || '-'  // hiển thị màu lấy từ API
+        ) : (
+          <Select
+            size="small"
+            value={selectedVariantSku}
+            onChange={(e) => {
+              const newSku = e.target.value;
+              setSelectedVariantSku(newSku);
+              onItemChange('sku', newSku);
+            }}
+            displayEmpty
+            disabled={!item.selectedProduct || variantOptions.length === 0}
+            sx={{ width: 160 }}
+            renderValue={(selected) => {
+              if (!selected) return <span style={{ color: '#aaa' }}>Chọn màu</span>;
+              return variantOptions.find(v => v.sku === selected)?.label || '';
+            }}
+          >
+            {variantOptions.map((opt) => (
+              <MenuItem key={opt.sku} value={opt.sku}>
+                {opt.label}
+              </MenuItem>
+            ))}
+          </Select>
+        )}
+      </TableCell>
 
       {/* Cột Số lượng */}
       <TableCell align="center">
@@ -151,7 +214,6 @@ export default function InvAddTableRow({ item, onChange, onRemove, token, onItem
               // Cập nhật hiển thị (có dấu chấm)
               setDisplayUnitCost(formatVND(numValue));
 
-              // Gửi số thực (không dấu chấm) về parent để tính totalCost
               onItemChange('unitCost', numValue);
             }}
             placeholder="0"
@@ -182,10 +244,6 @@ export default function InvAddTableRow({ item, onChange, onRemove, token, onItem
         )}
       </TableCell>
 
-      {/* Tổng tiền */}
-      <TableCell align='center' sx={{ fontWeight: 'bold', fontSize: '13px' }}>
-        {item.totalCost?.toLocaleString('vi-VN') || 0} ₫
-      </TableCell>
       {!isWatchMode && (
         <TableCell align="center">
           <IconButton color="error" size="small" onClick={onRemove}>
