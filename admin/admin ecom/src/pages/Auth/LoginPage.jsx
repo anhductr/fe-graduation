@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react";
-import { useLoginContext } from "../context/LoginContext";
+import { useLoginContext } from "../../context/LoginContext";
 import { useNavigate } from "react-router-dom";
 
 export default function LoginPage() {

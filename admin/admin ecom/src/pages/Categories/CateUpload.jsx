@@ -1,361 +1,512 @@
-import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
-import { useState, useEffect } from 'react';
-import Button from '@mui/material/Button';
-import { FaCloudUploadAlt } from "react-icons/fa";
-import axios from 'axios';
-import { useNavigate } from 'react-router';
-import { useLocation } from 'react-router-dom';
-import CloseIcon from '@mui/icons-material/Close';
-import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import {
-    Box,
-    IconButton,
-    Switch,
+  Box,
+  IconButton,
+  Button,
+  CircularProgress,
+  Switch,
 } from "@mui/material";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CircularProgress } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
+import { FaCloudUploadAlt } from "react-icons/fa";
+import { api } from "../../libs/axios.js";
 
+// Constants
+const MEDIA_OWNER_TYPE = "CATEGORY";
 
 export default function CateUpload() {
-    const token = localStorage.getItem("token");
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams();
+  const queryClient = useQueryClient();
+  const parentIdFromLocation = location.state?.parentId ?? null;
 
-    const [name, setName] = useState("");
-    const [description, setDescription] = useState("");
-    const [parentId, setParentId] = useState(null);
-    const [parentName, setParentName] = useState("");
-    const [img, setImg] = useState(null);
-    const [special, setSpecial] = useState(false);
+  const isEditMode = !!id;
 
-    const navigate = useNavigate();
-    const location = useLocation();
+  // State
+  const [form, setForm] = useState({
+    name: "",
+    description: "",
+    parentId: null,
+    special: false,
+  });
 
+  const [img, setImg] = useState({
+    file: null,
+    preview: null,
+    isExisting: false,
+  });
 
-    useEffect(() => {
-        const getCategoryById = async () => {
-            try {
-                const res = await axios.get(`/api/v1/product-service/category/cate/${location.state.parentId}`, {
-                    headers: {
-                        Authorization: token ? `Bearer ${token}` : "",
-                    },
-                });
-                setParentName(res.data.result.name);
-            } catch (err) {
-                console.error("Lỗi khi gọi API danh mục cha", err);
-                if (err.response) {
-                    // Lỗi do server trả về
-                    console.error("Lỗi từ server:", err.response.data);
-                    console.error("Status code:", err.response.status);
-                } else if (err.request) {
-                    // Request gửi đi nhưng không nhận được phản hồi
-                    console.error("Không có phản hồi từ server:", err.request);
-                } else {
-                    // Lỗi khác (ví dụ cấu hình sai)
-                    console.error("Lỗi khi setup request:", err.message);
-                }
-            }
-        };
-        if (location.state?.parentId) {
-            setParentId(location.state.parentId);
-            getCategoryById();
-        }
-    }, [location.state]);
-
-    // Thêm state mới (thay thế cho parentCates)
-    const [rootId, setRootId] = useState(null);
-    const [rootName, setRootName] = useState("");
-
-    // Trong useEffect
-    useEffect(() => {
-        const fetchCates = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                const res = await axios.get(
-                    "/api/v1/product-service/category/getAll",
-                    {
-                        headers: {
-                            Authorization: token ? `Bearer ${token}` : "",
-                        },
-                    }
-                );
-
-                console.log("API danh mục trả về: ", res.data);
-
-                const allCategories = res.data.result || [];
-
-                // Tìm danh mục duy nhất có parentId === null
-                const root = allCategories.find(
-                    (cate) => cate.parentId === null
-                );
-
-                // Lưu trực tiếp danh mục gốc
-                if (root) {
-                    setRootId(root.id);
-                    setRootName(root.name);
-                }
-
-            } catch (err) {
-                console.error("Lỗi khi gọi API danh mục:", err);
-            }
-        };
-
-        fetchCates();
-    }, []);
-
-    // useEffect(() => {
-    //     console.log("parentId: ", parentId);
-    // }, [parentId]);
-
-    // useEffect(() => {
-    //     console.log("img: ", img);
-    // }, [img]);
-
-    useEffect(() => {
-        console.log("root: ", rootName);
-    }, [rootName]);
-
-    // Xử lý thay đổi file ảnh
-    const handleImgFileChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const preview = URL.createObjectURL(file);
-            setImg({ file, preview });
-        }
-    };
-
-    const handleImgFileRemove = (e) => {
-        e.stopPropagation();
-        setImg(null);
-    };
-
-    const openImgFilePicker = () => {
-        document.getElementById("img-input").click();
-    };
-
-    //form
-    const queryClient = useQueryClient();
-
-    const createCate = async (body) => {
-        const token = localStorage.getItem("token");
-
-        console.log("body gửi đi: ", body);
-
-        const res = await axios.post("/api/v1/product-service/category/create", body, {
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: token ? `Bearer ${token}` : "",
-            },
-        });
-
-        console.log("Response từ tạo danh mục: ", res.data);
-
-        const cateId = res.data?.result?.id;
-        let uploadRes;
-
-        if (img && cateId) {
-            const formData = new FormData();
-            formData.append("multipartFile", img.file);
-            formData.append("ownerId", cateId);
-
-            uploadRes = await axios.post(
-                "/api/v1/media-service/media/category/media",
-                formData,
-                {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                        Authorization: token ? `Bearer ${token}` : "",
-                    },
-                }
-            );
-        }
-
-        return uploadRes?.data || res.data;
-    }
-
-    // Dùng useMutation
-    const createMutation = useMutation({
-        mutationFn: createCate,
-        onSuccess: (res) => {
-            queryClient.invalidateQueries(["categories"]);
-
-            navigate("/categories", {
-                state: {
-                    popup: {
-                        open: true,
-                        severity: "success",
-                        message: "Thêm danh mục thành công!",
-                        vertical: "top",
-                        horizontal: "center",
-                    },
-                },
-            });
-        },
-        onError: (err) => {
-            navigate("/categories", {
-                state: {
-                    popup: {
-                        open: true,
-                        severity: "error",
-                        message: err.response?.data?.message || "Tạo danh mục thất bại!",
-                        vertical: "top",
-                        horizontal: "center",
-                    },
-                },
-            });
-        },
+  const { data: allCategories = [], isLoading: isLoadingAllCategories } =
+    useQuery({
+      queryKey: ["all-categories"],
+      queryFn: async () => {
+        const res = await api.get("/product-service/category/getAll");
+        return res.data.result || [];
+      },
     });
 
-    // Xử lý submit form
-    const handleSubmit = async (e) => {
-        e.preventDefault(); // chặn reload trang
-        const body = {
-            name,
-            description,
-            parentId: !location.state ? rootId : parentId,
-            special
-        };
+  const {
+    data: existingCategory,
+    isLoading: isLoadingCategory,
+    error: categoryError,
+  } = useQuery({
+    queryKey: ["category", id],
+    queryFn: async () => {
+      const res = await api.get(`/product-service/category/cate/${id}`);
+      return res.data.result;
+    },
+    enabled: isEditMode,
+  });
 
-        console.log("Submitting body: ", body);
-        createMutation.mutate(body);
+  // Fetch media for existing category
+  const { data: existingMedia = [] } = useQuery({
+    queryKey: ["category-media", id],
+    queryFn: async () => {
+      const res = await api.get("/media-service/media/product/get-media", {
+        params: {
+          ownerId: id,
+          mediaOwnerType: MEDIA_OWNER_TYPE,
+        },
+      });
+      return res.data?.result?.mediaResponseList || [];
+    },
+    enabled: isEditMode,
+  });
+
+  // ============ COMPUTED VALUES ============
+
+  // Get all descendant IDs to prevent circular reference
+  const getDescendantIds = useMemo(() => {
+    if (!id || !allCategories.length) return [];
+
+    const descendants = [];
+    const findDescendants = (parentId) => {
+      allCategories.forEach((cat) => {
+        if (cat.parentId === parentId) {
+          descendants.push(cat.id);
+          findDescendants(cat.id); // Recursively find children
+        }
+      });
     };
 
+    findDescendants(id);
+    return descendants;
+  }, [id, allCategories]);
 
+  // Filter available parent categories (exclude self and descendants)
+  const availableParents = useMemo(() => {
+    return allCategories.filter(
+      (c) => c.id !== id && !getDescendantIds.includes(c.id)
+    );
+  }, [allCategories, id, getDescendantIds]);
+
+  // ============ EFFECTS ============
+
+  // Initialize form data in edit mode
+  useEffect(() => {
+    if (isEditMode && existingCategory && form.name === "") {
+      setForm({
+        name: existingCategory.name || "",
+        description: existingCategory.description || "",
+        parentId: existingCategory.parentId,
+        special: existingCategory.special || false,
+      });
+    }
+  }, [isEditMode, existingCategory, form.name]);
+
+  // Initialize image in edit mode
+  useEffect(() => {
+    if (isEditMode && existingMedia.length > 0 && !img.preview) {
+      console.log(existingMedia);
+      setImg({
+        file: null,
+        preview: existingMedia[0].url,
+        isExisting: true,
+      });
+    }
+  }, [isEditMode, existingMedia, img.preview]);
+
+  // Set parent ID from navigation state (create mode only)
+  useEffect(() => {
+    if (parentIdFromLocation && !isEditMode) {
+      setForm((prev) => ({ ...prev, parentId: parentIdFromLocation }));
+    }
+  }, [parentIdFromLocation, isEditMode]);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (img.preview?.startsWith("blob:")) {
+        URL.revokeObjectURL(img.preview);
+      }
+    };
+  }, [img.preview]);
+
+  // ============ HANDLERS ============
+
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Revoke old blob URL if exists
+    if (img.preview?.startsWith("blob:")) {
+      URL.revokeObjectURL(img.preview);
+    }
+
+    setImg({
+      file,
+      preview: URL.createObjectURL(file),
+      isExisting: false,
+    });
+  };
+
+  const handleImageRemove = (e) => {
+    e.stopPropagation();
+
+    if (img.preview?.startsWith("blob:")) {
+      URL.revokeObjectURL(img.preview);
+    }
+
+    setImg({
+      file: null,
+      preview: null,
+      isExisting: false,
+    });
+  };
+
+  const handleFormChange = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // ============ IMAGE UPLOAD HELPERS ============
+
+  const deleteOldImage = async (cateId) => {
+    try {
+      await api.delete("/media-service/media/delete/ownerId", {
+        data: {
+          ownerId: cateId,
+          mediaOwnerType: MEDIA_OWNER_TYPE,
+        },
+      });
+    } catch (error) {
+      console.error("Error deleting old image:", error);
+      // Don't throw - allow upload to proceed
+    }
+  };
+
+  const uploadNewImage = async (cateId, file) => {
+    const formData = new FormData();
+    formData.append("multipartFile", file);
+    formData.append("ownerId", cateId);
+    formData.append("mediaOwnerType", MEDIA_OWNER_TYPE);
+
+    await api.post("/media-service/media/thumbnail", formData);
+  };
+
+  const handleImageUpload = async (cateId) => {
+    if (!img.file) return;
+
+    // Delete old image if we're replacing an existing one
+    if (isEditMode && img.isExisting) {
+      await deleteOldImage(cateId);
+    }
+
+    // Upload new image
+    await uploadNewImage(cateId, img.file);
+  };
+
+  // ============ MUTATIONS ============
+
+  const saveMutation = useMutation({
+    mutationFn: async (formData) => {
+      let res;
+      let cateId;
+
+      if (isEditMode) {
+        // Update existing category
+        res = await api.put("/product-service/category/update_cate", {
+          id,
+          ...formData,
+        });
+        cateId = id;
+      } else {
+        // Create new category
+        res = await api.post("/product-service/category/create", formData);
+        cateId = res.data?.result?.id;
+      }
+
+      // Handle image upload if needed
+      if (cateId && img.file) {
+        try {
+          await handleImageUpload(cateId);
+        } catch (uploadError) {
+          console.error("Image upload failed:", uploadError);
+        }
+      }
+
+      return res.data;
+    },
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await saveMutation.mutateAsync(form);
+
+      // Success handling
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["all-categories"] });
+
+      navigate("/categories", {
+        state: {
+          popup: {
+            open: true,
+            severity: "success",
+            message: isEditMode
+              ? "Cập nhật danh mục thành công!"
+              : "Thêm danh mục thành công!",
+          },
+        },
+      });
+    } catch (error) {
+      // Error handling
+      console.error("Submission failed:", error);
+      navigate("/categories", {
+        state: {
+          popup: {
+            open: true,
+            severity: "error",
+            message:
+              error?.response?.data?.message ||
+              (isEditMode
+                ? "Cập nhật danh mục thất bại!"
+                : "Tạo danh mục thất bại!"),
+          },
+        },
+      });
+    }
+  };
+
+  // ============ LOADING & ERROR STATES ============
+
+  if (isEditMode && isLoadingCategory) {
     return (
-        <>
-            <div className="py-[10px] px-[100px]">
-                <div className='flex justify-between items-center my-4'>
-                    <h3 className="text-[30px] font-bold mb-4 text-[#403e57]">
-                        Thêm danh mục
-                    </h3>
-                </div>
+      <div className="py-6 px-[100px] flex justify-center items-center min-h-[400px]">
+        <CircularProgress />
+      </div>
+    );
+  }
 
+  if (categoryError) {
+    return (
+      <div className="py-6 px-[100px]">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+          <p className="text-red-600 font-medium">
+            Không thể tải dữ liệu danh mục. Vui lòng thử lại.
+          </p>
+          <Button
+            onClick={() => navigate("/categories")}
+            variant="outlined"
+            color="error"
+            className="!mt-4"
+          >
+            Quay lại
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
-                <form onSubmit={handleSubmit}>
-                    <div className="flex flex-wrap shadow border-0 p-5 my-[20px] bg-white rounded-[10px] text-[18px] justify-between">
-                        <div className="w-[49%] py-[5px] px-[10px] flex flex-col gap-4">
+  // ============ RENDER ============
 
-                            <div className="flex flex-col gap-2">
-                                <h6 className="">Tên</h6>
-                                <input value={name} onChange={(e) => setName(e.target.value)} type='text' className="bg-[#fafafa] pl-[15px] rounded-[5px]  w-full h-[40px] border-[rgba(0,0,0,0.1)] border border-solid"></input>
-                            </div>
+  return (
+    <>
+      <div className="py-6 px-[100px]">
+        <h3 className="text-[30px] font-bold mb-6 text-[#403e57]">
+          {isEditMode ? "Chỉnh sửa danh mục" : "Thêm danh mục"}
+        </h3>
 
-                            <div className="flex flex-col gap-2 h-full">
-                                <h6 className=''>Mô tả</h6>
-                                <textarea value={description}
-                                    onChange={(e) => setDescription(e.target.value)} className="bg-[#fafafa] pt-[15px] pl-[15px] rounded-[5px]  w-full h-full border-[rgba(0,0,0,0.1)] border border-solid" rows={5} cols={10}></textarea>
-                            </div>
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white rounded-xl shadow p-6 space-y-6 text-[18px]"
+        >
+          {/* Name Input */}
+          <div className="flex flex-col gap-2">
+            <label className="font-medium">
+              Tên danh mục <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => handleFormChange("name", e.target.value)}
+              className="bg-[#fafafa] px-4 h-[42px] rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#6440F5]"
+              required
+              maxLength={100}
+            />
+          </div>
 
-                        </div>
+          {/* Description Input */}
+          <div className="flex flex-col gap-2">
+            <label className="font-medium">Mô tả</label>
+            <textarea
+              rows={4}
+              value={form.description}
+              onChange={(e) => handleFormChange("description", e.target.value)}
+              className="bg-[#fafafa] px-4 py-3 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#6440F5] resize-none"
+              maxLength={500}
+            />
+          </div>
 
-                        <div className="w-[49%] py-[5px] px-[10px] flex flex-col gap-4">
-                            <div className="flex flex-col gap-2">
-                                <h6 className=''>Danh mục cha</h6>
-                                {!location.state ? (
-                                    <div className="!w-full pl-[11px] bg-[#fafafa] rounded-[5px] w-full h-[40px] border-[rgba(0,0,0,0.1)] border border-solid leading-[40px]">
-                                        {rootName}
-                                    </div>
-                                ) : (
-                                    <div className="!w-full pl-[11px] bg-[#fafafa] rounded-[5px] w-full h-[40px] border-[rgba(0,0,0,0.1)] border border-solid leading-[40px]">
-                                        {parentName}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* ảnh */}
-                            <div className='flex flex-col gap-2 h-full'>
-                                <h6>Ảnh</h6>
-                                <Box
-                                    sx={{
-                                        width: "100%",
-                                        height: 400,
-                                        border: "2px dashed #aaa",
-                                        borderRadius: 2,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        cursor: "pointer",
-                                        overflow: "hidden",
-                                        position: "relative",
-                                    }}
-                                    onClick={openImgFilePicker}
-                                >
-                                    {img ? (
-                                        <>
-                                            <img
-                                                src={img.preview}
-                                                alt="thumbnail"
-                                                style={{ width: 300, height: 300, objectFit: "cover" }}
-                                            />
-                                            <IconButton
-                                                size="small"
-                                                onClick={handleImgFileRemove}
-                                                sx={{
-                                                    position: "absolute",
-                                                    top: 4,
-                                                    right: 4,
-                                                    background: "rgba(255,255,255,0.7)",
-                                                }}
-                                            >
-                                                <CloseIcon fontSize="small" />
-                                            </IconButton>
-                                        </>
-                                    ) : (
-                                        <div>
-                                            <AddPhotoAlternateIcon
-                                                sx={{
-                                                    fill: "url(#gradient1)", // gradient cho icon
-                                                }}
-                                                className='!text-[140px]'
-                                            />
-                                            <svg width={0} height={0}>
-                                                <defs>
-                                                    <linearGradient id="gradient1" x1="0" y1="0" x2="1" y2="1">
-                                                        <stop offset="0%" stopColor="#4a2fcf" />
-                                                        <stop offset="100%" stopColor="#6440F5" />
-                                                    </linearGradient>
-                                                </defs>
-                                            </svg>
-                                        </div>
-                                    )}
-                                    <input
-                                        id="img-input"
-                                        type="file"
-                                        accept="image/*"
-                                        style={{ display: "none" }}
-                                        onChange={handleImgFileChange}
-                                    />
-                                </Box>
-                            </div>
-                        </div>
-
-                        <div className='py-[5px] px-[10px] w-full'>
-                            <span className={`text-[21px] ${special ? 'text-green-600 font-medium' : 'text-gray-500'}`}>
-                                Đặc biệt
-                            </span>
-                            <Switch
-                                checked={special}
-                                onChange={(e) => setSpecial(e.target.checked)}
-                                color="primary"
-                            />
-                        </div>
-                    </div>
-                    <div className='!w-full px-[60px] py-[30px]'>
-                        <Button type='submit' variant="contained" className='!w-full !flex !items-cnter !justify-center !gap-2 !p-[15px] !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5]'>
-                            <FaCloudUploadAlt className='text-[35px]' />
-                            <h3 className='text-[25px]'>Tải lên</h3>
-                        </Button>
-                    </div>
-                </form>
-            </div>
-
-            {createMutation.isPending && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-white p-6 rounded-xl flex flex-col items-center gap-3">
-                        <CircularProgress color="primary" />
-                        <p className="text-gray-700 font-medium">Đang tải lên dữ liệu danh mục...</p>
-                    </div>
-                </div>
+          {/* Parent Category Select */}
+          <div className="flex flex-col gap-2">
+            <label className="font-medium">Danh mục cha</label>
+            <select
+              value={form.parentId ?? ""}
+              onChange={(e) =>
+                handleFormChange(
+                  "parentId",
+                  e.target.value === "" ? null : e.target.value
+                )
+              }
+              className="bg-[#fafafa] px-4 h-[42px] rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#6440F5]"
+              disabled={isLoadingAllCategories}
+            >
+              <option value="">— Không có (Danh mục gốc) —</option>
+              {availableParents.map((cate) => (
+                <option key={cate.id} value={cate.id}>
+                  {cate.name}
+                </option>
+              ))}
+            </select>
+            {isEditMode && (
+              <p className="text-sm text-gray-500">
+                * Không thể chọn chính danh mục này hoặc các danh mục con của nó
+              </p>
             )}
-        </>
-    )
+          </div>
+
+          {/* Image Upload */}
+          <div className="flex flex-col gap-2">
+            <label className="font-medium">Ảnh danh mục</label>
+            <Box
+              sx={{
+                width: "100%",
+                height: 260,
+                border: "2px dashed #bbb",
+                borderRadius: 2,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                position: "relative",
+                overflow: "hidden",
+                bgcolor: img.preview ? "transparent" : "#fafafa",
+                transition: "all 0.2s",
+                "&:hover": {
+                  borderColor: "#6440F5",
+                  bgcolor: img.preview ? "transparent" : "#f5f3ff",
+                },
+              }}
+              onClick={() => document.getElementById("img-input").click()}
+            >
+              {img.preview ? (
+                <>
+                  <img
+                    src={img.preview}
+                    alt="preview"
+                    style={{
+                      maxWidth: "100%",
+                      maxHeight: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                  <IconButton
+                    size="small"
+                    onClick={handleImageRemove}
+                    sx={{
+                      position: "absolute",
+                      top: 8,
+                      right: 8,
+                      background: "rgba(255,255,255,0.9)",
+                      "&:hover": {
+                        background: "rgba(255,255,255,1)",
+                      },
+                    }}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </>
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <AddPhotoAlternateIcon className="!text-[100px] text-gray-400" />
+                  <p className="text-gray-500 text-sm">Nhấn để chọn ảnh</p>
+                </div>
+              )}
+              <input
+                id="img-input"
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={handleImageSelect}
+              />
+            </Box>
+          </div>
+
+          {/* Special Toggle */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div>
+              <p className="font-medium text-gray-700">Đánh dấu đặc biệt</p>
+              <p className="text-sm text-gray-500">
+                Danh mục này sẽ được hiển thị nổi bật
+              </p>
+            </div>
+            <Switch
+              checked={form.special}
+              onChange={(e) => handleFormChange("special", e.target.checked)}
+              color="primary"
+            />
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              onClick={() => navigate("/categories")}
+              variant="outlined"
+              className="!flex-1 !py-3"
+              disabled={saveMutation.isPending}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="submit"
+              disabled={saveMutation.isPending}
+              variant="contained"
+              className="!flex-[2] !flex !items-center !justify-center !gap-2 !py-3 !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5]"
+            >
+              <FaCloudUploadAlt className="text-[24px]" />
+              <span className="text-[18px] font-medium">
+                {isEditMode ? "Cập nhật danh mục" : "Tạo danh mục"}
+              </span>
+            </Button>
+          </div>
+        </form>
+      </div>
+
+      {/* Loading Overlay */}
+      {saveMutation.isPending && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white p-8 rounded-xl flex flex-col items-center gap-4 min-w-[200px]">
+            <CircularProgress size={48} />
+            <p className="font-medium text-gray-700 text-lg">
+              {isEditMode ? "Đang cập nhật..." : "Đang tạo danh mục..."}
+            </p>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }

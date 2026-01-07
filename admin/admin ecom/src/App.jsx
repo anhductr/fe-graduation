@@ -2,13 +2,14 @@ import './App.css'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import LoginPage from './pages/Auth/LoginPage.jsx'
+import ChangePassword from './pages/Auth/ChangePassword.jsx'
 import DashboardLayout from './layouts/DashboardLayout.jsx'
 import Dashboard from "./pages/Dashboard/Dashboard.jsx";
 import ProductList from "./pages/Products/ProductList.jsx";
 import ProductUpload from "./pages/Products/ProductUpload.jsx";
 import CateList from "./pages/Categories/CateList.jsx";
 import CateUpload from "./pages/Categories/CateUpload.jsx";
-import CateEdit from "./pages/Categories/CateEdit.jsx";
+
 import ProductEdit from './pages/Products/ProductEdit.jsx';
 import UserList from './pages/Users/UserList.jsx';
 import InventoryList from './pages/Inventory/InventoryList.jsx'
@@ -21,6 +22,7 @@ import BrandUpload from './pages/Brands/BrandUpload.jsx'
 import BrandEdit from './pages/Brands/BrandEdit.jsx'
 import ContentList from './pages/Content/ContentList.jsx'
 import ContentUpload from './pages/Content/ContentUpload.jsx'
+import ProtectedRoute from './components/common/ProtectedRoute.jsx'
 
 function App() {
   const location = useLocation();
@@ -45,7 +47,7 @@ function App() {
         />
 
         {/* Dashboard layout */}
-        <Route path="/dashboard" element={<DashboardLayout />}>
+        <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route
             index
             element={
@@ -61,8 +63,25 @@ function App() {
           />
         </Route>
 
+        {/* Auth - Change Password */}
+        <Route path="/auth" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+          <Route
+            path="change-password"
+            element={
+              <motion.div
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ChangePassword />
+              </motion.div>
+            }
+          />
+        </Route>
+
         {/* Users */}
-        <Route path="/users" element={<DashboardLayout />}>
+        <Route path="/users" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route
             index
             element={
@@ -79,7 +98,7 @@ function App() {
         </Route>
 
         {/* Products */}
-        <Route path="/products" element={<DashboardLayout />}>
+        <Route path="/products" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route
             index
             element={
@@ -123,7 +142,7 @@ function App() {
         </Route>
 
         {/* Inventory */}
-        <Route path="/inventory" element={<DashboardLayout />}>
+        <Route path="/inventory" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route
             index
             element={
@@ -153,7 +172,7 @@ function App() {
         </Route>
 
         {/* Categories */}
-        <Route path="/categories" element={<DashboardLayout />}>
+        <Route path="/categories" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route
             index
             element={
@@ -176,7 +195,7 @@ function App() {
                 exit={{ opacity: 0, x: -50 }}
                 transition={{ duration: 0.3 }}
               >
-                <CateEdit />
+                <CateUpload />
               </motion.div>
             }
           />
@@ -223,7 +242,7 @@ function App() {
         </Route>
 
         {/* Orders */}
-        <Route path="/orders" element={<DashboardLayout />}>
+        <Route path="/orders" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route
             index
             element={
@@ -240,7 +259,7 @@ function App() {
         </Route>
 
         {/* Promotion */}
-        <Route path="/promotion" element={<DashboardLayout />}>
+        <Route path="/promotion" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route
             index
             element={
@@ -284,7 +303,7 @@ function App() {
 
 
         {/* Chatbot Content */}
-        <Route path="/contents" element={<DashboardLayout />}>
+        <Route path="/contents" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route
             index
             element={

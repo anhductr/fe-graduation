@@ -1,301 +1,197 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import SearchBar from '../../components/common/SearchBar';
-import { useState, useEffect } from 'react';
-import Pagination from '@mui/material/Pagination';
-import Boxes from '../../components/Products/Boxes';
-import axios from "axios";
-import { Link } from 'react-router';
-import { MdDelete } from "react-icons/md";
-import { MdEdit } from "react-icons/md";
+import Boxes from '../../components/common/Boxes';
+import { Link } from 'react-router-dom';
+import { MdDelete, MdEdit, MdOutlineCategory } from "react-icons/md";
 import { FiPlus } from "react-icons/fi";
-import { MdOutlineCategory } from "react-icons/md";
-import { CiBoxList } from "react-icons/ci";
+import { CiBoxList, CiCircleRemove, CiCircleCheck } from "react-icons/ci";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    IconButton, Paper, Box, Button, Dialog, DialogActions, DialogTitle
+    IconButton, Paper, Box, Button, Dialog, DialogActions, DialogTitle,
+    Snackbar, Alert, Tabs, Tab, Chip
 } from "@mui/material";
-import {
-    ExpandMore, ExpandLess,
-} from "@mui/icons-material";
+import { ExpandMore, ExpandLess } from "@mui/icons-material";
 import { VscFilter } from "react-icons/vsc";
 import { IoIosArrowUp } from "react-icons/io";
 import { FaPlus } from "react-icons/fa6";
-import Snackbar from '@mui/material/Snackbar';
-import Alert from '@mui/material/Alert';
-import { useLocation } from "react-router-dom";
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
-import Chip from '@mui/material/Chip';
-import { CiCircleRemove } from "react-icons/ci";
-import { CiCircleCheck } from "react-icons/ci";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { api } from "../../libs/axios.js";
 
 export default function CateList() {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
+    const location = useLocation();
 
     const inputSearchRef = useRef(null);
     const [tabValue, setTabValue] = useState(0);
+    const [popup, setPopup] = useState({ open: false, vertical: 'top', horizontal: 'center', severity: 'info', message: '' });
+    const { vertical, horizontal, open } = popup;
+
+    // Modal states
+    const [openConfirmCate, setOpenConfirmCate] = useState(false);
+    const [selectedCateId, setSelectedCateId] = useState(null);
+    const [openConfirmBrand, setOpenConfirmBrand] = useState(false);
+    const [selectedBrand, setSelectedBrand] = useState(null);
 
     const handleTabChange = (event, newValue) => {
         setTabValue(newValue);
     };
 
-    //api function
+    // API helpers
     const fetchCates = async () => {
-        const token = localStorage.getItem("token"); // lấy token nếu cần
-        const res = await axios.get(
-            "/api/v1/product-service/category/getAll",
-            {
-                headers: {
-                    Authorization: token ? `Bearer ${token}` : "",
-                },
-            }
+        const res = await api.get("/product-service/category/getAll");
+        const categories = res.data?.result || [];
+
+        const categoriesWithMedia = await Promise.all(
+            categories.map(async (category) => {
+                try {
+                    const mediaRes = await api.get("/media-service/media/product/get-media", {
+                        params: {
+                            ownerId: category.id,
+                            mediaOwnerType: "CATEGORY"
+                        }
+                    });
+
+                    const mediaList = mediaRes.data?.result.mediaResponseList || [];
+                    const thumbnail = mediaList.length > 0 ? mediaList[0].url : null;
+                    return {
+                        ...category,
+                        thumbnail,
+                        mediaResponse: mediaList
+                    };
+                } catch (error) {
+                    console.error(`Error fetching media for category ${category.id}:`, error);
+                    return {
+                        ...category,
+                        thumbnail: null,
+                        mediaResponse: []
+                    };
+                }
+            })
         );
 
-        console.log("Danh sách thể loại: ", res.data);
-
-        const data = res.data.result;
-        if (Array.isArray(data)) {
-            return data;
-        } else if (data && Array.isArray(data.data)) {
-            return data.data;
-        }
-        return [];
+        return categoriesWithMedia;
     };
 
+
     const fetchBrand = async () => {
-        const token = localStorage.getItem("token"); // lấy token nếu cần
-        const res = await axios.get(
-            "/api/v1/product-service/brand/get-all",
-            {
-                headers: {
-                    Authorization: token ? `Bearer ${token}` : "",
-                },
-            }
-        );
-
-        console.log("Danh sách brand: ", res.data);
-
-        const data = res.data.result;
-        if (Array.isArray(data)) {
-            return data;
-        } else if (data && Array.isArray(data.data)) {
-            return data.data;
-        }
-        return [];
+        const res = await api.get("/product-service/brand/get-all");
+        return res.data?.result || [];
     };
 
     const deleteCate = async (cateId) => {
-        const token = localStorage.getItem("token");
-        const res = await axios.delete(
-            `/api/v1/product-service/category/delete/${cateId}`,
-            {
-                headers: {
-                    Authorization: token ? `Bearer ${token}` : "",
-                },
-            }
-        );
-        console.log("Xóa thành công:", res.data);
+        const res = await api.delete(`/product-service/category/delete/${cateId}`);
         return res.data;
     };
 
     const deleteBrand = async (brandName) => {
-        const token = localStorage.getItem("token");
-        const res = await axios.delete(
-            `/api/v1/product-service/brand/delete/${brandName}`,
-            {
-                headers: {
-                    Authorization: token ? `Bearer ${token}` : "",
-                },
-            }
-        );
-        console.log("Xóa thành công:", res.data);
+        const res = await api.delete(`/product-service/brand/delete/${brandName}`);
         return res.data;
     };
 
-
-    function buildTree(list = []) {
-        // map tất cả item theo id để dễ lookup
+    // Build hierarchical tree structure from flat category list
+    const buildTree = (list = []) => {
         const map = {};
+
+        // Create map of all items with empty children arrays
         list.forEach(item => {
-            map[item.id] = {
-                ...item,
-                children: []   // chuẩn bị mảng con
-            };
+            map[item.id] = { ...item, children: [] };
         });
 
-        // Gắn con vào cha (xây cây bình thường)
+        // Build parent-child relationships
         list.forEach(item => {
+            const node = map[item.id];
+
+            // Use childrenId array if available
+            if (Array.isArray(item.childrenId) && item.childrenId.length > 0) {
+                item.childrenId.forEach(childId => {
+                    if (map[childId]) {
+                        node.children.push(map[childId]);
+                    }
+                });
+            }
+
+            // Also link via parentId (fallback or additional linking)
             if (item.parentId !== null && item.parentId !== undefined && map[item.parentId]) {
-                map[item.parentId].children.push(map[item.id]);
+                const parent = map[item.parentId];
+                // Avoid duplicates
+                if (!parent.children.find(child => child.id === item.id)) {
+                    parent.children.push(node);
+                }
             }
         });
 
-        // Tìm tất cả các node root (parentId === null)
-        const roots = list?.filter(item => item.parentId === null || item.parentId === undefined) || [];
+        // Return root categories (those with parentId === null)
+        return list
+            .filter(item => item.parentId === null || item.parentId === undefined)
+            .map(item => map[item.id]);
+    };
 
-        // Thu thập tất cả các node con trực tiếp của các root (chính là cấp muốn hiển thị đầu tiên)
-        const tree = [];
-        roots.forEach(root => {
-            if (map[root.id].children.length > 0) {
-                tree.push(...map[root.id].children); // chỉ lấy con của root, không lấy root
-            }
-        });
-
-        return tree;
-    }
-
-    //user querry cho danh mục
+    // Queries
     const { data: cateData, isLoading: isLoadingCate, isError: isErrorCate, error: errorCate } = useQuery({
         queryKey: ["categories"],
+        queryKey: ["categories"],
         queryFn: fetchCates,
-        refetchOnMount: "always",
+        staleTime: 1000 * 60 * 5, // Cache data for 5 minutes
     });
 
-    //user querry cho brand
     const { data: brandData, isLoading: isLoadingBrand, isError: isErrorBrand, error: errorBrand } = useQuery({
         queryKey: ["brands"],
         queryFn: fetchBrand,
-        refetchOnMount: "always",
+        queryKey: ["brands"],
+        queryFn: fetchBrand,
+        staleTime: 1000 * 60 * 5, // Cache data for 5 minutes
     });
 
-    //cate
-    const cates = cateData || [];
-    const treeData = buildTree(cates);
+    // Process data
+    const cates = useMemo(() => Array.isArray(cateData) ? cateData : [], [cateData]);
+    const treeData = useMemo(() => buildTree(cates), [cates]);
+    const brands = useMemo(() => Array.isArray(brandData) ? brandData : [], [brandData]);
 
-    //brand
-    const brands = brandData || [];
+    const [searchTerm, setSearchTerm] = useState("");
 
-    //popup thông báo
-    const [popup, setPopup] = useState({
-        open: false,
-        vertical: 'top',
-        horizontal: 'center',
-        severity: "info",
-    });
+    // Recursive search filter
+    const filterTree = (nodes, term) => {
+        if (!term) return nodes;
+        return nodes.reduce((acc, node) => {
+            const matches = node.name.toLowerCase().includes(term.toLowerCase());
+            const filteredChildren = node.children ? filterTree(node.children, term) : [];
 
-    const { vertical, horizontal, open } = popup;
+            if (matches || filteredChildren.length > 0) {
+                acc.push({
+                    ...node,
+                    children: filteredChildren
+                });
+            }
+            return acc;
+        }, []);
+    };
 
-    const location = useLocation();
+    const filteredTreeData = useMemo(() => filterTree(treeData, searchTerm), [treeData, searchTerm]);
 
+    // Create category ID to name mapping (optimized with useMemo)
+    const categoryMap = useMemo(() => {
+        const map = {};
+        cates.forEach((cate) => {
+            map[cate.id] = cate.name;
+        });
+        return map;
+    }, [cates]);
+
+    // Handle popup from navigation state
     useEffect(() => {
         if (location.state?.popup) {
-            // Bọc trong timeout nhỏ để đảm bảo component render xong rồi mới set popup
             const timer = setTimeout(() => {
-                setPopup({ ...location.state.popup, open: true }); // clone object mới
+                setPopup({ ...location.state.popup, open: true });
             }, 100);
 
-            // Xóa state khỏi history để reload lại không hiện lại popup
             window.history.replaceState({}, document.title);
-
             return () => clearTimeout(timer);
         }
     }, [location.state]);
 
-    // Xóa thể loại
-    const queryClient = useQueryClient();
-    const deleteCateMutation = useMutation({
-        mutationFn: deleteCate,
-        onSuccess: (res) => {
-            console.log("Xóa thành công:", res);
-            // Tự động làm mới danh sách
-            queryClient.invalidateQueries(["categories"]);
-
-            //Hiện thông báo thành công
-            setPopup((prev) => ({
-                ...prev,
-                open: true,
-                message: "Xóa thể loại thành công!",
-                severity: "success",
-            }));
-        },
-        onError: (err) => {
-            if (err.response) {
-                console.error("Lỗi từ server:", err.response.data);
-            } else if (err.request) {
-                console.error("Không nhận được phản hồi từ server!");
-            } else {
-                console.error(`Lỗi khi gửi request: ${err.message}`);
-            }
-            setPopup((prev) => ({
-                ...prev,
-                open: true,
-                message: err.response?.data?.message || "Xóa thất bại!",
-                severity: "error",
-            }));
-        },
-    });
-
-    const deleteBrandMutation = useMutation({
-        mutationFn: deleteBrand,
-        onSuccess: (res) => {
-            console.log("Xóa thành công:", res);
-            // Tự động làm mới danh sách
-            queryClient.invalidateQueries(["brands"]);
-
-            //Hiện thông báo thành công
-            setPopup((prev) => ({
-                ...prev,
-                open: true,
-                message: "Xóa thể loại thành công!",
-                severity: "success",
-            }));
-        },
-        onError: (err) => {
-            if (err.response) {
-                console.error("Lỗi từ server:", err.response.data);
-            } else if (err.request) {
-                console.error("Không nhận được phản hồi từ server!");
-            } else {
-                console.error(`Lỗi khi gửi request: ${err.message}`);
-            }
-            setPopup((prev) => ({
-                ...prev,
-                open: true,
-                message: err.response?.data?.message || "Xóa thất bại!",
-                severity: "error",
-            }));
-        },
-    });
-
-    //modal xóa
-    const [openConfirmCate, setOpenConfirmCate] = useState(false);
-    const [selectedCateId, setSelectedCateId] = useState(null);
-    const handleDeleteClickCate = (cateId) => {
-        setSelectedCateId(cateId);
-        setOpenConfirmCate(true);
-    };
-    const handleConfirmDeleteCate = () => {
-        if (selectedCateId) {
-            deleteCateMutation.mutate(selectedCateId);
-        }
-        setOpenConfirmCate(false);
-        setSelectedCateId(null);
-    };
-    const handleCancelDeleteCate = () => {
-        setOpenConfirmCate(false);
-        setSelectedCateId(null);
-    };
-
-    const [openConfirmBrand, setOpenConfirmBrand] = useState(false);
-    const [selectedBrand, setSelectedBrand] = useState(null);
-    const handleDeleteBrandClick = (brandName) => {
-        setSelectedBrand(brandName);
-        setOpenConfirmBrand(true);
-    };
-    const handleConfirmDeleteBrand = () => {
-        if (selectedBrand) {
-            deleteBrandMutation.mutate(selectedBrand);
-        }
-        setOpenConfirmBrand(false);
-        setSelectedBrand(null);
-    };
-    const handleCancelDeleteBrand = () => {
-        setOpenConfirmBrand(false);
-        setSelectedBrand(null);
-    };
-
+    // Handle loading and error states
     useEffect(() => {
         if (isLoadingCate) {
             setPopup({
@@ -306,125 +202,173 @@ export default function CateList() {
                 message: "Đang tải danh sách thể loại...",
             });
         } else if (isErrorCate) {
-            // Lấy chi tiết lỗi từ server (nếu có)
-            const serverError = isErrorCate?.response?.data?.message;
-            const serverDetail = isErrorCate?.response?.data?.error; // nếu backend trả thêm field này
-            const fallbackMessage = isErrorCate?.message || "Không xác định";
-
-            // Log đầy đủ ra console để debug
-            console.error("Chi tiết lỗi từ server:", isErrorCate);
+            console.error("Lỗi khi tải thể loại:", errorCate);
             setPopup({
                 open: true,
-                vertical: "top",
-                horizontal: "center",
-                severity: "error",
-                message: `Lỗi khi tải sản phẩm: ${serverError || serverDetail || fallbackMessage}`,
+                severity: 'error',
+                message: errorCate?.message || 'Lỗi khi tải danh mục',
+                vertical: 'top',
+                horizontal: 'center'
             });
         } else {
-            // Khi load xong thì tắt snackbar loading
             setPopup((prev) => ({ ...prev, open: false }));
         }
     }, [isLoadingCate, isErrorCate, errorCate]);
 
-    // Tạo map từ id category → name để hiển thị trong table thương hiệu
-    const categoryMap = {};
-    cateData?.forEach((cate) => {
-        categoryMap[cate.id] = cate.name;
+    // Mutations
+    const deleteCateMutation = useMutation({
+        mutationFn: deleteCate,
+        onSuccess: (res) => {
+            queryClient.invalidateQueries(["categories"]);
+            setPopup({
+                open: true,
+                severity: 'success',
+                message: 'Xóa thể loại thành công!',
+                vertical: 'top',
+                horizontal: 'center'
+            });
+        },
+        onError: (err) => {
+            console.error("Lỗi khi xóa thể loại:", err);
+            setPopup({
+                open: true,
+                message: err.response?.data?.message || "Xóa thất bại!",
+                severity: "error",
+                vertical: 'top',
+                horizontal: 'center'
+            });
+        },
     });
 
+    const deleteBrandMutation = useMutation({
+        mutationFn: deleteBrand,
+        onSuccess: (res) => {
+            queryClient.invalidateQueries(["brands"]);
+            setPopup({
+                open: true,
+                severity: 'success',
+                message: 'Xóa thương hiệu thành công!',
+                vertical: 'top',
+                horizontal: 'center'
+            });
+        },
+        onError: (err) => {
+            console.error("Lỗi khi xóa thương hiệu:", err);
+            setPopup({
+                open: true,
+                message: err.response?.data?.message || "Xóa thất bại!",
+                severity: "error",
+                vertical: 'top',
+                horizontal: 'center'
+            });
+        },
+    });
+
+    // Category delete handlers
+    const handleDeleteClickCate = (cateId) => {
+        setSelectedCateId(cateId);
+        setOpenConfirmCate(true);
+    };
+
+    const handleConfirmDeleteCate = () => {
+        if (selectedCateId) {
+            deleteCateMutation.mutate(selectedCateId);
+        }
+        setOpenConfirmCate(false);
+        setSelectedCateId(null);
+    };
+
+    const handleCancelDeleteCate = () => {
+        setOpenConfirmCate(false);
+        setSelectedCateId(null);
+    };
+
+    // Brand delete handlers
+    const handleDeleteBrandClick = (brandName) => {
+        setSelectedBrand(brandName);
+        setOpenConfirmBrand(true);
+    };
+
+    const handleConfirmDeleteBrand = () => {
+        if (selectedBrand) {
+            deleteBrandMutation.mutate(selectedBrand);
+        }
+        setOpenConfirmBrand(false);
+        setSelectedBrand(null);
+    };
+
+    const handleCancelDeleteBrand = () => {
+        setOpenConfirmBrand(false);
+        setSelectedBrand(null);
+    };
+
+    // Recursive row component for hierarchical display
     function Row({ row, level = 0 }) {
         const [open, setOpen] = useState(false);
 
         return (
             <>
-                <TableRow>
-                    <TableCell sx={{ pl: level * 3, alignItems: "center" }}>
-                        <Box
-                            component="span"
-                            sx={{
-                                display: "inline-block",
-                                width: 36,       // giữ chỗ cho icon
-                                textAlign: "center",
-                                verticalAlign: "middle",
-                            }}
-                        >
-                            {row.children.length !== 0 ? (
-                                <IconButton size="small" onClick={() => setOpen(!open)}>
-                                    {open ? <ExpandLess /> : <ExpandMore />}
-                                </IconButton>
-                            ) : null}
+                <TableRow key={row.id} hover>
+                    <TableCell sx={{ pl: level * 3 + 2, alignItems: "center" }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <Box component="span" sx={{ display: "inline-block", width: 36, textAlign: "center" }}>
+                                {row.children && row.children.length > 0 ? (
+                                    <IconButton size="small" onClick={() => setOpen(!open)}>
+                                        {open ? <ExpandLess /> : <ExpandMore />}
+                                    </IconButton>
+                                ) : null}
+                            </Box>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                <span style={{ fontWeight: 500 }}>{row.name}</span>
+                                {row.special && (
+                                    <Chip
+                                        label="Đặc biệt"
+                                        size="small"
+                                        color="success"
+                                        sx={{ height: 20, fontSize: '0.7rem' }}
+                                    />
+                                )}
+                            </Box>
                         </Box>
-                        {row.name}
                     </TableCell>
                     <TableCell align="center">
-                        {row.mediaResponse && row.mediaResponse.length > 0 ? (
-                            <img
-                                src={row.mediaResponse[0].url}
-                                alt="thumbnail"
-                                style={{ width: 50, height: 50, objectFit: "cover", borderRadius: 8 }}
-                            />
+                        {row.thumbnail ? (
+                            <img src={row.thumbnail} alt="thumbnail" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8 }} />
                         ) : (
-                            "Không có ảnh"
+                            <span style={{ color: '#999', fontSize: '0.875rem' }}>Không có ảnh</span>
                         )}
                     </TableCell>
-                    <TableCell
-                        align="center"
-                    >
-                        <Box
-                            sx={{
-                                display: "flex",
-                                justifyContent: "center",
-                                alignItems: "center",
-                            }}
-                        >
-                            {row.special ? (
-                                <CiCircleCheck size={24} color="green" />
-                            ) : (
-                                <CiCircleRemove size={24} color="red" />
-                            )}
-                        </Box>
+                    <TableCell>
+                        <span style={{ color: '#666', fontSize: '0.9rem' }}>
+                            {row.description || <em style={{ color: '#999' }}>Chưa có mô tả</em>}
+                        </span>
                     </TableCell>
-                    <TableCell >{row.description}</TableCell>
                     <TableCell align="center">
-                        <Link to={`/categories/categories-upload`} state={{ parentId: row.id }}>
-                            <IconButton size="small"><FiPlus /></IconButton>
-                        </Link>
-                        <Link to={`/categories/categories-edit/${row.id}`}>
-                            <IconButton size="small"><MdEdit /></IconButton>
-                        </Link>
-                        <IconButton size="small" onClick={() => handleDeleteClickCate(row.id)}><MdDelete /></IconButton>
+                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                            <Link to={`/categories/categories-edit/${row.id}`}>
+                                <IconButton size="small" color="primary">
+                                    <MdEdit />
+                                </IconButton>
+                            </Link>
+                            <IconButton size="small" color="error" onClick={() => handleDeleteClickCate(row.id)}>
+                                <MdDelete />
+                            </IconButton>
+                        </Box>
                     </TableCell>
                 </TableRow>
 
                 {row.children && open && row.children.map((child) => (
-                    <Row key={child.name} row={child} level={level + 1} />
+                    <Row key={child.id} row={child} level={level + 1} />
                 ))}
             </>
         );
     }
 
-    //xem dữ liệu
-    useEffect(() => {
-        console.log('tree:', treeData);
-    }, [treeData]);
-
     return (
         <>
             <div className="py-[10px] px-[100px]">
-                <Snackbar
-                    anchorOrigin={{ vertical, horizontal }}
-                    open={open}
-                    key={vertical + horizontal}
-                    autoHideDuration={isLoadingCate ? null : 3000}
-                    onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
-                >
-                    <Alert
-                        severity={popup.severity ?? "info"}   // dùng ?? để tránh lỗi undefined
-                        variant="filled"
-                        sx={{ width: "100%" }}
-                    >
-                        {popup.message || ""}
-                    </Alert>
+                <Snackbar anchorOrigin={{ vertical, horizontal }} open={open} key={vertical + horizontal} autoHideDuration={isLoadingCate ? null : 3000} onClose={() => setPopup((p) => ({ ...p, open: false }))}>
+                    <Alert severity={['error', 'warning', 'info', 'success'].includes(popup.severity) ? popup.severity : 'info'} variant="filled" sx={{ width: '100%' }}>{popup.message || ''}</Alert>
                 </Snackbar>
                 <div className='flex justify-between items-center my-4'>
                     <h3 className="text-[30px] font-bold mb-4 text-[#403e57]">
@@ -433,15 +377,11 @@ export default function CateList() {
                 </div>
 
                 <div className="flex flex-wrap gap-[26px] w-full">
-                    <Boxes color={"#81bcfaff"} header={"Tổng danh mục"} icon={<MdOutlineCategory />} ></Boxes>
-                    <Boxes color={"#dd92f4ff"} header={"Danh mục cha"} icon={<CiBoxList />} ></Boxes>
+                    <Boxes color="#81bcfaff" header={`Tổng danh mục: ${cates.length}`} icon={<MdOutlineCategory />} />
+                    <Boxes color="#dd92f4ff" header={`Danh mục cha: ${cates.filter(c => c.parentId == null).length}`} icon={<CiBoxList />} />
                 </div>
 
                 <div className="shadow border-0 p-5 my-[20px] bg-white rounded-[10px]">
-                    {/* <div className="w-screen pt-2 pb-4 font-semibold text-gray-900 text-[20px]">
-                        Danh sách thể loại
-                    </div> */}
-
                     {/* Tabs */}
                     <Tabs
                         value={tabValue}
@@ -488,16 +428,16 @@ export default function CateList() {
                                     }
                                 }}
                             >
-                                <SearchBar ref={inputSearchRef} />
-                                <Button size="medium" className='!text-[#403e57] !border !border-[#ccc] !ml-4 !px-3 !rounded-[10px] !hover:bg-gray-100 !normal-case' variant="outlined" >
-                                    <VscFilter className='' />
-                                    <span className='ml-1'>Bộ lọc</span>
-                                    <IoIosArrowUp className='ml-1' />
-                                </Button>
-                                <Button variant="contained" className='!ml-auto !normal-case !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow' component={Link} to="/categories/categories-upload">
-                                    <FaPlus className='mr-1' />
-                                    <span className='ml-1'>Thêm thể loại mới</span>
-                                </Button>
+                                <div className="flex gap-2 w-full">
+                                    <SearchBar
+                                        ref={inputSearchRef}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                    <Button variant="contained" className='!ml-auto !normal-case !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow' component={Link} to="/categories/categories-upload">
+                                        <FaPlus className='mr-1' />
+                                        <span className='ml-1'>Thêm thể loại mới</span>
+                                    </Button>
+                                </div>
                             </div>
                             {/* table */}
                             <div className=''>
@@ -509,16 +449,15 @@ export default function CateList() {
                                     <Table>
                                         <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
                                             <TableRow>
-                                                <TableCell sx={{ width: "35%" }}>Tên thể loại</TableCell>
+                                                <TableCell sx={{ width: "40%", fontWeight: 600 }}>Tên thể loại</TableCell>
                                                 <TableCell sx={{ width: "15%" }} align="center">Ảnh</TableCell>
-                                                <TableCell sx={{ width: "10%" }} align="center">Đặc biệt</TableCell>
-                                                <TableCell sx={{ width: "20%" }} align="center">Mô tả</TableCell>
-                                                <TableCell sx={{ width: "20%" }} align="center">Thao tác</TableCell>
+                                                <TableCell sx={{ width: "30%" }}>Mô tả</TableCell>
+                                                <TableCell sx={{ width: "15%" }} align="center">Thao tác</TableCell>
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
-                                            {treeData.map((row) => (
-                                                <Row key={row.name} row={row} />
+                                            {filteredTreeData.map((row) => (
+                                                <Row key={row.id} row={row} />
                                             ))}
                                         </TableBody>
                                     </Table>

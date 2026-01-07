@@ -1,225 +1,354 @@
-import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
-import { useState, useEffect } from 'react';
-import Button from '@mui/material/Button';
-import { FaCloudUploadAlt } from "react-icons/fa";
-import axios from 'axios';
-import { useNavigate } from 'react-router';
-import { useLocation } from 'react-router-dom';
-import CloseIcon from '@mui/icons-material/Close';
-import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import {
-    Box,
-    IconButton,
-    Switch,
+  Box,
+  Button,
+  CircularProgress,
+  MenuItem,
+  Select,
+  Checkbox,
+  ListItemText,
+  Chip,
+  Alert,
 } from "@mui/material";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CircularProgress } from "@mui/material";
-import Checkbox from '@mui/material/Checkbox';
-import ListItemText from '@mui/material/ListItemText';
-import Chip from '@mui/material/Chip';
+import { FaCloudUploadAlt } from "react-icons/fa";
+import { api } from "../../libs/axios.js";
 
+const ITEM_HEIGHT = 48;
+const ITEM_PADDING_TOP = 8;
+const MenuProps = {
+  PaperProps: {
+    style: {
+      maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
+      width: 300,
+    },
+  },
+};
 
 export default function BrandUpload() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-    const [categories, setCategories] = useState([]);
-    const [name, setName] = useState("");
-    const [listCategoryId, setListCategoryId] = useState([]);
+  // State
+  const [form, setForm] = useState({
+    name: "",
+    categoryId: [],
+  });
 
-    const navigate = useNavigate();
+  // ============ QUERIES ============
 
-    useEffect(() => {
-        const fetchAllCategories = async () => {
-            try {
-                const token = localStorage.getItem("token"); // lấy token nếu cần
-                const res = await axios.get(
-                    "/api/v1/product-service/category/getAll",
-                    {
-                        headers: {
-                            Authorization: token ? `Bearer ${token}` : "",
-                        },
-                    }
-                );
-                console.log("res category: ", res);
-                if (res.data && res.data.result && Array.isArray(res.data.result)) {
-                    setCategories(res.data.result);
-                } else {
-                    console.error("Cấu trúc dữ liệu API không đúng:", res.data);
-                    setCategories([]);
-                }
-            } catch (err) {
-                console.error("Lỗi khi gọi API:", err);
-            }
-        };
+  // Fetch all categories
+  const {
+    data: allCategories = [],
+    isLoading: isLoadingCategories,
+    error: categoriesError,
+  } = useQuery({
+    queryKey: ["all-categories"],
+    queryFn: async () => {
+      const res = await api.get("/product-service/category/getAll");
+      return res.data?.result || [];
+    },
+  });
 
-        fetchAllCategories();
-    }, []);
+  // ============ COMPUTED VALUES ============
 
-    // Xử lý thay đổi danh sách thể loại
-    const handleListCategoryChange = (event) => {
-        const {
-            target: { value },
-        } = event;
-        setListCategoryId(
-            // On autofill we get a stringified value.
-            typeof value === 'string' ? value.split(',') : value,
-        );
-    };
+  // Find root category
+  const rootCategory = useMemo(() => {
+    // Backend logic specifically looks for name "root"
+    const rootByName = allCategories.find((cat) => cat.name === "root");
+    if (rootByName) return rootByName;
 
-    //form
-    const queryClient = useQueryClient();
+    // Fallback: finding one with no parent
+    return allCategories.find((cat) => cat.parentId === null);
+  }, [allCategories]);
 
-    const createBrand = async (body) => {
-        const token = localStorage.getItem("token");
+  // Filter only root-level categories (children of root)
+  // Backend only accepts categories directly under root
+  const rootLevelCategories = useMemo(() => {
+    if (!rootCategory) return [];
+    return allCategories.filter((cat) => cat.parentId === rootCategory.id);
+  }, [allCategories, rootCategory]);
 
-        const res = await axios.post("/api/v1/product-service/brand/create", body, {
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: token ? `Bearer ${token}` : "",
-            },
-        });
-        console.log("res tạo brand ", res);
-        return res.data;
+  // ============ HANDLERS ============
+
+  const handleFormChange = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleCategoryChange = (event) => {
+    const {
+      target: { value },
+    } = event;
+    handleFormChange(
+      "categoryId",
+      typeof value === "string" ? value.split(",") : value
+    );
+  };
+
+  // ============ MUTATIONS ============
+
+  const createMutation = useMutation({
+    mutationFn: async (body) => {
+      const res = await api.post("/product-service/brand/create", body);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["brands"] });
+      navigate("/categories", {
+        state: {
+          popup: {
+            open: true,
+            severity: "success",
+            message: "Thêm thương hiệu thành công!",
+          },
+        },
+      });
+    },
+    onError: (err) => {
+      navigate("/categories", {
+        state: {
+          popup: {
+            open: true,
+            severity: "error",
+            message: err.response?.data?.message || "Tạo thương hiệu thất bại!",
+          },
+        },
+      });
+    },
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    // Client-side validation
+    if (!form.name.trim()) {
+      alert("Vui lòng nhập tên thương hiệu");
+      return;
     }
 
-    // Dùng useMutation
-    const createMutation = useMutation({
-        mutationFn: createBrand,
-        onSuccess: (res) => {
-            queryClient.invalidateQueries(["brands"]);
+    if (form.categoryId.length === 0) {
+      alert("Vui lòng chọn ít nhất một danh mục");
+      return;
+    }
 
-            navigate("/categories", {
-                state: {
-                    popup: {
-                        open: true,
-                        severity: "success",
-                        message: "Thêm thương hiệu thành công!",
-                        vertical: "top",
-                        horizontal: "center",
-                    },
-                },
-            });
-        },
-        onError: (err) => {
-            navigate("/categories", {
-                state: {
-                    popup: {
-                        open: true,
-                        severity: "error",
-                        message: err.response?.data?.message || "Tạo thương hiệu thất bại!",
-                        vertical: "top",
-                        horizontal: "center",
-                    },
-                },
-            });
-        },
-    });
+    createMutation.mutate(form);
+  };
 
-    const ITEM_HEIGHT = 40;
-    const ITEM_PADDING_TOP = 8;
-    const MenuProps = {
-        PaperProps: {
-            style: {
-                maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
-                width: 250,
-            },
-        },
-    };
+  // ============ LOADING & ERROR STATES ============
 
-    // Xử lý submit form
-    const handleSubmit = async (e) => {
-        e.preventDefault(); // chặn reload trang
-        const body = {
-            name,
-            categoryId: listCategoryId,
-        };
-        console.log("body submit brand ", body);
-        createMutation.mutate(body);
-    };
-
-
+  if (isLoadingCategories) {
     return (
-        <>
-            <div className="py-[10px] px-[100px]">
-                <div className='flex justify-between items-center my-4'>
-                    <h3 className="text-[30px] font-bold mb-4 text-[#403e57]">
-                        Thêm thương hiệu
-                    </h3>
-                </div>
+      <div className="py-6 px-[100px] flex justify-center items-center min-h-[400px]">
+        <CircularProgress />
+      </div>
+    );
+  }
 
-                <form onSubmit={handleSubmit}>
-                    <div className="flex flex-wrap shadow border-0 p-5 my-[20px] bg-white rounded-[10px] text-[18px] justify-between">
-                        <div className="w-[49%] py-[5px] px-[10px] flex flex-col gap-4">
-                            <div className="flex flex-col gap-2">
-                                <h6 className="">Tên</h6>
-                                <input value={name} onChange={(e) => setName(e.target.value)} type='text' className="bg-[#fafafa] pl-[15px] rounded-[5px] w-full h-[56px] border-[rgba(0,0,0,0.1)] border border-solid"></input>
-                            </div>
-                        </div>
+  if (categoriesError) {
+    return (
+      <div className="py-6 px-[100px]">
+        <Alert severity="error" className="mb-4">
+          Không thể tải danh sách danh mục. Vui lòng thử lại.
+        </Alert>
+        <Button
+          onClick={() => navigate("/categories")}
+          variant="outlined"
+          color="error"
+        >
+          Quay lại
+        </Button>
+      </div>
+    );
+  }
 
-                        <div className="w-[49%] py-[5px] px-[10px] flex flex-col gap-4">
-                            <div className="flex flex-col gap-2">
-                                <h6 className=''>Danh sách thể loại liên kết</h6>
+  if (rootLevelCategories.length === 0) {
+    return (
+      <div className="py-6 px-[100px]">
+        <Alert severity="warning" className="mb-4">
+          Chưa có danh mục cấp 1 nào. Vui lòng tạo danh mục trước.
+        </Alert>
+        <Button
+          onClick={() => navigate("/categories")}
+          variant="contained"
+          color="primary"
+        >
+          Quay lại
+        </Button>
+      </div>
+    );
+  }
 
-                                <Select
-                                    labelId="demo-multiple-chip-label"
-                                    id="demo-multiple-chip"
-                                    multiple
-                                    value={listCategoryId}
-                                    onChange={handleListCategoryChange}
-                                    renderValue={(selected) => (
-                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                            {selected.map((value) => {
-                                                const category = categories.find(c => c.id === value);
-                                                return (
-                                                    <Chip key={value} label={category ? category.name : value} />
-                                                )
-                                            })}
-                                        </Box>
-                                    )}
-                                    MenuProps={MenuProps}
-                                    className="!w-full !bg-[#fafafa] rounded-[5px] border-[rgba(0,0,0,0.1)] border border-solid"
-                                    sx={{
-                                        bgcolor: '#fafafa',
-                                        borderRadius: '5px',
-                                        border: '1px solid rgba(0,0,0,0.1)',
-                                        height: '56px', // Quan trọng: cố định chiều cao
-                                        '& .MuiSelect-select': {
-                                            padding: '16.5px 14px', // padding chuẩn của MUI InputBase
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                        },
-                                    }}
-                                >
-                                    {categories.map((category) => (
-                                        <MenuItem
-                                            key={category.id}
-                                            value={category.id}
-                                        >
-                                            <Checkbox checked={listCategoryId.indexOf(category.id) > -1} />
-                                            <ListItemText primary={category.name} />
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </div>
-                        </div>
-                    </div>
-                    <div className='!w-full px-[60px] py-[30px]'>
-                        <Button type='submit' variant="contained" className='!w-full !flex !items-cnter !justify-center !gap-2 !p-[15px] !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5]'>
-                            <FaCloudUploadAlt className='text-[35px]' />
-                            <h3 className='text-[25px]'>Tải lên</h3>
-                        </Button>
-                    </div>
-                </form>
+  // ============ RENDER ============
+
+  return (
+    <>
+      <div className="py-6 px-[100px]">
+        <h3 className="text-[30px] font-bold mb-6 text-[#403e57]">
+          Thêm thương hiệu
+        </h3>
+
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white rounded-xl shadow p-6 space-y-6 text-[18px]"
+        >
+          {/* Info Alert */}
+          <Alert severity="info" className="mb-4">
+            <strong>Lưu ý:</strong> Thương hiệu chỉ có thể liên kết với các danh
+            mục cấp 1 (danh mục con trực tiếp của danh mục gốc).
+          </Alert>
+
+          {/* Name Input */}
+          <div className="flex flex-col gap-2">
+            <label className="font-medium">
+              Tên thương hiệu <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => handleFormChange("name", e.target.value)}
+              className="bg-[#fafafa] px-4 h-[56px] rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#6440F5]"
+              placeholder="Nhập tên thương hiệu..."
+              required
+              maxLength={100}
+            />
+          </div>
+
+          {/* Categories Multi-Select */}
+          <div className="flex flex-col gap-2">
+            <label className="font-medium">
+              Danh mục liên kết <span className="text-red-500">*</span>
+            </label>
+            <Select
+              multiple
+              value={form.categoryId}
+              onChange={handleCategoryChange}
+              renderValue={(selected) => (
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                  {selected.map((value) => {
+                    const category = rootLevelCategories.find(
+                      (c) => c.id === value
+                    );
+                    return (
+                      <Chip
+                        key={value}
+                        label={category ? category.name : value}
+                        size="small"
+                        sx={{
+                          bgcolor: "#e8e2ff",
+                          color: "#6440F5",
+                          fontWeight: 500,
+                        }}
+                      />
+                    );
+                  })}
+                </Box>
+              )}
+              MenuProps={MenuProps}
+              displayEmpty
+              className="bg-[#fafafa]"
+              sx={{
+                bgcolor: "#fafafa",
+                borderRadius: "8px",
+                minHeight: "56px",
+                "& .MuiSelect-select": {
+                  padding: "14px",
+                  display: "flex",
+                  alignItems: "center",
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "rgba(0,0,0,0.1)",
+                },
+                "&:hover .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#6440F5",
+                },
+                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#6440F5",
+                  borderWidth: "2px",
+                },
+              }}
+            >
+              <MenuItem disabled value="">
+                <em className="text-gray-500">Chọn các danh mục cấp 1...</em>
+              </MenuItem>
+              {rootLevelCategories.map((category) => (
+                <MenuItem key={category.id} value={category.id}>
+                  <Checkbox
+                    checked={form.categoryId.indexOf(category.id) > -1}
+                    sx={{
+                      color: "#6440F5",
+                      "&.Mui-checked": {
+                        color: "#6440F5",
+                      },
+                    }}
+                  />
+                  <ListItemText
+                    primary={category.name}
+                    secondary={
+                      category.description
+                        ? category.description.substring(0, 50) + "..."
+                        : ""
+                    }
+                  />
+                </MenuItem>
+              ))}
+            </Select>
+            <p className="text-sm text-gray-500">
+              * Chỉ các danh mục cấp 1 được hiển thị (
+              {rootLevelCategories.length} danh mục)
+            </p>
+          </div>
+
+          {/* Selected Categories Summary */}
+          {form.categoryId.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm font-medium text-blue-900 mb-2">
+                Đã chọn {form.categoryId.length} danh mục:
+              </p>
+              <ul className="list-disc list-inside text-sm text-blue-800">
+                {form.categoryId.map((id) => {
+                  const cat = rootLevelCategories.find((c) => c.id === id);
+                  return <li key={id}>{cat?.name || id}</li>;
+                })}
+              </ul>
             </div>
+          )}
 
-            {createMutation.isPending && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-white p-6 rounded-xl flex flex-col items-center gap-3">
-                        <CircularProgress color="primary" />
-                        <p className="text-gray-700 font-medium">Đang tải lên dữ liệu...</p>
-                    </div>
-                </div>
-            )}
-        </>
-    )
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              onClick={() => navigate("/categories")}
+              variant="outlined"
+              className="!flex-1 !py-3"
+              disabled={createMutation.isPending}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="submit"
+              disabled={createMutation.isPending}
+              variant="contained"
+              className="!flex-[2] !flex !items-center !justify-center !gap-2 !py-3 !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5]"
+            >
+              <FaCloudUploadAlt className="text-[24px]" />
+              <span className="text-[18px] font-medium">Tạo thương hiệu</span>
+            </Button>
+          </div>
+        </form>
+      </div>
+
+      {/* Loading Overlay */}
+      {createMutation.isPending && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white p-8 rounded-xl flex flex-col items-center gap-4 min-w-[200px]">
+            <CircularProgress size={48} />
+            <p className="font-medium text-gray-700 text-lg">
+              Đang tạo thương hiệu...
+            </p>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }

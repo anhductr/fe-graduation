@@ -1,4 +1,4 @@
-import DashboardBox from "./DashboardBox"
+import DashboardBox from "../../components/Dashboard/DashboardBox"
 import { FaUserCircle } from "react-icons/fa";
 import { IoMdCart } from "react-icons/io";
 import { MdShoppingBag } from "react-icons/md";

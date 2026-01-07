@@ -4,44 +4,49 @@ import axios from "axios";
 const LoginContext = createContext();
 
 export const LoginProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [token, setToken] = useState(localStorage.getItem("token") || null);
+  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [user, setUser] = useState(null);
 
-    const login = async (username, password) => {
-        try {
-            const res = await axios.post(
-                "/api/v1/user-service/auth/login",
-                { username, password },
-                { headers: { "Content-Type": "application/json" } }
-            );
+  const isAuthenticated = !!token;
 
-            const data = res.data; // axios tự parse JSON
-            console.log("data:", data);
+  const login = async (username, password) => {
+    try {
+      const res = await axios.post(
+        "/api/v1/user-service/auth/login",
+        { username, password },
+        { headers: { "Content-Type": "application/json" } }
+      );
 
-            // setUser(data.user);
-            setToken(data.result.token);
-            localStorage.setItem("token", data.result.token);
-            // localStorage.setItem("user", JSON.stringify(data.user));
+      const { token } = res.data.result;
 
-            return data.user;
-        } catch (error) {
-            console.error("Login error:", error);
-            throw new Error("Sai username hoặc password");
-        }
-    };
+      setToken(token);
+      localStorage.setItem("token", token);
 
-    const logout = () => {
-        setUser(null);
-        setToken(null);
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-    };
+      return true;
+    } catch (error) {
+      throw new Error("Sai username hoặc password");
+    }
+  };
 
-    return (
-        <LoginContext.Provider value={{ user, token, login, logout }}>
-            {children}
-        </LoginContext.Provider>
-    );
+  const logout = () => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem("token");
+  };
+
+  return (
+    <LoginContext.Provider
+      value={{
+        user,
+        token,
+        isAuthenticated,
+        login,
+        logout,
+      }}
+    >
+      {children}
+    </LoginContext.Provider>
+  );
 };
 
 export const useLoginContext = () => useContext(LoginContext);
