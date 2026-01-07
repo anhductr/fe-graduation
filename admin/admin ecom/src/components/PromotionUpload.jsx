@@ -31,6 +31,8 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import 'dayjs/locale/vi';
 import { viVN } from '@mui/x-date-pickers/locales';
 dayjs.locale('vi');
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 
 
 export default function PromotionUpload() {
@@ -50,6 +52,13 @@ export default function PromotionUpload() {
   const [applyTo, setApplyTo] = useState(null);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedProducts, setSelectedProducts] = useState([]);
+  const [promotionKind, setPromotionKind] = useState(null);
+
+  const [tabValue, setTabValue] = useState(0);
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
+
 
   // DỮ LIỆU GIẢ ĐỂ TEST UI (rất nhiều, đẹp, giống thật)
   const fakeCategories = [
@@ -134,7 +143,7 @@ export default function PromotionUpload() {
         "/api/v1/search-service/search/category/admin",
         {
           name: keyword.trim(),
-          page: 0,    
+          page: 0,
           size: 10     // bạn muốn lấy tối đa 30 kết quả
         },
         {
@@ -574,247 +583,298 @@ export default function PromotionUpload() {
 
 
           <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] px-[5px] mx-[0px] bg-white rounded-[10px] gap-5">
-            <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
-              Điều kiện áp dụng
-            </div>
-
-            <div className='w-full flex mx-[30px]'>
-              <div className='w-[40%]'>
-                <RadioGroup value={applyTo} onChange={(e) => setApplyTo(e.target.value)}>
-                  <FormControlLabel value="User" control={<Radio />} label="Áp dụng cho người dùng" />
-                  <FormControlLabel value="Category" control={<Radio />} label="Chỉ áp dụng cho một số danh mục" />
-                  <FormControlLabel value="Product" control={<Radio />} label="Chỉ áp dụng cho sản phẩm cụ thể" />
-                </RadioGroup>
-              </div>
-
-              {/* HIỂN THỊ KHI CHỌN DANH MỤC HOẶC SẢN PHẨM */}
-              {(applyTo === 'Category' || applyTo === 'Product') && (
-                <div className="w-[60%] p-6 bg-gradient-to-r from-[#4a2fcf10] to-[#6440f510] border-2 border-[#4a2fcf] rounded-2xl">
-                  {/* from-[#4a2fcf10] = #4a2fcf với độ trong suốt 6% → nền nhẹ nhàng */}
-
-                  <Typography
-                    variant="h6"
-                    className="font-bold text-xl pb-5"
-                    sx={{ color: '#4a2fcf' }}   // chữ tím đậm
-                  >
-                    {applyTo === 'Category' ? 'Chọn danh mục áp dụng' : 'Chọn sản phẩm áp dụng'}
-                  </Typography>
-
-                  {applyTo === 'Category' ? (
-                    <Box sx={{ width: '100%' }}>
-                      {/* Thanh tìm kiếm sản phẩm */}
-                      <Autocomplete
-                        multiple
-                        options={categoryOptions}
-                        getOptionLabel={(option) => `${option.name}`}
-                        loading={loadingCategories}
-                        inputValue={inputValueCategory}
-                        onInputChange={(e, newInputValue) => setInputValueCategory(newInputValue)} // Quan trọng!
-                        value={selectedCategories}
-                        onChange={(e, newValue) => {
-                          const updated = newValue || [];
-                          setSelectedCategories(updated);
-                          // setSelectedCategoriesId(updated.map(item => String(item.id)));
-                        }}
-                        filterSelectedOptions
-                        noOptionsText="Không tìm thấy sản phẩm"
-                        isOptionEqualToValue={(option, value) => option.id === value.id}
-                        clearIcon={null}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Tìm sản phẩm theo tên..."
-                            placeholder="Nhập tên sản phẩm để thêm..."
-                            InputProps={{
-                              ...params.InputProps,
-                              endAdornment: (
-                                <>
-                                  {loadingCategories && <CircularProgress color="inherit" size={20} />}
-                                  {params.InputProps.endAdornment}
-                                </>
-                              ),
-                            }}
-                            sx={{
-                              '& .MuiInputBase-input': { fontSize: '15px' },
-                              '& .MuiInputLabel-root': {
-                                fontSize: '15px',
-                                color: '#4a2fcf',
-                                '&.Mui-focused': { color: '#4a2fcf' }
-                              },
-                              '& .MuiOutlinedInput-root': {
-                                '& fieldset': { borderColor: '#4a2fcf' },
-                                '&:hover fieldset': { borderColor: '#4a2fcf' },
-                                '&.Mui-focused fieldset': { borderColor: '#4a2fcf', borderWidth: 2 }
-                              },
-                              '& .MuiAutocomplete-tag': { display: 'none' }
-                            }}
-                          />
-                        )}
-                        renderTags={() => null}
-                        renderOption={(props, option) => (
-                          <li {...props} key={option.id}>
-                            <Box>
-                              <Typography variant="body1" fontWeight={500}>
-                                {option.name}
-                              </Typography>
-                            </Box>
-                          </li>
-                        )}
-                      />
-
-                      {/* Danh sách sản phẩm đã chọn */}
-                      {selectedCategories.length > 0 && (
-                        <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                          {selectedCategories.map((option) => (
-                            <Chip
-                              key={option.id}
-                              label={`${option.name}`}
-                              size="medium"
-                              onDelete={() => {
-                                setSelectedCategories(prev =>
-                                  prev.filter(item => item.id !== option.id)
-                                );
-
-                                // setSelectedCategories(prev => prev.filter(id => id !== String(option.id)));
-
-                              }}
-                              sx={{
-                                backgroundColor: '#4a2fcf',
-                                color: 'white',
-                                fontSize: '13px',
-                                height: 40,
-                                fontWeight: 600,
-                                '& .MuiChip-deleteIcon': {
-                                  color: 'white',
-                                  '&:hover': { color: 'rgba(255,255,255,0.8)' }
-                                }
-                              }}
-                            />
-                          ))}
-                        </Box>
-                      )}
-                      {selectedCategories.length > 0 && (
-                        <Button size="small" onClick={() => setSelectedCategories([])} sx={{ mt: 2 }}>
-                          Xóa tất cả danh mục
-                        </Button>
-                      )}
-                    </Box>
-                  ) : (
-                    <Box sx={{ width: '100%' }}>
-                      {/* Thanh tìm kiếm sản phẩm */}
-                      <Autocomplete
-                        multiple
-                        options={productOptions}
-                        getOptionLabel={(option) => `${option.name}`}
-                        loading={loadingProducts}
-                        inputValue={inputValueProduct}
-                        onInputChange={(e, newInputValue) => setInputValueProduct(newInputValue)} // Quan trọng!
-                        value={selectedProducts}
-                        onChange={(e, newValue) => {
-                          setSelectedProducts(newValue || []); // newValue có thể null
-                        }}
-                        filterSelectedOptions
-                        noOptionsText="Không tìm thấy sản phẩm"
-                        isOptionEqualToValue={(option, value) => option.id === value.id}
-                        clearIcon={null}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Tìm sản phẩm theo tên..."
-                            placeholder="Nhập tên sản phẩm để thêm..."
-                            InputProps={{
-                              ...params.InputProps,
-                              endAdornment: (
-                                <>
-                                  {loadingProducts && <CircularProgress color="inherit" size={20} />}
-                                  {params.InputProps.endAdornment}
-                                </>
-                              ),
-                            }}
-                            sx={{
-                              '& .MuiInputBase-input': { fontSize: '15px' },
-                              '& .MuiInputLabel-root': {
-                                fontSize: '15px',
-                                color: '#4a2fcf',
-                                '&.Mui-focused': { color: '#4a2fcf' }
-                              },
-                              '& .MuiOutlinedInput-root': {
-                                '& fieldset': { borderColor: '#4a2fcf' },
-                                '&:hover fieldset': { borderColor: '#4a2fcf' },
-                                '&.Mui-focused fieldset': { borderColor: '#4a2fcf', borderWidth: 2 }
-                              },
-                              '& .MuiAutocomplete-tag': { display: 'none' }
-                            }}
-                          />
-                        )}
-                        renderTags={() => null}
-                        renderOption={(props, option) => (
-                          <li {...props} key={option.id}>
-                            <Box>
-                              <Typography variant="body1" fontWeight={500}>
-                                {option.name}
-                              </Typography>
-                            </Box>
-                          </li>
-                        )}
-                      />
-
-                      {/* Danh sách sản phẩm đã chọn */}
-                      {selectedProducts.length > 0 && (
-                        <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                          {selectedProducts.map((option) => (
-                            <Chip
-                              key={option.id}
-                              label={`${option.name}`}
-                              size="medium"
-                              onDelete={() => {
-                                setSelectedProducts(prev =>
-                                  prev.filter(item => item.id !== option.id)
-                                );
-                              }}
-                              sx={{
-                                backgroundColor: '#4a2fcf',
-                                color: 'white',
-                                fontSize: '13px',
-                                height: 40,
-                                fontWeight: 600,
-                                '& .MuiChip-deleteIcon': {
-                                  color: 'white',
-                                  '&:hover': { color: 'rgba(255,255,255,0.8)' }
-                                }
-                              }}
-                            />
-                          ))}
-                        </Box>
-                      )}
-                      {selectedProducts.length > 0 && (
-                        <Button size="small" onClick={() => setSelectedProducts([])} sx={{ mt: 2 }}>
-                          Xóa tất cả sản phẩm
-                        </Button>
-                      )}
-                    </Box>
-                  )}
-
-                  {/* Số lượng đã chọn - giữ nguyên vị trí và kiểu dáng đẹp */}
-                  <div className="mt-5 text-right">
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        color: '#4a2fcf',
-                        fontWeight: 700,
-                        fontSize: '1.1rem'
-                      }}
-                    >
-                      Đã chọn:{' '}
-                      <span className="text-3xl font-bold">
-                        {applyTo === 'Category' ? selectedCategories.length : selectedProducts.length}
-                      </span>{' '}
-                      {applyTo === 'Category' ? 'danh mục' : 'sản phẩm'}
-                    </Typography>
-                  </div>
+            <Tabs
+              value={tabValue}
+              onChange={handleTabChange}
+              aria-label="tabs danh mục và thương hiệu"
+              sx={{
+                mb: 1,
+                '& .MuiTabs-indicator': {
+                  backgroundColor: '#4a2fcf',
+                },
+              }}
+            >
+              <Tab
+                label="Voucher"
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: '18px',
+                  '&.Mui-selected': {
+                    color: '#4a2fcf',
+                  },
+                }}
+              />
+              <Tab
+                label="Giảm giá"
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: '18px',
+                  '&.Mui-selected': {
+                    color: '#4a2fcf',
+                  },
+                }}
+              />
+            </Tabs>
+            {tabValue === 0 && (
+              <>
+                <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
+                  Loại voucher
                 </div>
-              )}
-            </div>
+                <div className='w-[40%] mx-[30px]'>
+                  <RadioGroup value={promotionKind} onChange={(e) => setPromotionKind(e.target.value)}>
+                    <FormControlLabel value={"AUTO"} control={<Radio />} label="Không cần mã (tự động áp dụng)" />
+                    <FormControlLabel value={"VOUCHER"} control={<Radio />} label="Khách phải nhập mã" />
+                  </RadioGroup>
+                </div>
+              </>
+            )}
+            {tabValue === 1 && (
+              <>
+                <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
+                  Điều kiện áp dụng
+                </div>
+
+                <div className='w-full flex mx-[30px]'>
+                  <div className='w-[40%]'>
+                    <RadioGroup value={applyTo} onChange={(e) => setApplyTo(e.target.value)}>
+                      <FormControlLabel value="null" control={<Radio />} label="Áp dụng cho tất cả" />
+                      <FormControlLabel value="Category" control={<Radio />} label="Chỉ áp dụng cho một số danh mục" />
+                      <FormControlLabel value="Product" control={<Radio />} label="Chỉ áp dụng cho sản phẩm cụ thể" />
+                    </RadioGroup>
+                  </div>
+
+                  {/* HIỂN THỊ KHI CHỌN DANH MỤC HOẶC SẢN PHẨM */}
+                  {(applyTo === 'Category' || applyTo === 'Product') && (
+                    <div className="w-[60%] p-6 bg-gradient-to-r from-[#4a2fcf10] to-[#6440f510] border-2 border-[#4a2fcf] rounded-2xl">
+                      {/* from-[#4a2fcf10] = #4a2fcf với độ trong suốt 6% → nền nhẹ nhàng */}
+
+                      <Typography
+                        variant="h6"
+                        className="font-bold text-xl pb-5"
+                        sx={{ color: '#4a2fcf' }}   // chữ tím đậm
+                      >
+                        {applyTo === 'Category' ? 'Chọn danh mục áp dụng' : 'Chọn sản phẩm áp dụng'}
+                      </Typography>
+
+                      {applyTo === 'Category' ? (
+                        <Box sx={{ width: '100%' }}>
+                          {/* Thanh tìm kiếm sản phẩm */}
+                          <Autocomplete
+                            multiple
+                            options={categoryOptions}
+                            getOptionLabel={(option) => `${option.name}`}
+                            loading={loadingCategories}
+                            inputValue={inputValueCategory}
+                            onInputChange={(e, newInputValue) => setInputValueCategory(newInputValue)} // Quan trọng!
+                            value={selectedCategories}
+                            onChange={(e, newValue) => {
+                              const updated = newValue || [];
+                              setSelectedCategories(updated);
+                              // setSelectedCategoriesId(updated.map(item => String(item.id)));
+                            }}
+                            filterSelectedOptions
+                            noOptionsText="Không tìm thấy sản phẩm"
+                            isOptionEqualToValue={(option, value) => option.id === value.id}
+                            clearIcon={null}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Tìm sản phẩm theo tên..."
+                                placeholder="Nhập tên sản phẩm để thêm..."
+                                InputProps={{
+                                  ...params.InputProps,
+                                  endAdornment: (
+                                    <>
+                                      {loadingCategories && <CircularProgress color="inherit" size={20} />}
+                                      {params.InputProps.endAdornment}
+                                    </>
+                                  ),
+                                }}
+                                sx={{
+                                  '& .MuiInputBase-input': { fontSize: '15px' },
+                                  '& .MuiInputLabel-root': {
+                                    fontSize: '15px',
+                                    color: '#4a2fcf',
+                                    '&.Mui-focused': { color: '#4a2fcf' }
+                                  },
+                                  '& .MuiOutlinedInput-root': {
+                                    '& fieldset': { borderColor: '#4a2fcf' },
+                                    '&:hover fieldset': { borderColor: '#4a2fcf' },
+                                    '&.Mui-focused fieldset': { borderColor: '#4a2fcf', borderWidth: 2 }
+                                  },
+                                  '& .MuiAutocomplete-tag': { display: 'none' }
+                                }}
+                              />
+                            )}
+                            renderTags={() => null}
+                            renderOption={(props, option) => (
+                              <li {...props} key={option.id}>
+                                <Box>
+                                  <Typography variant="body1" fontWeight={500}>
+                                    {option.name}
+                                  </Typography>
+                                </Box>
+                              </li>
+                            )}
+                          />
+
+                          {/* Danh sách sản phẩm đã chọn */}
+                          {selectedCategories.length > 0 && (
+                            <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                              {selectedCategories.map((option) => (
+                                <Chip
+                                  key={option.id}
+                                  label={`${option.name}`}
+                                  size="medium"
+                                  onDelete={() => {
+                                    setSelectedCategories(prev =>
+                                      prev.filter(item => item.id !== option.id)
+                                    );
+
+                                    // setSelectedCategories(prev => prev.filter(id => id !== String(option.id)));
+
+                                  }}
+                                  sx={{
+                                    backgroundColor: '#4a2fcf',
+                                    color: 'white',
+                                    fontSize: '13px',
+                                    height: 40,
+                                    fontWeight: 600,
+                                    '& .MuiChip-deleteIcon': {
+                                      color: 'white',
+                                      '&:hover': { color: 'rgba(255,255,255,0.8)' }
+                                    }
+                                  }}
+                                />
+                              ))}
+                            </Box>
+                          )}
+                          {selectedCategories.length > 0 && (
+                            <Button size="small" onClick={() => setSelectedCategories([])} sx={{ mt: 2 }}>
+                              Xóa tất cả danh mục
+                            </Button>
+                          )}
+                        </Box>
+                      ) : (
+                        <Box sx={{ width: '100%' }}>
+                          {/* Thanh tìm kiếm sản phẩm */}
+                          <Autocomplete
+                            multiple
+                            options={productOptions}
+                            getOptionLabel={(option) => `${option.name}`}
+                            loading={loadingProducts}
+                            inputValue={inputValueProduct}
+                            onInputChange={(e, newInputValue) => setInputValueProduct(newInputValue)} // Quan trọng!
+                            value={selectedProducts}
+                            onChange={(e, newValue) => {
+                              setSelectedProducts(newValue || []); // newValue có thể null
+                            }}
+                            filterSelectedOptions
+                            noOptionsText="Không tìm thấy sản phẩm"
+                            isOptionEqualToValue={(option, value) => option.id === value.id}
+                            clearIcon={null}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Tìm sản phẩm theo tên..."
+                                placeholder="Nhập tên sản phẩm để thêm..."
+                                InputProps={{
+                                  ...params.InputProps,
+                                  endAdornment: (
+                                    <>
+                                      {loadingProducts && <CircularProgress color="inherit" size={20} />}
+                                      {params.InputProps.endAdornment}
+                                    </>
+                                  ),
+                                }}
+                                sx={{
+                                  '& .MuiInputBase-input': { fontSize: '15px' },
+                                  '& .MuiInputLabel-root': {
+                                    fontSize: '15px',
+                                    color: '#4a2fcf',
+                                    '&.Mui-focused': { color: '#4a2fcf' }
+                                  },
+                                  '& .MuiOutlinedInput-root': {
+                                    '& fieldset': { borderColor: '#4a2fcf' },
+                                    '&:hover fieldset': { borderColor: '#4a2fcf' },
+                                    '&.Mui-focused fieldset': { borderColor: '#4a2fcf', borderWidth: 2 }
+                                  },
+                                  '& .MuiAutocomplete-tag': { display: 'none' }
+                                }}
+                              />
+                            )}
+                            renderTags={() => null}
+                            renderOption={(props, option) => (
+                              <li {...props} key={option.id}>
+                                <Box>
+                                  <Typography variant="body1" fontWeight={500}>
+                                    {option.name}
+                                  </Typography>
+                                </Box>
+                              </li>
+                            )}
+                          />
+
+                          {/* Danh sách sản phẩm đã chọn */}
+                          {selectedProducts.length > 0 && (
+                            <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                              {selectedProducts.map((option) => (
+                                <Chip
+                                  key={option.id}
+                                  label={`${option.name}`}
+                                  size="medium"
+                                  onDelete={() => {
+                                    setSelectedProducts(prev =>
+                                      prev.filter(item => item.id !== option.id)
+                                    );
+                                  }}
+                                  sx={{
+                                    backgroundColor: '#4a2fcf',
+                                    color: 'white',
+                                    fontSize: '13px',
+                                    height: 40,
+                                    fontWeight: 600,
+                                    '& .MuiChip-deleteIcon': {
+                                      color: 'white',
+                                      '&:hover': { color: 'rgba(255,255,255,0.8)' }
+                                    }
+                                  }}
+                                />
+                              ))}
+                            </Box>
+                          )}
+                          {selectedProducts.length > 0 && (
+                            <Button size="small" onClick={() => setSelectedProducts([])} sx={{ mt: 2 }}>
+                              Xóa tất cả sản phẩm
+                            </Button>
+                          )}
+                        </Box>
+                      )}
+
+                      {/* Số lượng đã chọn - giữ nguyên vị trí và kiểu dáng đẹp */}
+                      <div className="mt-5 text-right">
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            color: '#4a2fcf',
+                            fontWeight: 700,
+                            fontSize: '1.1rem'
+                          }}
+                        >
+                          Đã chọn:{' '}
+                          <span className="text-3xl font-bold">
+                            {applyTo === 'Category' ? selectedCategories.length : selectedProducts.length}
+                          </span>{' '}
+                          {applyTo === 'Category' ? 'danh mục' : 'sản phẩm'}
+                        </Typography>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] px-[5px] mx-[0px] bg-white rounded-[10px] gap-5">
@@ -883,16 +943,6 @@ export default function PromotionUpload() {
                     required
                   />
                 )}
-              </div>
-
-              {/* Mã giảm giá */}
-              <div>
-                <FormControl component="fieldset">
-                  <RadioGroup row value={isVoucher} onChange={(e) => setIsVoucher(e.target.value === 'true')}>
-                    <FormControlLabel value={false} control={<Radio />} label="Không cần mã (tự động áp dụng)" />
-                    <FormControlLabel value={true} control={<Radio />} label="Khách phải nhập mã" />
-                  </RadioGroup>
-                </FormControl>
               </div>
             </div>
           </div>
