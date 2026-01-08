@@ -26,6 +26,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import { useLocation } from "react-router-dom";
+import UserService from "../../services/UserService";
 
 export default function UserList() {
   const inputSearchRef = useRef(null);
@@ -34,23 +35,12 @@ export default function UserList() {
 
   //api
   const fetchUsers = async () => {
-    const res = await axios.get("/api/v1/user-service/users/admin/get-all", {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-      },
-    });
-
-    console.log("API response:", res.data);
+    const res = await UserService.getAllUsers();
     return res.data.result;
   };
 
   const deleteUser = async (userId) => {
-    const res = await axios.delete(`/api/v1/user-service/users/${userId}`, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-      },
-    });
-    console.log("Xóa thành công:", res.data);
+    const res = await UserService.deleteUsers(userId);
     return res.data;
   };
 
