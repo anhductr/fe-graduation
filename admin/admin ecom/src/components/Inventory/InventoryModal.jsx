@@ -47,13 +47,13 @@ const style = {
   top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
-  width: 900,
+  width: 1200,
   maxWidth: "95vw",
   bgcolor: "background.paper",
   boxShadow: 24,
   borderRadius: "12px",
-  maxHeight: "90vh", // giới hạn chiều cao
-  overflow: "hidden", // bắt buộc
+  maxHeight: "90vh",
+  overflow: "hidden",
   display: "flex",
   flexDirection: "column",
 };
@@ -120,13 +120,17 @@ export default function InventoryModal({ onClose, initialData = null }) {
       prevItems.map((item) =>
         item.id === rowId
           ? (() => {
-              const updated = { ...item };
+              const updated = { ...item, [field]: value };
+
+              // Special handling for quantity and unitCost to recalculate totalCost
               if (field === "quantity") {
                 updated.quantity = Math.max(1, Number(value) || 1);
+                updated.totalCost = updated.quantity * (updated.unitCost || 0);
               } else if (field === "unitCost") {
                 updated.unitCost = Number(value) || 0;
+                updated.totalCost = (updated.quantity || 0) * updated.unitCost;
               }
-              updated.totalCost = updated.quantity * updated.unitCost;
+
               return updated;
             })()
           : item
@@ -282,24 +286,37 @@ export default function InventoryModal({ onClose, initialData = null }) {
                   borderLeft: "1px solid #e0e0e0",
                 }}
               >
-                <Table>
+                <Table sx={{ tableLayout: "fixed", width: "100%" }}>
                   <TableHead
                     sx={{
                       backgroundColor: "#f5f5f5",
                       "& .MuiTableCell-root": {
-                        fontSize: "17px",
+                        fontSize: "14px",
                         fontWeight: 600,
                         color: "#333",
+                        padding: "12px 8px",
                       },
                     }}
                   >
                     <TableRow>
-                      <TableCell>Tên sản phẩm</TableCell>
-                      <TableCell align="center">Số lượng</TableCell>
-                      <TableCell align="center">Giá đơn vị</TableCell>
-                      <TableCell align="center">Tổng tiền</TableCell>
+                      <TableCell sx={{ width: "30%" }}>Tên sản phẩm</TableCell>
+                      <TableCell align="center" sx={{ width: "15%" }}>
+                        Màu
+                      </TableCell>
+                      <TableCell align="center" sx={{ width: "12%" }}>
+                        Số lượng
+                      </TableCell>
+                      <TableCell align="center" sx={{ width: "18%" }}>
+                        Giá đơn vị
+                      </TableCell>
+                      <TableCell align="center" sx={{ width: "18%" }}>
+                        Tổng tiền
+                      </TableCell>
                       {!isWatchMode && (
-                        <TableCell align="center" sx={{ fontWeight: "bold" }}>
+                        <TableCell
+                          align="center"
+                          sx={{ width: "7%", fontWeight: "bold" }}
+                        >
                           Thao tác
                         </TableCell>
                       )}

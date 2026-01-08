@@ -127,15 +127,42 @@ export default function InvAddTableRow({
             isOptionEqualToValue={(a, b) => a?.id === b?.id}
             noOptionsText="không có kết quả..."
             onChange={(e, newVal) => {
-              onItemChange("selectedProduct", newVal);
-              onItemChange("productName", newVal?.label || "");
-              onItemChange("productId", newVal?.id || null);
-              if (newVal) setOptions([newVal]);
+              // Update all product-related fields in one go
+              if (newVal) {
+                onItemChange("selectedProduct", newVal);
+                onItemChange("productName", newVal.label);
+                onItemChange("productId", newVal.id);
+                setOptions([newVal]);
 
-              // Reset variant khi đổi sản phẩm
-              setVariantOptions([]);
-              setSelectedVariantSku("");
-              onItemChange("sku", "");
+                // Set up variants if available
+                if (newVal.variants && newVal.variants.length > 0) {
+                  const opts = newVal.variants.map((v) => ({
+                    label: v.color || "Không có màu",
+                    sku: v.sku,
+                  }));
+                  setVariantOptions(opts);
+                  // Auto-select first variant if only one exists
+                  if (opts.length === 1) {
+                    setSelectedVariantSku(opts[0].sku);
+                    onItemChange("sku", opts[0].sku);
+                  } else {
+                    setSelectedVariantSku("");
+                    onItemChange("sku", "");
+                  }
+                } else {
+                  setVariantOptions([]);
+                  setSelectedVariantSku("");
+                  onItemChange("sku", "");
+                }
+              } else {
+                // Clear all when deselected
+                onItemChange("selectedProduct", null);
+                onItemChange("productName", "");
+                onItemChange("productId", null);
+                onItemChange("sku", "");
+                setVariantOptions([]);
+                setSelectedVariantSku("");
+              }
             }}
             onInputChange={handleInputChange}
             renderInput={(params) => (
@@ -258,6 +285,13 @@ export default function InvAddTableRow({
             }}
           />
         )}
+      </TableCell>
+
+      {/* Tổng tiền */}
+      <TableCell align="center">
+        <span className="font-semibold">
+          {formatVND(item.totalCost || 0)} ₫
+        </span>
       </TableCell>
 
       {!isWatchMode && (

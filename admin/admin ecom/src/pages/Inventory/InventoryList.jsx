@@ -46,6 +46,8 @@ import { viVN } from "@mui/x-date-pickers/locales";
 import TransactionModal from "../../components/Inventory/TransactionModal";
 dayjs.locale("vi");
 
+const MAX_RANGE_MONTHS = 6;
+
 export default function InventoryList() {
   const inputSearchRef = useRef(null);
   const token = localStorage.getItem("token");
@@ -58,16 +60,16 @@ export default function InventoryList() {
   // const [startDate, setStartDate] = useState('');
   // const [endDate, setEndDate] = useState('');
   const [startDate, setStartDate] = useState(
-    dayjs("2025-01-01").startOf("day")
+    dayjs().subtract(MAX_RANGE_MONTHS, "month").startOf("day")
   );
-  const [endDate, setEndDate] = useState(dayjs("2025-12-31").endOf("day"));
+
+  const [endDate, setEndDate] = useState(dayjs().endOf("day"));
 
   //api
   const fetchInventory = async ({ queryKey }) => {
     const [, { page, size }] = queryKey;
     try {
       const res = await InventoryService.getAllInventory({ page, size });
-      console.log("inv res: ", res.data.result);
       return res.data.result;
     } catch (error) {
       console.error("Error fetching inventory:", error);
@@ -132,13 +134,16 @@ export default function InventoryList() {
       },
     ],
     queryFn: fetchStockInHistory,
+    enabled: !!startDate && !!endDate, // Chỉ fetch khi đã có startDate và endDate
     refetchOnMount: "always",
     keepPreviousData: true,
+    staleTime: 0, // Luôn coi data là stale để refetch khi cần
   });
 
   useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ["stockins", { page, size }] });
-    setPage(1); // optional: reset về trang 1 khi thay đổi ngày
+    // Invalidate và refetch khi startDate hoặc endDate thay đổi
+    queryClient.invalidateQueries({ queryKey: ["stockins"] });
+    setPage(1); // reset về trang 1 khi thay đổi ngày
   }, [startDate, endDate, queryClient]);
 
   // Khi có dữ liệu:
@@ -404,7 +409,8 @@ export default function InventoryList() {
               <Table sx={{ width: "100%" }}>
                 <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
                   <TableRow>
-                    <TableCell sx={{ width: "40%" }}>Tên sản phẩm</TableCell>
+                    <TableCell sx={{ width: "30%" }}>Tên sản phẩm</TableCell>
+                    <TableCell sx={{ width: "15%" }}>Mã sku</TableCell>
                     <TableCell align="center" sx={{ width: "15%" }}>
                       Số lượng
                     </TableCell>
@@ -418,6 +424,7 @@ export default function InventoryList() {
                   {inventory?.map((inv) => (
                     <TableRow key={inv.id}>
                       <TableCell>{inv.variantName}</TableCell>
+                      <TableCell align="left">{inv.sku}</TableCell>
                       <TableCell align="center">{inv.quantity}</TableCell>
                       <TableCell align="center">{getStatus(inv)}</TableCell>
                       <TableCell>
