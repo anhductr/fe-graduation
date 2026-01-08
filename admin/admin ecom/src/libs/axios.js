@@ -37,13 +37,11 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-
-    if (
-      error.response?.status === 401 &&
-      !originalRequest._retry
-    ) {
-      // Nếu đang refresh → đợi
+    console.log("error: ", error.response);
+    // Kiểm tra nếu lỗi 401 và chưa retry lần nào
+    if (error.response?.data.code === 401 && !originalRequest._retry) {
       if (isRefreshing) {
+        // Nếu đang có tiến trình refresh thì queue các request khác lại
         return new Promise((resolve, reject) => {
           failedQueue.push({
             resolve: (token) => {
@@ -66,6 +64,7 @@ api.interceptors.response.use(
       }
 
       try {
+        // Gọi API refresh token
         const res = await refreshApi.post(
           "/user-service/auth/refresh",
           { token: oldToken }
@@ -77,14 +76,18 @@ api.interceptors.response.use(
           throw new Error("No token returned");
         }
 
+        // Lưu token mới
         localStorage.setItem("token", newToken);
         api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
 
+        // Retry các request đang chờ
         processQueue(null, newToken);
 
+        // Retry request hiện tại
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
       } catch (refreshError) {
+        // Refresh thất bại -> logout -> redirect login
         processQueue(refreshError, null);
         logout();
         return Promise.reject(refreshError);

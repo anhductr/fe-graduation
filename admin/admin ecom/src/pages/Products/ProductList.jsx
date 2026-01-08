@@ -34,7 +34,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import { useLocation } from "react-router-dom";
-import { api } from "../../libs/axios.js";
+import ProductService from "../../services/ProductService";
 
 // Row component for expandable table
 function ProductRow({ product, onDelete }) {
@@ -206,22 +206,17 @@ export default function ProductList() {
 
   const fetchProducts = async ({ queryKey }) => {
     const [, { page, size }] = queryKey;
-    const res = await api.get("/product-service/product/getAll", {
-      params: { page: page, size }, // backend thường bắt đầu từ 0
-    });
-    console.log("res Products: ", res.data.result);
+    const res = await ProductService.getAllProducts({ page, size });
     return res.data.result;
   };
 
   const deleteProducts = async (productId) => {
-    const resProduct = await api.delete(
-      `/product-service/product/${productId}`
-    );
+    const resProduct = await ProductService.deleteProduct(productId);
     return resProduct.data;
   };
 
   const getAllCategories = async () => {
-    const res = await api.get("/product-service/category/getAll");
+    const res = await ProductService.getAllCategories();
     // map name -> id để dùng tiện trong Select
     const mapped = {};
     res.data?.result?.forEach((cate) => {

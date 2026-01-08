@@ -1,24 +1,38 @@
-import { TableCell, TextField, IconButton, Autocomplete, CircularProgress } from "@mui/material";
+import {
+  TableCell,
+  TextField,
+  IconButton,
+  Autocomplete,
+  CircularProgress,
+} from "@mui/material";
 import { FaTrash } from "react-icons/fa";
-import axios from "axios";
-import debounce from 'lodash.debounce';
-import { useState, useMemo, useEffect } from 'react';
+import { api } from "../../libs/axios";
+import debounce from "lodash.debounce";
+import { useState, useMemo, useEffect } from "react";
+import { Select, MenuItem } from "@mui/material";
 
-export default function InvAddTableRow({ item, onChange, onRemove, token, onItemChange, isWatchMode }) {
+export default function InvAddTableRow({
+  item,
+  onRemove,
+  token,
+  onItemChange,
+  isWatchMode,
+}) {
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [variantOptions, setVariantOptions] = useState([]); // Danh sách variant (màu + sku)
+  const [selectedVariantSku, setSelectedVariantSku] = useState(item.sku || "");
 
   const searchProducts = async (keyword) => {
     if (!keyword || keyword.trim().length < 2) return [];
     try {
-      const res = await axios.post(
-        "/api/v1/search-service/search/admin?page=1&size=20",
-        { productName: keyword.trim() },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await api.post(
+        "/search-service/search/admin?page=1&size=20",
+        { productName: keyword.trim() }
       );
-      console.log("response search: ", res.data.result.data)
-      return res.data.result.data || [];
+      console.log("response search: ", res);
+      return res.data.result.productGetVMList || [];
     } catch (err) {
       console.error(err);
       return [];
@@ -26,18 +40,20 @@ export default function InvAddTableRow({ item, onChange, onRemove, token, onItem
   };
 
   const debouncedSearch = useMemo(
-    () => debounce(async (keyword) => {
-      setLoading(true);
-      const results = await searchProducts(keyword);
-      const newOpts = results.map(r => ({
-        id: r.id,
-        label: r.name
-      }));
+    () =>
+      debounce(async (keyword) => {
+        setLoading(true);
+        const results = await searchProducts(keyword);
+        const newOpts = results.map((r) => ({
+          id: r.id,
+          label: r.name,
+          variants: r.variants || [],
+        }));
 
-      // Tạo một Map với id làm key → Map tự động loại trùng key (giữ lại cái cuối cùng)
-      setOptions([...new Map(newOpts.map(o => [o.id, o])).values()]);
-      setLoading(false);
-    }, 500),
+        // Tạo một Map với id làm key → Map tự động loại trùng key (giữ lại cái cuối cùng)
+        setOptions([...new Map(newOpts.map((o) => [o.id, o])).values()]);
+        setLoading(false);
+      }, 500),
     []
   );
 
@@ -49,23 +65,46 @@ export default function InvAddTableRow({ item, onChange, onRemove, token, onItem
     }
   };
 
-
   // Trong component InvAddTableRow
-  const [displayUnitCost, setDisplayUnitCost] = useState('');
+  const [displayUnitCost, setDisplayUnitCost] = useState("");
 
   // Khi item thay đổi (ví dụ: load từ DB), đồng bộ lại display
   useEffect(() => {
     if (item.unitCost != null) {
       setDisplayUnitCost(formatVND(item.unitCost));
     } else {
-      setDisplayUnitCost('');
+      setDisplayUnitCost("");
     }
   }, [item.unitCost]);
 
+  useEffect(() => {
+    if (item.selectedProduct && item.selectedProduct.variants) {
+      const variants = item.selectedProduct.variants || [];
+      const opts = variants.map((v) => ({
+        label: v.color || "Không có màu",
+        sku: v.sku,
+      }));
+      setVariantOptions(opts);
+
+      // Nếu đã có sku cũ thì giữ lại chọn màu tương ứng
+      const existing = opts.find((o) => o.sku === item.sku);
+      if (existing) {
+        setSelectedVariantSku(item.sku);
+      } else {
+        setSelectedVariantSku("");
+        onItemChange("sku", ""); // reset sku nếu không khớp
+      }
+    } else {
+      setVariantOptions([]);
+      setSelectedVariantSku("");
+      onItemChange("sku", "");
+    }
+  }, [item.selectedProduct]);
+
   // Hàm format số → tiền Việt Nam
   const formatVND = (num) => {
-    if (!num) return '';
-    return Number(num).toLocaleString('vi-VN');
+    if (!num) return "";
+    return Number(num).toLocaleString("vi-VN");
   };
 
   return (
@@ -84,19 +123,21 @@ export default function InvAddTableRow({ item, onChange, onRemove, token, onItem
             loading={loading}
             options={options}
             value={item.selectedProduct || null}
-            getOptionLabel={(opt) => opt?.label || ''}
+            getOptionLabel={(opt) => opt?.label || ""}
             isOptionEqualToValue={(a, b) => a?.id === b?.id}
             noOptionsText="không có kết quả..."
-
             onChange={(e, newVal) => {
-              onChange('selectedProduct', newVal);
-              onChange('productName', newVal?.label || '');
-              onChange('productId', newVal?.id || null);
+              onItemChange("selectedProduct", newVal);
+              onItemChange("productName", newVal?.label || "");
+              onItemChange("productId", newVal?.id || null);
               if (newVal) setOptions([newVal]);
+
+              // Reset variant khi đổi sản phẩm
+              setVariantOptions([]);
+              setSelectedVariantSku("");
+              onItemChange("sku", "");
             }}
-
             onInputChange={handleInputChange}
-
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -106,7 +147,9 @@ export default function InvAddTableRow({ item, onChange, onRemove, token, onItem
                   ...params.InputProps,
                   endAdornment: (
                     <>
-                      {loading && <CircularProgress color="inherit" size={20} />}
+                      {loading && (
+                        <CircularProgress color="inherit" size={20} />
+                      )}
                       {params.InputProps.endAdornment}
                     </>
                   ),
@@ -117,6 +160,39 @@ export default function InvAddTableRow({ item, onChange, onRemove, token, onItem
         </TableCell>
       )}
 
+      {/* Cột Màu (Variant) */}
+      <TableCell align="center">
+        {isWatchMode ? (
+          item.color || "-" // hiển thị màu lấy từ API
+        ) : (
+          <Select
+            size="small"
+            value={selectedVariantSku}
+            onChange={(e) => {
+              const newSku = e.target.value;
+              setSelectedVariantSku(newSku);
+              onItemChange("sku", newSku);
+            }}
+            displayEmpty
+            disabled={!item.selectedProduct || variantOptions.length === 0}
+            sx={{ width: 160 }}
+            renderValue={(selected) => {
+              if (!selected)
+                return <span style={{ color: "#aaa" }}>Chọn màu</span>;
+              return (
+                variantOptions.find((v) => v.sku === selected)?.label || ""
+              );
+            }}
+          >
+            {variantOptions.map((opt) => (
+              <MenuItem key={opt.sku} value={opt.sku}>
+                {opt.label}
+              </MenuItem>
+            ))}
+          </Select>
+        )}
+      </TableCell>
+
       {/* Cột Số lượng */}
       <TableCell align="center">
         {isWatchMode ? (
@@ -125,8 +201,8 @@ export default function InvAddTableRow({ item, onChange, onRemove, token, onItem
           <TextField
             size="small"
             type="number"
-            value={item.quantity || ''}
-            onChange={(e) => onItemChange('quantity', e.target.value)}
+            value={item.quantity || ""}
+            onChange={(e) => onItemChange("quantity", e.target.value)}
             sx={{ width: 90 }}
             inputProps={{ min: 1 }}
           />
@@ -145,34 +221,36 @@ export default function InvAddTableRow({ item, onChange, onRemove, token, onItem
               let value = e.target.value;
 
               // Chỉ cho phép số và dấu chấm (do toLocaleString tạo ra)
-              const cleanValue = value.replace(/[^\d]/g, ''); // xóa hết ký tự không phải số
-              const numValue = cleanValue === '' ? 0 : Number(cleanValue);
+              const cleanValue = value.replace(/[^\d]/g, ""); // xóa hết ký tự không phải số
+              const numValue = cleanValue === "" ? 0 : Number(cleanValue);
 
               // Cập nhật hiển thị (có dấu chấm)
               setDisplayUnitCost(formatVND(numValue));
 
-              // Gửi số thực (không dấu chấm) về parent để tính totalCost
-              onItemChange('unitCost', numValue);
+              onItemChange("unitCost", numValue);
             }}
             placeholder="0"
             sx={{ width: 160 }}
             inputProps={{
-              inputMode: 'numeric',
-              style: { textAlign: 'right' },
+              inputMode: "numeric",
+              style: { textAlign: "right" },
             }}
             InputProps={{
-              endAdornment: <span className="text-gray-500 text-xs ml-1">₫</span>,
+              endAdornment: (
+                <span className="text-gray-500 text-xs ml-1">₫</span>
+              ),
               // TẮT HOÀN TOÀN nút lên/xuống
               componentsProps: {
                 input: {
                   // CSS hack để ẩn nút spinner trên Chrome/Edge
                   sx: {
-                    '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': {
-                      WebkitAppearance: 'none',
-                      margin: 0,
-                    },
-                    '&[type=number]': {
-                      MozAppearance: 'textfield', // Firefox
+                    "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button":
+                      {
+                        WebkitAppearance: "none",
+                        margin: 0,
+                      },
+                    "&[type=number]": {
+                      MozAppearance: "textfield", // Firefox
                     },
                   },
                 },
@@ -182,10 +260,6 @@ export default function InvAddTableRow({ item, onChange, onRemove, token, onItem
         )}
       </TableCell>
 
-      {/* Tổng tiền */}
-      <TableCell align='center' sx={{ fontWeight: 'bold', fontSize: '13px' }}>
-        {item.totalCost?.toLocaleString('vi-VN') || 0} ₫
-      </TableCell>
       {!isWatchMode && (
         <TableCell align="center">
           <IconButton color="error" size="small" onClick={onRemove}>
