@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import { FaEye } from "react-icons/fa";
 import { PiEyeClosedDuotone } from "react-icons/pi";
 
@@ -10,7 +10,7 @@ const LoginForm = ({ isOpen, onClose, onSwitchToRegister }) => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   //CHẶN CUỘN TRANG KHI MỞ MODAL
   useEffect(() => {
     if (isOpen) {

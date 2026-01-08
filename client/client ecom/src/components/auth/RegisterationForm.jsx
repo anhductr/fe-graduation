@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import { FaEye } from "react-icons/fa";
 import { PiEyeClosedDuotone } from "react-icons/pi";
 
@@ -11,10 +11,10 @@ const RegistrationForm = ({ isOpen, onClose, onSwitchToLogin }) => {
   const [lastName, setLastName] = useState("");
   const [firstName, setFirstName] = useState("");
   const [password, setPassword] = useState("");
-  const [username, setUsername] = useState(""); 
-  const [phone, setPhone] = useState(""); 
-  const [dob, setDob] = useState(""); 
-  const [gender, setGender] = useState(""); 
+  const [username, setUsername] = useState("");
+  const [phone, setPhone] = useState("");
+  const [dob, setDob] = useState("");
+  const [gender, setGender] = useState("");
   const [error, setError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
 

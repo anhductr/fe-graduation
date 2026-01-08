@@ -1,9 +1,9 @@
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-import Banner from "../components/Banner";
-import BestSellerProductsList from "../components/BestSellerProductsList";
-import PhoneProductsList from "../components/PhoneProductsList";
-import CategoriesList from "../components/CategoriesList";
+import Navbar from "../layouts/Navbar";
+import Footer from "../layouts/Footer";
+import Banner from "../components/common/Banner";
+import BestSellerProductsList from "../components/product/BestSellerProductsList";
+import PhoneProductsList from "../components/product/PhoneProductsList";
+import CategoriesList from "../components/product/CategoriesList";
 import { useEffect, useRef, useState } from "react";
 
 function Home() {

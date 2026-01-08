@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function Order() {
+export default function OrderPage() {
     const [active, setActive] = useState("Tất cả");
 
     const tabs = ["Tất cả", "Đang xử lý", "Đang giao", "Hoàn tất", "Đã hủy"];
@@ -38,8 +38,8 @@ export default function Order() {
                             key={tab}
                             onClick={() => setActive(tab)}
                             className={`pb-3 flex-1 font-medium transition ${active === tab
-                                    ? "text-[#03A9F4] border-b-2 border-[#03A9F4]"
-                                    : "text-gray-500 hover:text-gray-700"
+                                ? "text-[#03A9F4] border-b-2 border-[#03A9F4]"
+                                : "text-gray-500 hover:text-gray-700"
                                 }`}
                         >
                             {tab}
@@ -53,4 +53,4 @@ export default function Order() {
             </div>
         </>
     )
-} 
+}

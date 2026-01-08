@@ -6,12 +6,12 @@ import React, {
   useEffect,
 } from "react";
 // import { ProductContext } from "../context/ProductContext";
-import ProductCard from "./ProductCard";
+import ProductCard from "./components/product/ProductCard";
 import { create } from "zustand";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/navigation";
-import Breadcrumbs from "./Breadcrumbs";
+import Breadcrumbs from "./components/common/Breadcrumbs";
 import Button from '@mui/material/Button';
 import { MdClose } from "react-icons/md";
 import { IoFilter } from "react-icons/io5";

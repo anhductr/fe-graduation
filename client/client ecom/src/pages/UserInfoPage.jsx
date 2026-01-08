@@ -2,7 +2,7 @@ import { Button } from "@mui/material";
 import { useState, useEffect } from "react";
 import { FaLeaf } from "react-icons/fa";
 
-export default function UserInfo() {
+export default function UserInfoPage() {
     const [email, setEmail] = useState("");
     const [lastName, setLastName] = useState("");
     const [firstName, setFirstName] = useState("");
@@ -219,4 +219,4 @@ export default function UserInfo() {
             </div>
         </>
     )
-} 
+}

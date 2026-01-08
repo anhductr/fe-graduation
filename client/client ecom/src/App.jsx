@@ -6,8 +6,8 @@ import ProductPage from "./pages/ProductPage";
 import CartPage from "./pages/CartPage";
 import { useContext } from "react";
 import UserDashboardPage from "./pages/UserDashboardPage";
-import UserInfo from "./components/UserInfo";
-import Order from "./components/Order";
+import UserInfoPage from "./pages/UserInfoPage";
+import OrderPage from "./pages/OrderPage";
 
 function App() {
   return (
@@ -21,13 +21,13 @@ function App() {
           <Route
             index
             element={
-              <UserInfo />
+              <UserInfoPage />
             }
           />
           <Route
             path="orders"
             element={
-              <Order />
+              <OrderPage />
             }
           />
         </Route>

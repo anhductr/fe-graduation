@@ -4,9 +4,9 @@ import { Link, useNavigate } from "react-router-dom";
 // import CartContext from "../context/CartContext";
 // import { ProductContext } from "../context/ProductContext";
 // import { WishlistContext } from "../context/WishlistContext";
-import LoginForm from "./LogInForm";
-import RegistrationForm from "./RegisterationForm";
-import Catalogue from "./Catalogue";
+import LoginForm from "../components/auth/LogInForm";
+import RegistrationForm from "../components/auth/RegisterationForm";
+import Catalogue from "../components/product/Catalogue";
 import { motion, AnimatePresence } from "framer-motion";
 import { HiOutlineViewList } from "react-icons/hi";
 import { IoIosArrowUp } from "react-icons/io";
@@ -20,7 +20,7 @@ import { MdLogout } from "react-icons/md";
 import { LuUserRound } from "react-icons/lu";
 import { BsBoxSeam } from "react-icons/bs";
 import { useSearchKeyword } from "../context/SearchContext";
-import { getSearchSuggestions } from "../api, function/searchApi";
+import { getSearchSuggestions } from "../services/searchApi";
 import { useQuery } from "@tanstack/react-query";
 
 function Navbar() {

@@ -1,5 +1,5 @@
-import { priceOptions } from "../api, function/searchPageFunction";
-import { useFilterStore } from "../api, function/searchPageFunction";
+import { priceOptions } from "../../utils/searchHelpers";
+import { useFilterStore } from "../../utils/searchHelpers";
 import React, {
     useState,
     useContext,

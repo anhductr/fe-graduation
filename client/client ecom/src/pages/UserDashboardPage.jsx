@@ -1,8 +1,8 @@
 // AccountLayout.jsx
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
-import Navbar from "../components/Navbar";
-import Breadcrumbs from "../components/Breadcrumbs";
-import Footer from "../components/Footer";
+import Navbar from "../layouts/Navbar";
+import Breadcrumbs from "../components/common/Breadcrumbs";
+import Footer from "../layouts/Footer";
 import { MdLogout } from "react-icons/md";
 import { LuUserRound } from "react-icons/lu";
 import { BsBoxSeam } from "react-icons/bs";

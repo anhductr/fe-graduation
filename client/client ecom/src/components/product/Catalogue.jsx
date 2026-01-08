@@ -1,7 +1,7 @@
 import { time } from "framer-motion";
 import React, { useState, useEffect } from "react";
 import { IoIosArrowForward } from "react-icons/io";
-import { getAllBrands, getCategoryById } from "../api, function/catalogueApi";
+import { getAllBrands, getCategoryById } from "../../services/catalogueApi";
 import { useNavigate } from "react-router-dom";
 
 const Catalogue = () => {

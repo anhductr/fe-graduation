@@ -26,11 +26,19 @@ const processQueue = (error, token = null) => {
 /* ================= REQUEST ================= */
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
+
+  config.headers = {
+    ...config.headers,
+    "ngrok-skip-browser-warning": "true",
+  };
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
   return config;
 });
+
 
 /* ================= RESPONSE ================= */
 api.interceptors.response.use(

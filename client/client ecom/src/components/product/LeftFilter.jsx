@@ -5,12 +5,12 @@ import React, {
     useCallback,
     useEffect,
 } from "react";
-import { useFilterStore } from "../api, function/searchPageFunction";
-import { priceOptions } from "../api, function/searchPageFunction";
-import DoublePriceRangeSlider from "./DoublePriceRangeSlider";
+import { useFilterStore } from "../../utils/searchHelpers";
+import { priceOptions } from "../../utils/searchHelpers";
+import DoublePriceRangeSlider from "../common/DoublePriceRangeSlider";
 import { IoFilter } from "react-icons/io5";
 import { IoIosArrowUp } from "react-icons/io";
-import { specFilters } from "../api, function/searchPageFunction";
+import { specFilters } from "../../utils/searchHelpers";
 
 function FilterToggle({ title, children }) {
     const [open, setOpen] = useState(true);
