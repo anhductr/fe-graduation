@@ -8,7 +8,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
-import { searchProducts } from "../api, function/searchApi";
+// import { searchProducts } from "../api, function/searchApi";
 
 export default function BestSellerProductsList() {
   const phones_n_tablets = [

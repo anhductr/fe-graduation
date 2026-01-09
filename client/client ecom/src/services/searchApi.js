@@ -1,26 +1,6 @@
-import axios from "axios";
+import { api } from "../libs/axios";
 
-// Tạo axios instance riêng cho search (có thể tái sử dụng ở các file khác nếu cần)
-const api = axios.create({
-    baseURL: "/api/v1/search-service",   // Thay bằng URL backend thật của bạn
-    timeout: 15000,
-    headers: {
-        "Content-Type": "application/json",
-    },
-});
 
-// Optional: log lỗi cho dễ debug
-api.interceptors.response.use(
-    (res) => res,
-    (err) => {
-        console.error("Search API Error:", err.response?.data || err.message);
-        return Promise.reject(err);
-    }
-);
-
-/**
- * Tìm kiếm sản phẩm + lọc + phân trang
- */
 export const searchProducts = async ({
     keyword = null,
     page = 1,
@@ -59,7 +39,7 @@ export const searchProducts = async ({
 };
 
 /**
- * Gợi ý tìm kiếm (autocomplete)
+ * Gợi ý tìm kiếm (autocomplete
  */
 export const getSearchSuggestions = async (keyword = "") => {
     if (!keyword.trim()) return [];
@@ -70,5 +50,3 @@ export const getSearchSuggestions = async (keyword = "") => {
     console.log('autocomplete response: ', response)
     return response.data;
 };
-
-export default api; // nếu cần dùng axios thuần ở nơi khác

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { authApi } from "../api, function/authApi";
+import { authApi } from "../services/authApi";
 
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
