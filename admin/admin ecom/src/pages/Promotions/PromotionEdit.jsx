@@ -200,12 +200,10 @@ export default function PromotionEdit() {
       setUsageLimited(promotion.usageLimited);
       setApplyTo(promotion.applyTo);
 
-      if (promotion.categoryName.length > 0) {
-        setSelectedCategories(promotion.categoryName);
-        setSelectedCategoriesId(promotion.categoryName);
-        loadInitialCategories(promotion.categoryName);
-      } else if (promotion.productId.length > 0) {
-        setSelectedProducts(promotion.productId);
+      if (promotion.applyTo === "Category" && promotion.categoryId && promotion.categoryId.length > 0) {
+        setSelectedCategoriesId(promotion.categoryId);
+        loadInitialCategories(promotion.categoryId);
+      } else if (promotion.applyTo === "Product" && promotion.productId && promotion.productId.length > 0) {
         setSelectedProductsId(promotion.productId);
         loadInitialProducts(promotion.productId);
       }
@@ -234,7 +232,7 @@ export default function PromotionEdit() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       console.log("search res: ", res.data.result.data);
-      return res.data.result.data || [];
+      return res.data.result.productGetVMList || [];
     } catch (err) {
       console.error("Lỗi tìm kiếm sản phẩm:", err);
       return [];
@@ -289,8 +287,8 @@ export default function PromotionEdit() {
         "/api/v1/search-service/search/category/admin",
         {
           name: keyword.trim(),
-          page: 0, // bạn đang fix page = 1
-          size: 10, // bạn muốn lấy tối đa 30 kết quả
+          limit: 10,
+
         },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -301,7 +299,7 @@ export default function PromotionEdit() {
 
       // Giả sử CategoryGetListVM có field 'data' chứa mảng category
       // Nếu cấu trúc khác (ví dụ result trực tiếp là list), bạn có thể điều chỉnh
-      return res.data.result.categoryGetVM || [];
+      return res.data.result || [];
     } catch (err) {
       // Nếu là lỗi từ Axios (có response từ server)
       if (err.response) {
@@ -349,7 +347,7 @@ export default function PromotionEdit() {
 
         const formatted = results.map((item) => ({
           id: item.id,
-          name: item.name,
+          name: item.value,
           // có thể thêm image, sku, v.v.
         }));
 
@@ -462,7 +460,7 @@ export default function PromotionEdit() {
             : [];
       } else if (applyTo === "Product") {
         deleteApplyTo.current =
-          defaultPromo.categoryName.length > 0
+          (defaultPromo.categoryId && defaultPromo.categoryId.length > 0)
             ? Array.from(defaultPromo.categoryId)
             : [];
       }
@@ -484,7 +482,7 @@ export default function PromotionEdit() {
       console.log("new selected product ids:", newProductIds);
     } else if (applyTo === "Category") {
       newCategoryIds = selectedCategoriesId.filter(
-        (item) => !defaultPromo.categoryName.includes(item)
+        (item) => !defaultPromo.categoryId.includes(item)
       );
       console.log("new selected category ids:", newCategoryIds);
     }

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { FaCloudUploadAlt } from "react-icons/fa";
 import {
   Box,
@@ -289,12 +289,12 @@ export default function PromotionUpload() {
     }
 
     // Xác định applyTo value
-    let applyToValue = "ORDER";
-    if (applyTo === "Product") applyToValue = "PRODUCT";
-    else if (applyTo === "Category") applyToValue = "CATEGORY";
+    let applyToValue = "ALL";
+    if (applyTo === "Product") applyToValue = "Product";
+    else if (applyTo === "Category") applyToValue = "Category";
 
     // Xác định promotionKind
-    let promotionKindValue = "AUTOMATIC";
+    let promotionKindValue = "AUTO";
     if (promotionKind === "VOUCHER") {
       promotionKindValue = "VOUCHER";
     }
