@@ -65,7 +65,21 @@ export const AuthProvider = ({ children }) => {
 
     const verifyOtpMutation = useMutation({
         mutationFn: authApi.verifyOtp,
-        onSuccess: () => {
+        onSuccess: async () => {
+            try {
+                // Refresh token immediately to update claims (e.g. verified status)
+                const currentToken = localStorage.getItem("token");
+                if (currentToken) {
+                    const res = await authApi.refresh({ token: currentToken });
+                    const newToken = res.data?.result?.token;
+                    if (newToken) {
+                        localStorage.setItem("token", newToken);
+                        setToken(newToken);
+                    }
+                }
+            } catch (err) {
+                console.error("Token refresh after verification failed", err);
+            }
             // Invalidate user query to refresh verification status
             queryClient.invalidateQueries(["user"]);
         },

@@ -112,7 +112,7 @@ const LoginForm = ({ isOpen, onClose, onSwitchToRegister, isModal = true }) => {
             to="/forgot-password"
             className="text-xs text-gray-700 underline hover:text-gray-900"
           >
-            Quên mật khẩu email?
+            Quên mật khẩu?
           </Link>
         </div>
 

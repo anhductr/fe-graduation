@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { Snackbar, Alert } from "@mui/material";
 
 const OtpVerificationModal = ({ isOpen, onClose, username }) => {
     const { verifyOtp, isVerifyOtpLoading, sendOtp } = useAuth();
     const [otp, setOtp] = useState("");
     const [error, setError] = useState(null);
     const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
+    const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
     useEffect(() => {
         let timer;
@@ -31,23 +33,24 @@ const OtpVerificationModal = ({ isOpen, onClose, username }) => {
         }
         try {
             await verifyOtp({ username, otp });
-            alert("Xác thực email thành công!");
-            onClose();
+            setSnackbar({ open: true, message: "Xác thực email thành công!", severity: "success" });
+            setTimeout(() => onClose(), 1500); // Close modal after delay
         } catch (err) {
             const msg = err.response?.data?.message || "Xác thực thất bại. Vui lòng thử lại.";
             setError(msg);
+            setSnackbar({ open: true, message: msg, severity: "error" });
         }
     };
 
     const handleResend = async () => {
         try {
-            await sendOtp({ username });
+            await sendOtp({ userName: username });
             setTimeLeft(300);
             setError(null);
-            alert("Đã gửi lại mã OTP.");
+            setSnackbar({ open: true, message: "Đã gửi lại mã OTP.", severity: "success" });
         } catch (err) {
             console.error(err);
-            alert("Gửi lại mã thất bại.");
+            setSnackbar({ open: true, message: "Gửi lại mã thất bại.", severity: "error" });
         }
     };
 
@@ -73,7 +76,7 @@ const OtpVerificationModal = ({ isOpen, onClose, username }) => {
                                 setOtp(val);
                                 if (error) setError(null);
                             }}
-                            className="text-center text-2xl tracking-widest w-40 border-b-2 border-gray-300 focus:border-red-600 focus:outline-none py-2"
+                            className="text-center text-2xl tracking-widest w-40 border-b-2 border-gray-300 focus:border-red-600 focus:outline-none py-2 text-black"
                             placeholder="000000"
                         />
                     </div>
@@ -111,6 +114,16 @@ const OtpVerificationModal = ({ isOpen, onClose, username }) => {
                     ✕
                 </button>
             </div>
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={4000}
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </>
     );
 };

@@ -8,7 +8,7 @@ export const authApi = {
   introspect: (data) => api.post(`${API_URL}/auth/introspect`, data),
   refresh: (data) => api.post(`${API_URL}/auth/refresh`, data),
   verifyOtp: (data) => api.post(`${API_URL}/auth/verify`, data), // Registration OTP
-  forgotPasswordVerify: (data) => api.post(`${API_URL}/auth/forgot-password`, data),
+  forgotPasswordVerify: (data) => api.post(`${API_URL}/auth/verify/forgot-password`, data),
   logout: (token) => api.post(`${API_URL}/auth/logout`, { token }),
 
   // User Management
@@ -16,7 +16,7 @@ export const authApi = {
   sendVerifyEmailOtp: (data) => api.post(`${API_URL}/users/verifyEmail/send-otp`, data),
   sendForgotPasswordOtp: (data) => api.post(`${API_URL}/users/forgot-password/send-otp`, data),
   resetPassword: (data) => api.put(`${API_URL}/users/reset-password`, data),
-  submitResetPassword: (data, token) => api.put(`${API_URL}/auth/reset-password`, data, { headers: { Authorization: `Bearer ${token}` } }),
+  submitResetPassword: (data, token) => api.put(`${API_URL}//users/forgot-password`, data, { headers: { Authorization: `Bearer ${token}` } }),
   getMyInfo: () => api.get(`${API_URL}/users/myInfo`),
   getUserId: () => api.get(`${API_URL}/users/getUserId`), // Internal use mostly, but keeping it
 

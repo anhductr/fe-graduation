@@ -1,17 +1,19 @@
 import { useContext, useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 // import LogInContext from "../context/LogInContext";
-// import CartContext from "../context/CartContext";
+import { useCart } from "../context/CartContext";
 // import { ProductContext } from "../context/ProductContext";
 // import { WishlistContext } from "../context/WishlistContext";
 // import LoginForm from "../components/auth/LogInForm";
 // import RegistrationForm from "../components/auth/RegisterationForm";
-import VerificationBanner from "../components/auth/VerificationBanner";
+// import VerificationBanner from "../components/auth/VerificationBanner";
 import Catalogue from "../components/product/Catalogue";
 import { motion, AnimatePresence } from "framer-motion";
 import { HiOutlineViewList } from "react-icons/hi";
 import { IoIosArrowUp } from "react-icons/io";
 import { IoMdCart } from "react-icons/io";
+import { IoNotificationsOutline } from "react-icons/io5";
+import NotificationModal from "../components/common/NotificationModal";
 import Badge, { badgeClasses } from '@mui/material/Badge';
 import { styled } from '@mui/material/styles';
 import { IoMdSearch } from "react-icons/io";
@@ -26,6 +28,7 @@ import { useQuery } from "@tanstack/react-query";
 
 function Navbar() {
   const { isLoggedIn, user, logout } = useAuth();
+  const { itemCount } = useCart();
 
   const navbarRef = useRef(null);
   const prevScrollY = useRef(window.scrollY);
@@ -73,6 +76,7 @@ function Navbar() {
   // const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isCatalogueOpen, setIsCatalogueOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
   const style = {
     width: "100%",
@@ -156,7 +160,6 @@ function Navbar() {
   };
   return (
     <>
-      <VerificationBanner />
       <div className="h-[110px]"></div>
       <nav
         ref={navbarRef}
@@ -300,7 +303,23 @@ function Navbar() {
               </AnimatePresence>
             </div>
 
-            <div className="flex-[23%] flex justify-center gap-7 items-center">
+            <div className="flex-[23%] flex justify-center gap-4 items-center pl-4">
+              {/* Notification */}
+              <div className="relative">
+                <IconButton
+                  onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                  sx={{ color: "white" }}
+                >
+                  <Badge badgeContent={3} color="error">
+                    <IoNotificationsOutline className="text-[24px]" />
+                  </Badge>
+                </IconButton>
+                <NotificationModal
+                  isOpen={isNotificationOpen}
+                  onClose={() => setIsNotificationOpen(false)}
+                />
+              </div>
+
               {/* user */}
               <div
                 className="relative"
@@ -396,7 +415,7 @@ function Navbar() {
                   className="flex items-center gap-2 rounded-full bg-black/60 px-4 py-[9px] text-white text-[15px]"
                 >
                   <IoMdCart className="text-[18px]"></IoMdCart>
-                  <CartBadge badgeContent={2} color="primary" overlap="circular" />
+                  <CartBadge badgeContent={itemCount} color="primary" overlap="circular" />
                   <span>Giỏ hàng</span>
                 </button>
               </Link>

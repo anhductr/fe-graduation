@@ -41,7 +41,7 @@ const VerificationBanner = () => {
 
     const handleVerifyClick = async () => {
         try {
-            await sendOtp({ username: user.username || user.email }); // API doc says body: { username: "..." }
+            await sendOtp({ userName: user.userame || user.email }); // API doc says body: { username: "..." }
             setIsOtpModalOpen(true);
         } catch (err) {
             alert("Không thể gửi mã OTP. Vui lòng thử lại sau.");
