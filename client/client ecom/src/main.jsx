@@ -7,18 +7,24 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 import { SearchProvider } from './context/SearchContext.jsx'
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
 
 createRoot(document.getElementById('root')).render(
   // <StrictMode>
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <SearchProvider>
-            <App />
-          </SearchProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </BrowserRouter>
+  <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <SearchProvider>
+          <App />
+        </SearchProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </BrowserRouter>
   // </StrictMode>,
 )

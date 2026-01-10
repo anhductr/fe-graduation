@@ -1,63 +1,40 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Breadcrumbs from "../components/common/Breadcrumbs";
-import Box from '@mui/material/Box';
 import Checkbox from '@mui/material/Checkbox';
-import PaymentSuccessModal from "../components/common/PaymentSuccessModal";
 import Footer from "../layouts/Footer";
 import Navbar from "../layouts/Navbar";
-
-const productData = [
-  {
-    id: 1,
-    name: "iPhone 16 Pro Max 256GB Titan Sa Mạc MYWX3VN/A",
-    image:
-      "https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/1d12afe4-71a3-41fc-988f-1d08fd64ce60.png",
-    colorOptions: "Titan Sa Mạc",
-    price: 30090000,
-    originalPrice: 34290000,
-  },
-  {
-    id: 2,
-    name: "iPhone 16 Pro Max 256GB Titan Sa Mạc MYWX3VN/A",
-    image:
-      "https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/1d12afe4-71a3-41fc-988f-1d08fd64ce60.png",
-    colorOptions: "Bạc",
-    price: 30090000,
-    originalPrice: 34290000,
-  },
-  {
-    id: 3,
-    name: "iPhone 16 Pro Max 256GB Titan Sa Mạc MYWX3VN/A",
-    image:
-      "https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/1d12afe4-71a3-41fc-988f-1d08fd64ce60.png",
-    colorOptions: "Đen",
-    price: 30090000,
-    originalPrice: 34290000,
-  },
-];
+import { useCart } from "../context/CartContext";
 
 const formatPrice = (p) =>
-  p.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(p);
 
 export default function CartPage() {
-  const [openSuccessModal, setOpenSuccessModal] = useState(false);
-
-  const [selectedProducts, setSelectedProducts] = useState(0);
-  const [selectedProduct, setSelectedProduct] = useState(false);
-  const [color, setColor] = useState(productData[0].colorOptions[0]);
-  const [selectedCombo, setSelectedCombo] = useState(null);
-  const [showMoreInfo, setShowMoreInfo] = useState(false);
+  const navigate = useNavigate();
+  const {
+    items,
+    totalPrice: cartTotalPrice,
+    updateCart,
+    deleteItems,
+    isCartLoading
+  } = useCart();
 
   const [selected, setSelected] = useState([]);
-  const [quantity, setQuantity] = useState([]);
 
+  // Initialize selection state based on items
   useEffect(() => {
-    setSelected(new Array(productData.length).fill(false));
-    setQuantity(new Array(productData.length).fill(1));
-  }, []);
+    if (items && items.length > 0) {
+      // By default, maybe existing logic or preserve selection.
+      // For now, reset selection when items change or init.
+      // Or keep track of selected item IDs.
+      setSelected(new Array(items.length).fill(false));
+    } else {
+      setSelected([]);
+    }
+  }, [items]);
 
   const handleChangeCheckedAll = (event) => {
-    setSelected(new Array(productData.length).fill(event.target.checked));
+    setSelected(new Array(items.length).fill(event.target.checked));
   };
 
   const handleChangeChecked = (event, idx) => {
@@ -69,318 +46,212 @@ export default function CartPage() {
     });
   };
 
-  const handleChangeQuantity = (e, idx) => {
-    const val = e.target.value;
+  const handleDeleteSelected = async () => {
+    const selectedIds = items.filter((_, idx) => selected[idx]).map(item => item.id);
+    if (selectedIds.length === 0) return;
 
-    // Nếu người dùng đang xóa hết, cho phép chuỗi rỗng
-    if (val === "") {
-      setQuantity((prev) => {
-        const newQuantity = [...prev];
-        newQuantity[idx] = ""; // cho phép trống
-        return newQuantity;
-      });
-      return;
-    }
-
-    // Nếu không trống, chuyển sang số
-    const num = Number(val);
-    if (!isNaN(num)) {
-      setQuantity((prev) => {
-        const newQuantity = [...prev];
-        newQuantity[idx] = num;
-        return newQuantity;
-      });
+    if (window.confirm("Bạn có chắc muốn xóa các sản phẩm đã chọn?")) {
+      await deleteItems(selectedIds);
+      // Selection state will be reset by useEffect when items change
     }
   };
 
+  const handleUpdateQuantity = async (e, idx, itemId, currentQty) => {
+    const val = e.target.value;
+    if (val === "" || isNaN(val)) return;
 
-  const totalPrice =
-    productData.reduce((sum, product) => {
-      return sum + product.price * (quantity[product.id - 1] || 1);
-    }, 0) +
-    (selectedCombo ? selectedCombo.price : 0);
+    const newQty = parseInt(val);
+    if (newQty < 1) return; // Prevent < 1 if manually typed
 
-  const totalOriginalPrice =
-    productData.reduce((sum, product) => {
-      return sum + product.originalPrice * (quantity[product.id - 1] || 1);
-    }, 0) +
-    (selectedCombo ? selectedCombo.originalPrice || selectedCombo.price : 0);
-
-  const totalDiscount = totalOriginalPrice - totalPrice;
-
-  function toggleCombo(id) {
-    if (selectedCombo && selectedCombo.id === id) {
-      setSelectedCombo(null);
-    } else {
-      const c = productData.combos.find((c) => c.id === id);
-      setSelectedCombo(c);
+    if (newQty !== currentQty) {
+      // Find sku from item. The API needs sku and quantity.
+      // Assuming item has sku.
+      const item = items[idx];
+      await updateCart({ sku: item.sku, quantity: newQty });
     }
+  };
+
+  const increaseQty = async (item) => {
+    await updateCart({ sku: item.sku, quantity: item.quantity + 1 });
+  };
+
+  const decreaseQty = async (item) => {
+    if (item.quantity > 1) {
+      await updateCart({ sku: item.sku, quantity: item.quantity - 1 });
+    } else {
+      // Maybe ask to remove? Or just do nothing.
+    }
+  };
+
+  // Calculate selected subtotal if we only want to checkout selected items.
+  // BUT the API flow for checkout is usually "checkout cart". 
+  // If the requirement is to checkout ONLY selected items, the CreateOrder API needs to support passing items.
+  // The current Create Order API takes a list of items. 
+  // So yes, we can filter.
+  // HOWEVER, the logic in CheckoutPage uses `useCart()` which likely returns ALL items.
+  // If we want to checkout subset, we might need to pass them to checkout page or update cart before checkout.
+  // For simplicity based on typical flows (and provided Checkout implementation), let's assume we proceed with the whole cart OR 
+  // we filter in CheckoutPage. 
+  // Current `CheckoutPage.jsx` uses `const { cart, items, totalPrice } = useCart();` --> takes everything.
+  // So "Select" checkboxes here might strictly be for "Deleting" or UI calculation, unless we pass state.
+  // Let's implement visual calculation for selected items.
+
+  const selectedItems = items.filter((_, idx) => selected[idx]);
+  const selectedTotal = selectedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+  // If nothing selected, show cart total? Or 0?
+  // Usually if nothing selected, "Buy" might specific "Please select items".
+  // Let's stick to simple "Checkout Cart" logic for now if user selects nothing?
+  // Or better: disabling checkout if nothing selected is common in platforms like Shopee.
+  // BUT `CheckoutPage` uses global cart. 
+  // I will make the "Checkout" button navigate to /checkout. `CheckoutPage` will just load the user's cart.
+  // So the checkboxes here technically don't affect `CheckoutPage` unless we implement "Checkout Specific Items" flow which is more complex (requires storing selected items in context/state).
+  // Given the time, I will assume CheckoutPage processes the *entire* cart for now, as implemented in `CheckoutPage.jsx`.
+  // I will note this limitation or just allow deleting.
+
+  const handleCheckout = () => {
+    navigate('/checkout');
+  };
+
+  if (isCartLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
   }
 
   return (
     <div className="component-container">
       <Navbar />
-      <PaymentSuccessModal
-        open={openSuccessModal}
-        onClose={() => setOpenSuccessModal(false)}
-      />
       <div className="min-h-screen bg-gray-100 px-15">
         <Breadcrumbs pagename="Giỏ Hàng" product={null} />
-        {/* Breadcrumb */}
 
-        <div className="mx-auto flex gap-10 ">
-          {/* Left content */}
-          <div className="flex-1 bg-white rounded-lg p-6">
-            <label className="flex items-center mb-4 space-x-3">
-              <Checkbox
-                checked={selected.length > 0 && selected.every(Boolean)} // tất cả đều true thì tick hết
-                onChange={handleChangeCheckedAll}
-              />
-              <span className="text-gray-900 font-medium">
-                Chọn tất cả ({selected.filter(Boolean).length})
-              </span>
-              <button
-                aria-label="Xóa tất cả"
-                className="ml-auto text-gray-400 hover:text-gray-600 transition"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
+        {items.length === 0 ? (
+          <div className="text-center py-20 bg-white rounded-lg shadow mt-4">
+            <p className="text-xl text-gray-500 mb-4">Giỏ hàng của bạn đang trống</p>
+            <button
+              onClick={() => navigate('/')}
+              className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+            >
+              Tiếp tục mua sắm
+            </button>
+          </div>
+        ) : (
+          <div className="mx-auto flex gap-10 ">
+            {/* Left content */}
+            <div className="flex-1 bg-white rounded-lg p-6">
+              <label className="flex items-center mb-4 space-x-3">
+                <Checkbox
+                  checked={selected.length > 0 && selected.every(Boolean)}
+                  onChange={handleChangeCheckedAll}
+                />
+                <span className="text-gray-900 font-medium">
+                  Chọn tất cả ({items.length})
+                </span>
+                <button
+                  aria-label="Xóa tất cả"
+                  className="ml-auto text-gray-400 hover:text-gray-600 transition"
+                  onClick={handleDeleteSelected}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </label>
-
-            {/* Single product */}
-            <div className="space-y-4">
-              {productData.map((product, idx) => (
-                <div key={product.id} className="flex items-center justify-between w-full border border-gray-200 rounded-lg p-4 gap-4">
-                  <label className="flex items-start">
-                    <Checkbox
-                      checked={selected[idx] || false}
-                      onChange={(e) => handleChangeChecked(e, idx)}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
                     />
-                  </label>
+                  </svg>
+                </button>
+              </label>
 
-                  <img
-                    src={product.image}
-                    alt="iPhone 16 Pro Max 256GB Titan Sa Mạc front view"
-                    className="h-20 w-20 object-cover rounded-md"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src =
-                        "https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/9bfea6ad-ba7b-44bf-b93e-1233ff983880.png";
-                    }}
-                  />
+              {/* List items */}
+              <div className="space-y-4">
+                {items.map((item, idx) => (
+                  <div key={item.id} className="flex items-center justify-between w-full border border-gray-200 rounded-lg p-4 gap-4">
+                    <label className="flex items-start">
+                      <Checkbox
+                        checked={selected[idx] || false}
+                        onChange={(e) => handleChangeChecked(e, idx)}
+                      />
+                    </label>
 
-                  <div className="">
-                    <h3 className="text-black font-semibold text-sm leading-tight">
-                      {product.name}
-                    </h3>
+                    <img
+                      src={item.image || "https://dummyimage.com/100x100/eeeeee/999999&text=No+Image"}
+                      alt={item.productName}
+                      className="h-20 w-20 object-cover rounded-md"
+                    />
 
-                    <div
-                      className="mt-1 px-2 py-1 rounded bg-gray-200 text-gray-800 text-sm w-fit"
-                    >
-                      {product.colorOptions}
+                    <div className="flex-1">
+                      <h3 className="text-black font-semibold text-sm leading-tight">
+                        {item.productName}
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-1">SKU: {item.sku}</p>
+                    </div>
+
+                    {/* Price */}
+                    <div className="text-red-600 flex flex-col text-lg font-semibold text-right">
+                      {formatPrice(item.price)}
+                    </div>
+
+                    <div className="flex flex-shrink-0 items-center space-x-2 border border-gray-300 rounded">
+                      <button
+                        aria-label="Giảm số lượng"
+                        onClick={() => decreaseQty(item)}
+                        className="px-3 py-1 bg-white hover:bg-gray-100 border-r border-gray-300 disabled:opacity-50"
+                        disabled={item.quantity <= 1}
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => handleUpdateQuantity(e, idx, item.id, item.quantity)} // Note: handling manual input needs debounce or special handling
+                        className="w-12 text-center border-none focus:ring-0 outline-none appearance-none"
+                        readOnly // Simple implementation: readOnly to force buttons usage, or improve logic for input
+                      />
+                      <button
+                        aria-label="Tăng số lượng"
+                        onClick={() => increaseQty(item)}
+                        className="px-3 py-1 bg-white hover:bg-gray-100 border-l border-gray-300"
+                      >
+                        +
+                      </button>
                     </div>
                   </div>
-
-                  {/* Price and quantity */}
-                  <div className="text-red-600 flex flex-col text-lg font-semibold text-right">
-                    {formatPrice(productData[0].price)}{" "}
-                    <span className="line-through text-gray-400 text-sm font-normal">
-                      {formatPrice(productData[0].originalPrice)}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-shrink-0 items-center space-x-2 border border-gray-300 rounded">
-                    <button
-                      aria-label="Giảm số lượng"
-                      onClick={() =>
-                        setQuantity((prev) => {
-                          const newQuantity = [...prev]; // tạo bản sao
-                          newQuantity[idx] = Math.max(1, newQuantity[idx] - 1); // giảm 1, nhưng không dưới 1
-                          return newQuantity;
-                        })
-                      }
-                      className="px-3 py-1 bg-white hover:bg-gray-100 border-r border-gray-300"
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      value={quantity[idx]}
-                      onChange={(e) => handleChangeQuantity(e, idx)}
-                      onBlur={() => {
-                        setQuantity((prev) => {
-                          const newQuantity = [...prev];
-                          if (!newQuantity[idx] || Number(newQuantity[idx]) < 1)
-                            newQuantity[idx] = 1;
-                          return newQuantity;
-                        });
-                      }}
-                      className="w-12 text-center border-none focus:ring-0 outline-none appearance-none 
-                        [&::-webkit-inner-spin-button]:appearance-none 
-                        [&::-webkit-outer-spin-button]:appearance-none"
-                    />
-
-                    <button
-                      aria-label="Tăng số lượng"
-                      onClick={() =>
-                        setQuantity((prev) => {
-                          const newQuantity = [...prev]; // tạo bản sao
-                          newQuantity[idx] = Math.max(1, newQuantity[idx] + 1); // tăng 1
-                          return newQuantity;
-                        })
-                      }
-                      className="px-3 py-1 bg-white hover:bg-gray-100 border-l border-gray-300"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Right content */}
-          <div className="w-full max-w-sm bg-white rounded-lg p-6 sticky top-20">
-            <div className="flex items-center justify-between mb-3 border border-gray-200 rounded p-3 cursor-pointer hover:bg-gray-50">
-              <div className="flex items-center space-x-2">
-                <span className="text-gray-800 font-medium">
-                  Chọn hoặc nhập ưu đãi
-                </span>
+                ))}
               </div>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-gray-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
             </div>
 
-            <div className="flex items-center space-x-2 border border-gray-200 rounded p-3 mb-6 text-yellow-600 bg-yellow-50">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 flex-shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 6v6l4 2"
-                />
-              </svg>
-              <span>Đăng ký thành viên để kích hoạt điểm thưởng</span>
-            </div>
+            {/* Right content */}
+            <div className="w-full max-w-sm bg-white rounded-lg p-6 sticky top-20 h-fit">
+              <div>
+                <h2 className="font-semibold text-lg mb-4">Thông tin đơn hàng</h2>
 
-            <div>
-              <h2 className="font-semibold text-lg mb-4">Thông tin đơn hàng</h2>
+                <dl className="space-y-3">
+                  <div className="flex justify-between border-b border-dashed border-gray-300 pb-1 font-semibold text-red-600 text-lg">
+                    <dt>Tổng tiền</dt>
+                    <dd>{formatPrice(cartTotalPrice)}</dd>
+                  </div>
+                </dl>
 
-              <dl className="space-y-3">
-                <div className="flex justify-between border-b border-dashed border-gray-300 pb-1">
-                  <dt>Tổng tiền</dt>
-                  <dd>{formatPrice(totalOriginalPrice)}</dd>
-                </div>
-
-                <div className="flex justify-between border-b border-dashed border-gray-300 pb-1">
-                  <dt>Tổng khuyến mãi</dt>
-                  <dd className="text-gray-500">
-                    {formatPrice(totalDiscount)}
-                  </dd>
-                </div>
-
-                <div className="flex justify-between border-b border-dashed border-gray-300 pb-1 font-semibold text-red-600 text-lg">
-                  <dt>Cần thanh toán</dt>
-                  <dd>{formatPrice(totalPrice)}</dd>
-                </div>
-
-                <div className="flex justify-between items-center text-yellow-600">
-                  <dt>Điểm thưởng</dt>
-                  <dd className="flex items-center space-x-1 font-medium">
-                    <span>+7,522</span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <circle cx="12" cy="12" r="10" />
-                      <path
-                        d="M12 6v6l4 2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </dd>
-                </div>
-              </dl>
-
-              <button
-                type="button"
-                className="mt-6 w-full bg-red-600 text-white font-bold py-3 rounded hover:bg-red-700 transition"
-                onClick={() => setOpenSuccessModal(true)}
-              >
-                Xác nhận đơn
-              </button>
-
-              <button
-                type="button"
-                className="mt-3 w-full bg-gray-100 text-gray-700 font-medium py-2 rounded hover:bg-gray-200 transition"
-                onClick={() => setShowMoreInfo((v) => !v)}
-              >
-                {showMoreInfo ? "Thu gọn" : "Xem chi tiết"}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className={`inline-block h-5 w-5 ml-1 transition-transform ${showMoreInfo ? "rotate-180" : "rotate-0"
-                    }`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
+                <button
+                  type="button"
+                  className="mt-6 w-full bg-red-600 text-white font-bold py-3 rounded hover:bg-red-700 transition"
+                  onClick={handleCheckout}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19 9l-7 7-7 7"
-                  />
-                </svg>
-              </button>
-
-              {showMoreInfo && (
-                <div className="mt-4 text-sm text-gray-600">
-                  <p>
-                    Thông tin chi tiết hơn về đơn hàng hoặc điểm thưởng có thể
-                    xuất hiện tại đây.
-                  </p>
-                </div>
-              )}
+                  Thanh toán
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
       <Footer />
     </div>

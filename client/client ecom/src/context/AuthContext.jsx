@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { authApi } from "../services/authApi";
 
@@ -18,12 +18,26 @@ export const AuthProvider = ({ children }) => {
         }
     }, [token]);
 
+    const { data: user, isLoading: isUserLoading } = useQuery({
+        queryKey: ["user"],
+        queryFn: authApi.getMyInfo,
+        enabled: !!token,
+        retry: false,
+        select: (data) => data.data.result,
+        onError: () => {
+            // Token invalid or expired
+            logout();
+        }
+    });
+
     const loginMutation = useMutation({
         mutationFn: authApi.login,
         onSuccess: (data) => {
             const { token } = data.data.result; // Backend trả ApiResponse { result: { token } }
             localStorage.setItem("token", token);
             setToken(token);
+            // Invalidate user query to fetch profile
+            queryClient.invalidateQueries(["user"]);
         },
         onError: (error) => console.error("Login failed:", error),
     });
@@ -44,22 +58,56 @@ export const AuthProvider = ({ children }) => {
         },
     });
 
+    const sendOtpMutation = useMutation({
+        mutationFn: authApi.sendVerifyEmailOtp,
+        onError: (error) => console.error("Send OTP failed:", error),
+    });
+
+    const verifyOtpMutation = useMutation({
+        mutationFn: authApi.verifyOtp,
+        onSuccess: () => {
+            // Invalidate user query to refresh verification status
+            queryClient.invalidateQueries(["user"]);
+        },
+        onError: (error) => console.error("Verify OTP failed:", error),
+    });
+
+    const logoutMutation = useMutation({
+        mutationFn: authApi.logout,
+        onSettled: () => {
+            localStorage.removeItem("token");
+            setToken(null);
+            queryClient.clear();
+            delete axios.defaults.headers.common["Authorization"];
+        },
+    });
+
     const logout = () => {
-        localStorage.removeItem("token");
-        setToken(null);
-        queryClient.clear();
+        if (token) {
+            logoutMutation.mutate(token);
+        } else {
+            localStorage.removeItem("token");
+            setToken(null);
+            queryClient.clear();
+        }
     };
 
     const value = {
         token,
         isLoggedIn: !!token,
-        user: queryClient.getQueryData(["user"]),
+        isLoggedIn: !!token,
+        user: user,
+        isUserLoading,
         login: loginMutation.mutateAsync,
         register: registerMutation.mutateAsync,
         isLoginLoading: loginMutation.isPending,
         isRegisterLoading: registerMutation.isPending,
         loginError: loginMutation.error,
         registerError: registerMutation.error,
+        sendOtp: sendOtpMutation.mutateAsync,
+        verifyOtp: verifyOtpMutation.mutateAsync,
+        isSendOtpLoading: sendOtpMutation.isPending,
+        isVerifyOtpLoading: verifyOtpMutation.isPending,
         logout,
     };
 

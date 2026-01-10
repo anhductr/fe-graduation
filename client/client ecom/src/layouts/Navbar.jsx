@@ -4,8 +4,9 @@ import { Link, useNavigate } from "react-router-dom";
 // import CartContext from "../context/CartContext";
 // import { ProductContext } from "../context/ProductContext";
 // import { WishlistContext } from "../context/WishlistContext";
-import LoginForm from "../components/auth/LogInForm";
-import RegistrationForm from "../components/auth/RegisterationForm";
+// import LoginForm from "../components/auth/LogInForm";
+// import RegistrationForm from "../components/auth/RegisterationForm";
+import VerificationBanner from "../components/auth/VerificationBanner";
 import Catalogue from "../components/product/Catalogue";
 import { motion, AnimatePresence } from "framer-motion";
 import { HiOutlineViewList } from "react-icons/hi";
@@ -68,8 +69,8 @@ function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  // const [isLoginOpen, setIsLoginOpen] = useState(false);
+  // const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isCatalogueOpen, setIsCatalogueOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
@@ -155,6 +156,7 @@ function Navbar() {
   };
   return (
     <>
+      <VerificationBanner />
       <div className="h-[110px]"></div>
       <nav
         ref={navbarRef}
@@ -366,8 +368,7 @@ function Navbar() {
                             <button
                               className="w-1/2 bg-black text-white text-[13px] font-semibold px-1 py-2 rounded border border-black"
                               onClick={() => {
-                                setIsLoginOpen(true);
-                                setIsRegisterOpen(false);
+                                navigate('/login');
                               }}
                             >
                               ĐĂNG NHẬP
@@ -375,8 +376,7 @@ function Navbar() {
                             <button
                               className="w-1/2 text-[13px] font-semibold text-black px-1 py-2 border border-black rounded"
                               onClick={() => {
-                                setIsRegisterOpen(true);
-                                setIsLoginOpen(false);
+                                navigate('/signup');
                               }}
                             >
                               ĐĂNG KÝ
@@ -417,23 +417,7 @@ function Navbar() {
         )
       }
 
-      <LoginForm
-        isOpen={isLoginOpen}
-        onClose={() => setIsLoginOpen(false)}
-        onSwitchToRegister={() => {
-          setIsLoginOpen(false);
-          setIsRegisterOpen(true);
-        }}
-      />
-
-      <RegistrationForm
-        isOpen={isRegisterOpen}
-        onClose={() => setIsRegisterOpen(false)}
-        onSwitchToLogin={() => {
-          setIsRegisterOpen(false);
-          setIsLoginOpen(true);
-        }}
-      />
+      {/* Modals removed in favor of pages */}
     </>
   );
 }
