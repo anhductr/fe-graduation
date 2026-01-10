@@ -233,8 +233,16 @@ export default function CateList() {
   // Handle popup from navigation state
   useEffect(() => {
     if (location.state?.popup) {
+      const safePopup = {
+        vertical: "top",
+        horizontal: "center",
+        severity: location.state.popup.severity || "info", // ← đảm bảo luôn có
+        message: location.state.popup.message || "",
+        open: true,
+      };
+
       const timer = setTimeout(() => {
-        setPopup({ ...location.state.popup, open: true });
+        setPopup(safePopup);
       }, 100);
 
       window.history.replaceState({}, document.title);
@@ -444,19 +452,15 @@ export default function CateList() {
           anchorOrigin={{ vertical, horizontal }}
           open={open}
           key={vertical + horizontal}
-          autoHideDuration={isLoadingCate ? null : 3000}
-          onClose={() => setPopup((p) => ({ ...p, open: false }))}
+          autoHideDuration={3000}
+          onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
         >
           <Alert
-            severity={
-              ["error", "warning", "info", "success"].includes(popup.severity)
-                ? popup.severity
-                : "info"
-            }
+            severity={popup.severity || "info"}
             variant="filled"
             sx={{ width: "100%" }}
           >
-            {popup.message || ""}
+            {popup.message}
           </Alert>
         </Snackbar>
         <div className="flex justify-between items-center my-4">
@@ -473,9 +477,8 @@ export default function CateList() {
           />
           <Boxes
             color="#dd92f4ff"
-            header={`Danh mục cha: ${
-              cates.filter((c) => c.parentId == null).length
-            }`}
+            header={`Danh mục cha: ${cates.filter((c) => c.parentId == null).length
+              }`}
             icon={<CiBoxList />}
           />
         </div>
