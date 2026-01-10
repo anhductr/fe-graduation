@@ -13,7 +13,7 @@ export const searchProducts = async ({
     sortType = "DEFAULT",
 } = {}) => {
     const response = await api.post(
-        "/search/catalog-search",
+        "/search-service/search/catalog-search",
         {
             keyword: keyword?.trim() || null,
             category,
@@ -41,12 +41,23 @@ export const searchProducts = async ({
 /**
  * Gợi ý tìm kiếm (autocomplete
  */
-export const getSearchSuggestions = async (keyword = "") => {
+export const getSearchSuggestionsQuick = async (keyword = "") => {
     if (!keyword.trim()) return [];
 
-    const response = await api.get("/search/autocomplete/quick", {
-        params: { keyword: keyword.trim() },
+    const response = await api.get("/search-service/search/autocomplete/quick", {
+        params: { q: keyword.trim() },
     });
-    console.log('autocomplete response: ', response)
+    console.log('autocomplete response quick: ', response)
+    return response.data;
+};
+
+
+export const getSearchSuggestionsFull = async (keyword = "") => {
+    if (!keyword.trim()) return [];
+
+    const response = await api.get("/search-service/search/autocomplete/full", {
+        params: { q: keyword.trim() },
+    });
+    console.log('autocomplete response full: ', response)
     return response.data;
 };
