@@ -1,6 +1,7 @@
 import { useContext, useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 // import LogInContext from "../context/LogInContext";
+// import LogInContext from "../context/LogInContext";
 import { useCart } from "../context/CartContext";
 // import { ProductContext } from "../context/ProductContext";
 // import { WishlistContext } from "../context/WishlistContext";
@@ -23,7 +24,7 @@ import { MdLogout } from "react-icons/md";
 import { LuUserRound } from "react-icons/lu";
 import { BsBoxSeam } from "react-icons/bs";
 import { useSearchKeyword } from "../context/SearchContext";
-import { getSearchSuggestions } from "../services/searchApi";
+import { getSearchSuggestionsQuick } from "../services/searchApi";
 import { useQuery } from "@tanstack/react-query";
 
 function Navbar() {
@@ -113,7 +114,7 @@ function Navbar() {
   // React Query: gọi gợi ý tìm kiếm
   const { data: suggestions = [], isFetching } = useQuery({
     queryKey: ["search-suggest", inputValue],
-    queryFn: () => getSearchSuggestions(inputValue),
+    queryFn: () => getSearchSuggestionsQuick(inputValue),
     enabled: inputValue.trim().length >= 1,
     staleTime: 1000 * 60 * 5, // cache 5 phút
     placeholderData: [], // không flash khi loading

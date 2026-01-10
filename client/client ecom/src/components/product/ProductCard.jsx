@@ -7,9 +7,26 @@ import { CiCircleCheck } from "react-icons/ci";
 import { MdOutlineShoppingCart } from "react-icons/md";
 import Tooltip, { tooltipClasses } from '@mui/material/Tooltip';
 import { styled } from '@mui/material/styles';
+import { useCart } from "../../context/CartContext";
+import { Snackbar, Alert } from "@mui/material";
 
 const ProductCard = ({ product }) => {
-  console.log('product: ', product);
+  const { addToCart } = useCart();
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+
+  const handleAddToCart = async () => {
+    try {
+      await addToCart(product.sku, 1);
+      setSnackbar({ open: true, message: "Đã thêm vào giỏ hàng!", severity: "success" });
+    } catch (error) {
+      console.error(error);
+      setSnackbar({ open: true, message: "Thêm vào giỏ thất bại.", severity: "error" });
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
 
   function StarRating({ rating }) {
     const fullStars = Math.floor(rating);
@@ -81,7 +98,10 @@ const ProductCard = ({ product }) => {
           arrow
           disableInteractive={true}
         >
-          <button className="bg-white hover:bg-[#03A9F4] hover:text-white rounded-full p-3 shadow-md">
+          <button
+            onClick={handleAddToCart}
+            className="bg-white hover:bg-[#03A9F4] hover:text-white rounded-full p-3 shadow-md"
+          >
             <MdOutlineShoppingCart size={21} />
           </button>
         </HyperTooltip>
@@ -178,6 +198,16 @@ const ProductCard = ({ product }) => {
 
         <span className="text-[13px] leading-5">Còn 96 sản phẩm</span>
       </div>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={2000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };
