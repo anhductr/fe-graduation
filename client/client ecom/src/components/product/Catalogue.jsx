@@ -10,7 +10,6 @@ const Catalogue = () => {
   const [phoneData, setPhoneData] = useState([]);
   const [laptopData, setLaptopData] = useState([]);
 
-
   useEffect(() => {
     const fetchCatalogueData = async (type) => {
       // type = 'phone' hoặc 'laptop'

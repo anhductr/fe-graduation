@@ -17,6 +17,7 @@ function Home() {
       <Navbar></Navbar>
       {/* <Banner></Banner> */}
       <CategoriesList></CategoriesList>
+      <PhoneProductsList></PhoneProductsList>
       <BestSellerProductsList></BestSellerProductsList>
       <Footer></Footer>
     </>

@@ -251,8 +251,6 @@ export default function BestSellerProductsList() {
     },
   ];
 
-  const swiperRef = useRef(null);
-
   const [toggleState, setToggleState] = useState(1);
   const toggleTab = (index) => {
     setToggleState(index);
@@ -293,14 +291,12 @@ export default function BestSellerProductsList() {
 
         <div className="relative px-0">
           <Swiper
-            ref={swiperRef}
-            // centeredSlides={true}
             loop={true}
             spaceBetween={34}
             slidesPerView={5}
             navigation={{
-              nextEl: ".dis-next",
-              prevEl: ".dis-prev",
+              nextEl: "#bestseller-next",
+              prevEl: "#bestseller-prev",
             }}
             modules={[Navigation]}
             className="!pl-1 !pr-1 !py-2"
@@ -308,9 +304,7 @@ export default function BestSellerProductsList() {
             {toggleState === 1 &&
               phones_n_tablets.map((product, index) => (
                 <SwiperSlide key={index}>
-                  <Link to={`/${product.nameSlug}`}>
-                    <ProductCard product={product} />
-                  </Link>
+                  <ProductCard product={product} />
                 </SwiperSlide>
               ))}
 
@@ -329,11 +323,11 @@ export default function BestSellerProductsList() {
               ))}
           </Swiper>
 
-          <button className="dis-prev absolute left-[-2px] -translate-y-1/2 z-10 text-gray-700 text-3xl transition bg-black/32 top-1/2 w-[36px] h-19 rounded-r-full flex items-center justify-center shadow transition-transform duration-300 ease-in-out hover:scale-110">
+          <button id="bestseller-prev" className="absolute left-[-2px] -translate-y-1/2 z-10 text-gray-700 text-3xl transition bg-black/32 top-1/2 w-[36px] h-19 rounded-r-full flex items-center justify-center shadow transition-transform duration-300 ease-in-out hover:scale-110">
             <IoIosArrowBack className="text-white" />
           </button>
 
-          <button className="dis-next absolute right-[-2px] -translate-y-1/2 z-10 text-gray-700 text-3xl transition bg-black/32 top-1/2 w-[36px] h-19 rounded-l-full flex items-center justify-center shadow transition-transform duration-300 ease-in-out hover:scale-110">
+          <button id="bestseller-next" className="absolute right-[-2px] -translate-y-1/2 z-10 text-gray-700 text-3xl transition bg-black/32 top-1/2 w-[36px] h-19 rounded-l-full flex items-center justify-center shadow transition-transform duration-300 ease-in-out hover:scale-110">
             <IoIosArrowForward className="text-white" />
           </button>
         </div>
