@@ -610,6 +610,7 @@ export default function ProductEdit() {
         OperatingSystem: "Hệ điều hành",
         Feature: "Tính năng & Đặc điểm",
         BasicSpecification: "Thông số cơ bản",
+        RAM: "RAM",
     };
 
     // Hàm helper nhỏ để lấy tên tiếng Anh từ tên tiếng Việt
