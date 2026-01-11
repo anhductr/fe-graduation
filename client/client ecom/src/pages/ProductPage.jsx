@@ -16,7 +16,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
-
+import { FaShoppingCart } from "react-icons/fa";
 import { Box, IconButton, Typography } from "@mui/material";
 import { IoMdAdd } from "react-icons/io";
 import { IoMdRemove } from "react-icons/io";
@@ -32,7 +32,12 @@ import SpecsPopup from '../components/product/SpecsPopup';
 import ProductViewDetails from "../components/product/ProductViewDetails";
 import Footer from "../layouts/Footer";
 import Navbar from "../layouts/Navbar";
-
+import { useLocation } from "react-router-dom";
+import { useProductDetail, productDetailOptions } from "../services/productApi";
+import { useProductAutocomplete } from "../services/productApi";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useQueries } from "@tanstack/react-query";
 
 const ProductPage = () => {
   // const {category, name, productId} = useParams();
@@ -45,6 +50,91 @@ const ProductPage = () => {
   const [productFromDBState, setProductFromDBState] = useState(null);
   const [clickedIndex, setClickedIndex] = useState(0);
 
+
+  ////////////////////////////////// xử lý tìm kiếm ////////////////////////////////// 
+  const getSearchKeyword = (productName) => {
+    if (!productName) return "";
+
+    // Tách và loại bỏ phần dung lượng GB ở cuối
+    return productName
+      .replace(/\s*\d+\s*GB$/i, "")          // bỏ " 256GB", "512GB",...
+      .replace(/\s*\d+\s*TB$/i, "")          // bỏ " 1TB" nếu có
+      .replace(/\s*\d+\s*GB\s*/i, " ")       // trường hợp GB ở giữa (ít xảy ra)
+      .trim();
+  };
+
+  const { state } = useLocation();
+  const productIdFromState = state?.productId;
+  const productNameFromState = getSearchKeyword(state?.productName);
+
+  const { data: suggestions = [], isLoading: isSuggestLoading } = useProductAutocomplete(productNameFromState);
+  useEffect(() => {
+    if (productNameFromState) {
+      console.log("Tìm kiếm autocomplete với từ khóa:", productNameFromState);
+      console.log("Kết quả gợi ý:", suggestions);
+    }
+  }, [productNameFromState, suggestions]);
+
+  const filteredProductIds = useMemo(() => {
+    if (!suggestions?.length || !productNameFromState) return [];
+
+    // Chuẩn hóa keyword để so sánh (không phân biệt hoa thường, loại bỏ khoảng trắng thừa)
+    const normalizedKeyword = productNameFromState
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, " ");
+
+    return suggestions
+      .filter(item => item.autoCompletedType === 'PRODUCT')
+      .filter(item => {
+        const valueLower = item.value.toLowerCase().trim();
+
+        // Regex logic:
+        // ^keyword : Bắt đầu bằng keyword
+        // \s+      : Có khoảng trắng
+        // \d+      : Số dung lượng (e.g. 128, 256)
+        // \s*      : Có thể có khoảng trắng
+        // (gb|tb)$ : Kết thúc bằng GB hoặc TB
+        // Flag 'i' : Case insensitive (không phân biệt hoa thường)
+
+        // Ví dụ: keyword = "iphone 17 pro"
+        // DONE: "iphone 17 pro 128gb" -> MARK MATCH
+        // FAIL: "iphone 17 pro max 128gb" -> NO MATCH (vì sau 'pro' là ' max' chứ không phải số dung lượng ngay)
+
+        const regex = new RegExp(`^${normalizedKeyword}\\s+\\d+\\s*(gb|tb)$`, 'i');
+        return regex.test(valueLower);
+      })
+      .map(item => item.id);
+  }, [suggestions, productNameFromState]);
+
+  useEffect(() => {
+    if (filteredProductIds.length > 0) {
+      console.log("Các product ID phù hợp với keyword:", productNameFromState);
+      console.log(filteredProductIds);
+    }
+  }, [filteredProductIds]);
+
+  const productDetailQueries = useQueries({
+    queries: filteredProductIds.map(id => ({
+      ...productDetailOptions(id),           // spread toàn bộ config từ options helper
+      queryKey: ["productDetail", id],   // đảm bảo key riêng biệt
+      enabled: !!id && filteredProductIds.length > 0,
+    })),
+  });
+
+  // Lấy danh sách sản phẩm đã load thành công
+  const similarProducts = productDetailQueries
+    .filter(q => q.isSuccess && q.data)
+    .map(q => q.data);
+
+  // Debug (có thể xóa sau khi test xong)
+  useEffect(() => {
+    if (similarProducts.length > 0) {
+      console.log("Sản phẩm tương tự đã load xong:", similarProducts);
+    }
+  }, [similarProducts]);
+
+
   const openProductDetails = (product) => {
     setProductFromDBState(product);
     setIsViewDetailsOpen(true);
@@ -52,140 +142,152 @@ const ProductPage = () => {
 
   const [openSpecsPopup, setOpenSpecsPopup] = useState(false);
 
-  const productFromDB = {
-    id: 1,
-    name: "iPhone 16 Pro Max 256GB",
-    brand: "Apple",
-    category: "Điện thoại",
-    video: "https://www.youtube.com/watch?v=bPkenYE4qzw",
-    images: [
-      {
-        alt: "Thumbnail side view of iPhone 16 Pro Max",
-        src: "https://cdn2.cellphones.com.vn/insecure/rs:fill:0:1200/q:100/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-16-pro-max.png",
-      },
-      {
-        alt: "Thumbnail side view of iPhone 16 Pro Max",
-        src: "https://cdn2.cellphones.com.vn/insecure/rs:fill:0:1200/q:100/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-16-pro-max-2.png",
-      },
-      {
-        alt: "Thumbnail side view of iPhone 16 Pro Max",
-        src: "https://cdn2.cellphones.com.vn/insecure/rs:fill:0:1200/q:100/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-16-pro-max-3.png",
-      },
-      {
-        alt: "Thumbnail side view of iPhone 16 Pro Max",
-        src: "https://cdn2.cellphones.com.vn/insecure/rs:fill:0:1200/q:100/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-16-pro-max-4.png",
-      },
-      {
-        alt: "Thumbnail side view of iPhone 16 Pro Max",
-        src: "https://cdn2.cellphones.com.vn/insecure/rs:fill:0:1200/q:100/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-16-pro-max-5.png",
-      },
-      {
-        alt: "Thumbnail side view of iPhone 16 Pro Max",
-        src: "https://cdn2.cellphones.com.vn/insecure/rs:fill:0:1200/q:100/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-16-pro-max-6.png",
-      },
-      {
-        alt: "Thumbnail side view of iPhone 16 Pro Max",
-        src: "https://cdn2.cellphones.com.vn/insecure/rs:fill:0:1200/q:100/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-16-pro-max-7.png",
-      },
-      {
-        alt: "Thumbnail side view of iPhone 16 Pro Max",
-        src: "https://cdn2.cellphones.com.vn/insecure/rs:fill:0:1200/q:100/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-16-pro-max-8.png",
-      },
-      {
-        alt: "Thumbnail side view of iPhone 16 Pro Max",
-        src: "https://cdn2.cellphones.com.vn/insecure/rs:fill:0:1200/q:100/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-16-pro-max-10.png",
-      },
-      {
-        alt: "Thumbnail side view of iPhone 16 Pro Max",
-        src: "https://cdn2.cellphones.com.vn/insecure/rs:fill:0:1200/q:100/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-16-pro-max-9.png",
-      },
-    ],
+  const location = useLocation();
+  const productName = location.state?.productName;
+
+
+  // 1. Fetch data
+  const { data: productData, isLoading, isError } = useProductDetail(productIdFromState);
+
+  // --- LOGIC XỬ LÝ DUNG LƯỢNG ĐỘNG (DYNAMIC STORAGE) ---
+
+  // Helper: Trích xuất số GB/TB từ tên hoặc specs để sắp xếp
+  const getCapacityValue = (product) => {
+    if (!product) return 0;
+
+    // 1. Prioritize explicit Storage keys
+    const explicitRom = product.specifications?.find(s => {
+      const key = (s.name || s.key || '').toLowerCase();
+      const group = (s.group || s.attributeGroup || '').toLowerCase();
+
+      // Exclude RAM/Battery groups just in case
+      if (group.includes('ram') || group.includes('pin') || group.includes('battery')) return false;
+
+      return ['rom', 'bộ nhớ trong'].includes(key);
+    });
+
+    if (explicitRom) {
+      const val = (explicitRom.value || '').toLowerCase();
+      if (val.includes('tb')) return parseFloat(val) * 1024;
+      if (val.includes('gb')) return parseFloat(val);
+    }
+
+    // 2. Be careful with generic "Dung lượng" key (often used for RAM or Battery too)
+    const genericSpec = product.specifications?.find(s => {
+      const key = (s.name || s.key || '').toLowerCase();
+      return key === 'dung lượng';
+    });
+
+    if (genericSpec) {
+      const val = (genericSpec.value || '').toLowerCase();
+      let num = 0;
+      if (val.includes('tb')) num = parseFloat(val) * 1024;
+      else if (val.includes('gb')) num = parseFloat(val);
+
+      // Heuristic: RAM usually <= 32GB, Storage usually >= 64GB (for modern phones)
+      // If it's small, it's likely RAM -> Ignore
+      if (num > 32) return num;
+    }
+
+    // 3. Fallback: Parse from product name (Highest reliability for variants)
+    // "iPhone 16 Pro Max 256GB"
+    const match = product.name?.match(/(\d+)\s*(gb|tb)/i);
+    if (match) {
+      const num = parseFloat(match[1]);
+      const unit = match[2].toLowerCase();
+      return unit === 'tb' ? num * 1024 : num;
+    }
+
+    return 0; // Not found
   };
 
-  const product = {
-    ...productFromDB,
-    images: [{}, {}, ...productFromDB.images],
-  };
+  // State: Sản phẩm đang được hiển thị (có thể là productData ban đầu HOẶC một trong các similarProducts)
+  const [displayedProduct, setDisplayedProduct] = useState(null);
 
-  const products = [
-    {
-      discount: "4%",
-      imgSrc:
-        "https://storage.googleapis.com/a1aa/image/43192908-db04-4e3b-7bb9-2b7ad489df28.jpg",
-      alt: "Samsung Galaxy A26 5G 8GB 128GB black smartphone front and back",
-      name: "Samsung Galaxy A26 5G 8GB 128GB",
-      sellPrice: 6690000,
-      listPrice: 6990000,
-      desc: "Không phí chuyển đổi khi trả góp 0% qua thẻ tín dụng kỳ hạn 3-6...",
-      avgRating: 5,
-    },
-    {
-      discount: "18%",
-      imgSrc:
-        "https://storage.googleapis.com/a1aa/image/6cb3261a-1bad-4d8f-c134-c79a95562e6d.jpg",
-      alt: "Samsung Galaxy S25 Ultra 512GB silver smartphone with S Pen",
-      name: "Samsung Galaxy S25 Ultra 512GB",
-      sellPrice: "30.890.000",
-      listPrice: "37.490.000",
-      desc: "Không phí chuyển đổi khi trả góp 0% qua thẻ tín dụng kỳ hạn 3-6...",
-      avgRating: 5,
-    },
-    {
-      discount: "17%",
-      imgSrc:
-        "https://storage.googleapis.com/a1aa/image/a94271fd-9a47-498b-01ed-06d880cd2015.jpg",
-      alt: "TECNO CAMON 40 Pro 8GB 256GB white and blue smartphone front and back",
-      name: "TECNO CAMON 40 Pro 8GB 256GB",
-      sellPrice: 5790000,
-      listPrice: 6990000,
-      desc: "Không phí chuyển đổi khi trả góp 0% qua thẻ tín dụng kỳ hạn 3-6...",
-      avgRating: 5,
-    },
-    {
-      discount: "15%",
-      imgSrc:
-        "https://storage.googleapis.com/a1aa/image/b9d765ec-448b-4567-e60a-b8faab27be47.jpg",
-      alt: "TECNO CAMON 40 8GB 256GB black and silver smartphone front and back",
-      name: "TECNO CAMON 40 8GB 256GB",
-      sellPrice: 5490000,
-      listPrice: 6490000,
-      desc: "Không phí chuyển đổi khi trả góp 0% qua thẻ tín dụng kỳ hạn 3-6...",
-      avgRating: 5,
-    },
-    {
-      discount: "13%",
-      imgSrc:
-        "https://storage.googleapis.com/a1aa/image/9d1de0bd-535a-4e49-f314-5c7000b5a6b9.jpg",
-      alt: "realme C61 6GB 128GB green smartphone front",
-      name: "realme C61 6GB 128GB",
-      sellPrice: 3490000,
-      listPrice: 3990000,
-      desc: "Trả góp 0% lãi suất, không trả trước, không phụ phí qua Shinha...",
-      avgRating: 4.5,
-    },
-    {
-      discount: "13%",
-      imgSrc:
-        "https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/d/i/dien-thoai-samsung-galaxy-a36.2.png",
-      alt: "realme C61 6GB 128GB green smartphone front",
-      name: "realme C61 6GB 128GB",
-      sellPrice: 3490000,
-      listPrice: 3990000,
-      desc: "Trả góp 0% lãi suất, không trả trước, không phụ phí qua Shinha...",
-      avgRating: 4.5,
-    },
-    {
-      discount: "13%",
-      imgSrc:
-        "https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/d/i/dien-thoai-xiaomi-redmi-note-14_2__2.png",
-      alt: "realme C61 6GB 128GB green smartphone front",
-      name: "realme C61 6GB 128GB",
-      sellPrice: 3490000,
-      listPrice: 3990000,
-      desc: "Trả góp 0% lãi suất, không trả trước, không phụ phí qua Shinha...",
-      avgRating: 4.5,
-    },
+  // List tất cả các phiên bản (Bản thân nó + Các bản tương tự) -> Sắp xếp tăng dần theo dung lượng
+  const allVersions = useMemo(() => {
+    if (!productData) return [];
+    // Gộp bản thân nó và các bản tìm được
+    // Cần lọc trùng id để chắc chắn
+    const uniqueMap = new Map();
+    uniqueMap.set(productData.id, productData);
+
+    similarProducts.forEach(p => {
+      if (p && p.id) uniqueMap.set(p.id, p);
+    });
+
+    const list = Array.from(uniqueMap.values());
+    // Sort theo dung lượng
+    return list.sort((a, b) => getCapacityValue(a) - getCapacityValue(b));
+  }, [productData, similarProducts]);
+
+  // Effect: Khi load xong productData thì set mặc định 
+  useEffect(() => {
+    if (productData && !displayedProduct) {
+      setDisplayedProduct(productData);
+    }
+  }, [productData]);
+
+  // 2. State for selected color/variant (Của sản phẩm ĐANG HIỂN THỊ)
+  const [selectedVariant, setSelectedVariant] = useState(null);
+
+  // 3. Effect set default variant khi displayedProduct thay đổi
+  useEffect(() => {
+    if (displayedProduct && displayedProduct.variants?.length > 0) {
+      // Nếu trước đó đang chọn màu, thử tìm màu tương ứng ở bản mới (Logic giữ màu)
+      if (selectedVariant) {
+        const sameColorVariant = displayedProduct.variants.find(v =>
+          // Logic so sánh màu: theo tên màu hoặc thumbnail giống nhau? 
+          // Thường là theo tên màu (color) hoặc variantName
+          (v.color && v.color === selectedVariant.color)
+        );
+        if (sameColorVariant) {
+          setSelectedVariant(sameColorVariant);
+          return;
+        }
+      }
+
+      // Fallback: Chọn cái đầu tiên nếu không tìm thấy màu tương ứng
+      setSelectedVariant(displayedProduct.variants[0]);
+    } else {
+      setSelectedVariant(null);
+    }
+  }, [displayedProduct]); // Chạy lại khi đổi sản phẩm hiển thị
+
+
+  // 4. Map API data to UI structure (Safe) -> Dùng displayedProduct thay vì productData
+  const activeProductData = displayedProduct || productData; // Fallback an toàn
+
+  const rawImages = activeProductData?.imageList?.length > 0
+    ? activeProductData.imageList.map(url => ({ src: url, alt: activeProductData.name }))
+    : activeProductData?.variants?.map(v => ({ src: v.thumbnail, alt: v.variantName })) || [];
+
+  const displayImages = [
+    {}, // Index 0: Feature/Highlight
+    {}, // Index 1: Video
+    ...rawImages
   ];
+
+  const currentProduct = {
+    ...activeProductData,
+    name: activeProductData?.name,
+    images: displayImages,
+    // Use hardcoded video if API doesn't have it (API response example has no video field)
+    video: "https://www.youtube.com/watch?v=bPkenYE4qzw",
+    specifications: activeProductData?.specifications || []
+  };
+
+  console.log("ProductPage DEBUG - currentProduct.specifications:", currentProduct.specifications);
+
+  // Derived price/discount from selected variant
+  const sellPrice = selectedVariant?.sellPrice || 0;
+  const listPrice = selectedVariant?.price || 0;
+  const discountPercentage = listPrice > sellPrice
+    ? Math.round(((listPrice - sellPrice) / listPrice) * 100)
+    : 0;
+
+  // Re-declare empty products array or keep it if needed for compatibility
+  const products = [];
 
   //cập nhật ảnh về sản phẩm
   const [currentImg, setCurrentImg] = useState(0);
@@ -217,12 +319,10 @@ const ProductPage = () => {
 
   const prevSlide = () => {
     setCurrentImg((prev) => Math.max(prev - 1, 0));
-    // console.log("prev: ", currentImg);
   };
 
   const nextSlide = () => {
-    setCurrentImg((prev) => Math.min(prev + 1, product.images.length - 1));
-    // console.log("next: ", currentImg);
+    setCurrentImg((prev) => Math.min(prev + 1, currentProduct.images.length - 1));
   };
 
   // cho phần zoom 2
@@ -230,7 +330,6 @@ const ProductPage = () => {
   const zoomWidth = 570;
   const zoomHeight = 570;
   const scale = 3.8; // mức phóng — bạn đang dùng *5
-  // const zoomFactor = 5; // mức phóng — bạn đang dùng *5
 
   const [zoomImage, setZoomImage] = useState(null);
   const [lensPosition, setLensPosition] = useState({
@@ -284,15 +383,23 @@ const ProductPage = () => {
     animation: "colorAnim 12s infinite linear alternate",
   };
 
-
   //quantity select
   const [quantity, setQuantity] = useState(1);
 
   const handleIncrease = () => setQuantity((q) => q + 1);
   const handleDecrease = () => setQuantity((q) => (q > 1 ? q - 1 : 1));
 
+  // Handle loading/error (Simple fallback for now)
+  if (isLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (!productData) return <div className="min-h-screen flex items-center justify-center">Error loading product</div>;
+
   return (
     <>
+      <SpecsPopup
+        openSpecsPopup={openSpecsPopup}
+        setOpenSpecsPopup={setOpenSpecsPopup}
+        specifications={currentProduct.specifications}
+      />
       <ProductViewDetails
         isOpen={isViewDetailsOpen}
         onClose={() => setIsViewDetailsOpen(false)}
@@ -302,7 +409,7 @@ const ProductPage = () => {
       <Navbar />
       <div className="px-15 bg-white text-gray-900 py-2">
         {/* Breadcrumb */}
-        <Breadcrumbs pagename="product" product={product} />
+        <Breadcrumbs pagename="product" product={currentProduct} />
 
         <div className="py-6">
           <div className="relative flex gap-10 border-b-2 pb-4 border-gray-200">
@@ -311,7 +418,7 @@ const ProductPage = () => {
               <div className="relative group">
                 <div
                   onClick={() => {
-                    openProductDetails(productFromDB);
+                    openProductDetails(currentProduct);
                     if (currentImg >= 1)
                       setClickedIndex(currentImg);
                     // console.log("Clicked index:", currentImg);
@@ -328,7 +435,7 @@ const ProductPage = () => {
                       swiperRef.current = swiper; // Store Swiper instance
                     }}
                   >
-                    {product.images.map((img, index) => (
+                    {currentProduct.images.map((img, index) => (
                       <SwiperSlide key={index}>
                         <div
                           className={`w-full transform transition-transform duration-300 ease-in-out rounded-lg shadow-lg flex items-center justify-center px-4 h-[530px] ${index === 0
@@ -351,34 +458,17 @@ const ProductPage = () => {
                                   alt="iPhone 16 Pro Max gold color front and back view"
                                   className="rounded-[10px] h-full w-full object-cover flex-shrink-0"
                                   loading="lazy"
-                                  src={product.images[2].src}
+                                  src={currentProduct.images[2]?.src || "https://via.placeholder.com/300"}
                                 />
                               </div>
                               <div className="flex flex-col justify-center items-center text-white p-3">
                                 <h2 className="font-bold mb-3 text-lg">
                                   TÍNH NĂNG NỔI BẬT
                                 </h2>
-                                <ul className="list-disc list-inside space-y-2 text-[13px]">
-                                  <li>
-                                    Màn hình Super Retina XDR 6,9 inch lớn hơn có
-                                    viền mỏng hơn, đem đến cảm giác tuyệt vời khi
-                                    cầm trên tay.
-                                  </li>
-                                  <li>
-                                    Điều khiển Camera - Chỉ cần trượt ngón tay để
-                                    điều chỉnh camera giúp chụp ảnh hoặc quay
-                                    video đẹp hoàn hảo và siêu nhanh.
-                                  </li>
-                                  <li>
-                                    iPhone 16 Pro Max có thiết kế titan cấp 5 với
-                                    lớp hoàn thiện mới, tinh tế được xử lý bề mặt
-                                    vi điểm.
-                                  </li>
-                                  <li>
-                                    iPhone 16 Pro Max được cài đặt sẵn hệ điều
-                                    hành iOS 18.
-                                  </li>
-                                </ul>
+                                <div
+                                  className="text-[13px] space-y-2 [&_ul]:list-disc [&_ul]:list-inside [&_li]:mb-1"
+                                  dangerouslySetInnerHTML={{ __html: currentProduct.description }}
+                                />
                               </div>
                             </div>
                           ) : index === 1 ? (
@@ -390,7 +480,7 @@ const ProductPage = () => {
                                 muted={true}
                                 height={"530px"}
                                 width={"739px"}
-                                url={product.video}
+                                url={currentProduct.video}
                               />
                             </div>
                           ) : (
@@ -430,7 +520,7 @@ const ProductPage = () => {
                   </button>
                 )}
 
-                {currentImg !== product.images.length - 1 && (
+                {currentImg !== currentProduct.images.length - 1 && (
                   <button
                     onClick={nextSlide}
                     className="absolute top-1/2 right-0 -translate-y-1/2 z-10 text-white text-3xl opacity-0 group-hover:opacity-100 transition bg-black/20 w-10 h-20 rounded-l-full flex items-center justify-center shadow-md transition-transform duration-300 ease-in-out hover:scale-110"
@@ -452,7 +542,7 @@ const ProductPage = () => {
                     swiperThumb.current = swiper; // Store Swiper instance
                   }}
                 >
-                  {product.images.map((img, index) => (
+                  {currentProduct.images.map((img, index) => (
                     <SwiperSlide key={index}>
                       {index === 0 ? (
                         <button
@@ -503,7 +593,7 @@ const ProductPage = () => {
                 )}
 
                 {/* Nút phải */}
-                {currentImg !== product.images.length - 1 && (
+                {currentImg !== currentProduct.images.length - 1 && (
                   <button
                     onClick={nextSlide}
                     className="absolute right-0 top-[50%] -translate-y-1/2 transition bg-black/20 text-white p-2 rounded-l-full shadow-md z-10 opacity-0 group-hover:opacity-100 transition-transform duration-300 ease-in-out hover:scale-110"
@@ -540,7 +630,7 @@ const ProductPage = () => {
               {/* Title and avgRating */}
               <div className="flex flex-wrap items-center gap-4 border-gray-200">
                 <h1 className="font-bold text-gray-900 text-[30px]">
-                  {product.name}
+                  {currentProduct.name}
                 </h1>
                 <Button variant="outlined" className="!text-[#0096FF] !border-[#0096FF] !text-[11px] !px-2 !py-1 !normal-case">
                   + So sánh
@@ -559,19 +649,35 @@ const ProductPage = () => {
               {/* Storage options */}
               <div className="flex">
                 <p className="w-[18%] text-[16px] font-semibold">Dung lượng</p>
-                <div className="w-[82%] flex gap-4 text-center text-[14px] text-gray-700">
-                  <button className="border border-[#ccc] rounded p-2">
-                    <div className="font-semibold">256 GB</div>
-                  </button>
-                  <button className="border border-[#ccc] rounded p-2">
-                    <div className="font-semibold">512 GB</div>
-                  </button>
-                  <button className="relative border border-[#0096FF] border-2 rounded p-2">
-                    <div className="font-semibold">1 TB</div>
-                    {/* Tam giác góc phải */}
-                    <div className="absolute top-0 right-0 w-0 h-0 border-l-[17px] border-t-[17px] border-l-transparent !border-t-[#0096FF] "></div>
-                    <MdCheck className="absolute top-0 right-0 text-white text-[9px]" />
-                  </button>
+                <div className="w-[82%] flex gap-4 text-center text-[14px] text-gray-700 font-semibold flex-wrap">
+                  {allVersions.map((version) => {
+                    const capacity = getCapacityValue(version);
+                    const label = capacity >= 1024
+                      ? `${capacity / 1024} TB`
+                      : `${capacity} GB`;
+
+                    const isActive = version.id === currentProduct.id;
+
+                    return (
+                      <button
+                        key={version.id}
+                        onClick={() => setDisplayedProduct(version)}
+                        className={`relative border rounded p-2 min-w-[30px] ${isActive
+                          ? "border-[#0096FF] border-2"
+                          : "border-[#ccc] hover:border-gray-400"
+                          }`}
+                      >
+                        <div className="">{label}</div>
+
+                        {isActive && (
+                          <>
+                            <div className="absolute top-0 right-0 w-0 h-0 border-l-[17px] border-t-[17px] border-l-transparent !border-t-[#0096FF] "></div>
+                            <MdCheck className="absolute top-0 right-0 text-white text-[9px]" />
+                          </>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -579,74 +685,51 @@ const ProductPage = () => {
               <div className="flex">
                 <p className="w-[18%] text-[16px] font-semibold">Màu sắc</p>
                 <div className="w-[82%] flex flex-wrap text-[14px] gap-4">
-                  <button className="flex items-center justify-center gap-2 border border-[#ccc] rounded p-2">
-                    <img
-                      alt="Titan Đen color thumbnail"
-                      className="rounded-[10px]"
-                      loading="lazy"
-                      src="https://cdn2.cellphones.com.vn/insecure/rs:fill:50:50/q:90/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-16-pro-max-titan-den.png"
-                      height="35"
-                      width="35"
-                    />
-                    <div className="font-semibold text-gray-900">Titan Đen</div>
-                  </button>
-                  <button className="relative flex items-center justify-center gap-2 border border-2 rounded p-2 border-[#0096FF]">
-                    <img
-                      alt="Titan Sa Mạc color thumbnail"
-                      className="rounded-[10px]"
-                      loading="lazy"
-                      src="https://cdn2.cellphones.com.vn/insecure/rs:fill:50:50/q:90/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-16-pro-max-titan-sa-mac.png"
-                      height="35"
-                      width="35"
-                    />
-                    <div className="font-semibold">Titan Sa Mạc</div>
-                    <div className="absolute top-0 right-0 w-0 h-0 border-l-[17px] border-l-transparent border-t-[17px] !border-t-[#0096FF] "></div>
-                    <MdCheck className="absolute top-0 right-0 text-white text-[9px]" />
+                  {currentProduct.variants?.map((variant) => (
+                    <button
+                      key={variant.id}
+                      onClick={() => setSelectedVariant(variant)}
+                      className={`relative flex items-center justify-center gap-2 border rounded p-2 ${selectedVariant?.id === variant.id
+                        ? "border-[#0096FF] border-2"
+                        : "border-[#ccc]"
+                        }`}
+                    >
+                      <img
+                        alt={variant.variantName}
+                        className="rounded-[10px]"
+                        loading="lazy"
+                        src={variant.thumbnail}
+                        height="35"
+                        width="35"
+                      />
+                      <div className="font-semibold text-gray-900">{variant.color}</div>
 
-                  </button>
-                  <button className="flex items-center justify-center gap-2 border border-[#ccc] rounded p-2">
-                    <img
-                      alt="Titan Trắng color thumbnail"
-                      className="rounded-[10px]"
-                      loading="lazy"
-                      src="https://cdn2.cellphones.com.vn/insecure/rs:fill:50:50/q:90/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-16-pro-max-titan-trang.png"
-                      height="35"
-                      width="35"
-                    />
-                    <div className="font-semibold text-gray-900">
-                      Titan Trắng
-                    </div>
-                  </button>
-                  <button className="flex items-center justify-center gap-2 border border-[#ccc] rounded p-2">
-                    <img
-                      alt="Titan Tự Nhiên color thumbnail"
-                      className="rounded-[10px]"
-                      loading="lazy"
-                      src="https://cdn2.cellphones.com.vn/insecure/rs:fill:50:50/q:90/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-16-pro-max-titan-tu-nhien.png"
-                      height="35"
-                      width="35"
-                    />
-
-                    <div className="font-semibold text-gray-900">
-                      Titan Tự Nhiên
-                    </div>
-                  </button>
+                      {selectedVariant?.id === variant.id && (
+                        <>
+                          <div className="absolute top-0 right-0 w-0 h-0 border-l-[17px] border-l-transparent border-t-[17px] !border-t-[#0096FF] "></div>
+                          <MdCheck className="absolute top-0 right-0 text-white text-[9px]" />
+                        </>
+                      )}
+                    </button>
+                  ))}
                 </div>
               </div>
 
               {/* sellPrice box */}
               <div className="flex items-center gap-6 justify-start py-2">
                 <div className="py-2 text-red-600 font-semibold text-4xl">
-                  30.490.000₫
+                  {sellPrice.toLocaleString('vi-VN')}₫
                 </div>
 
                 <div className="py-2 line-through text-gray-500 text-xl">
-                  34.990.000₫
+                  {listPrice.toLocaleString('vi-VN')}₫
                 </div>
 
-                <div className="border border-[2px] border-red-600 rounded-[10px] text-sm py-1 px-4 text-red-600 font-semibold">
-                  -5%
-                </div>
+                {discountPercentage !== 0 && (
+                  <div className="border border-[2px] border-red-600 rounded-[10px] text-sm py-1 px-4 text-red-600 font-semibold">
+                    -{discountPercentage}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 items-center text-[#27ae60]">
@@ -683,7 +766,7 @@ const ProductPage = () => {
 
               {/* buying options */}
               <div className="flex justify-between gap-4">
-                <Box
+                {/* <Box
                   display="flex"
                   alignItems="center"
                   justifyContent="space-between"
@@ -701,21 +784,27 @@ const ProductPage = () => {
                   <IconButton size="small" className="!text-black" onClick={handleIncrease}>
                     <IoMdAdd />
                   </IconButton>
-                </Box>
+                </Box> */}
 
-                <Button variant="contained" className="!bg-gray-200 !text-gray-900 !rounded-[10px] !my-[10px] !w-[70%]">THÊM VÀO GIỎ HÀNG</Button>
-
-                <Button variant="outlined" className="!bg-white !text-gray-900 !border-[#ccc] !rounded-[10px] !my-[10px] !py-[18px] !w-[5%]">
-                  <FaHeart className="text-[24px]" />
+                <Button
+                  variant="contained"
+                  className="!bg-gray-200 !text-gray-900 !rounded-[10px] !my-[10px] !w-[20%] flex items-center justify-center gap-2"
+                >
+                  <FaShoppingCart className="text-[22px]" />
                 </Button>
+
+
+                {/* <Button variant="outlined" className="!bg-white !text-gray-900 !border-[#ccc] !rounded-[10px] !my-[10px] !py-[18px] !w-[5%]">
+                  <FaHeart className="text-[24px]" />
+                </Button> */}
+                <Button variant="contained" className="!text-[20px] !bg-white !font-semibold !text-gray-900 !rounded-[10px] !px-6 !py-4 !my-[10px] !w-full ![box-shadow:rgba(60,64,67,0.3)_0px_1px_2px_0px,rgba(60,64,67,0.15)_0px_2px_6px_2px]">mua ngay</Button>
               </div>
 
-              <Button variant="contained" className="!text-[20px] !bg-white !font-semibold !text-gray-900 !rounded-[10px] !px-6 !py-4 !my-[10px] !w-full ![box-shadow:rgba(60,64,67,0.3)_0px_1px_2px_0px,rgba(60,64,67,0.15)_0px_2px_6px_2px]">mua ngay</Button>
 
             </div>
           </div>
 
-          <SpecsPopup openSpecsPopup={openSpecsPopup} setOpenSpecsPopup={setOpenSpecsPopup} />
+
 
           <div className="py-5 border-b-2 border-gray-200 flex flex-col gap-8">
             <h1 className="font-bold text-gray-900 text-lg text-[30px]">

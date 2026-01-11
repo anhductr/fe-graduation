@@ -7,31 +7,12 @@ import { CiCircleCheck } from "react-icons/ci";
 import { MdOutlineShoppingCart } from "react-icons/md";
 import Tooltip, { tooltipClasses } from '@mui/material/Tooltip';
 import { styled } from '@mui/material/styles';
-import { useCart } from "../../context/CartContext";
 import { Snackbar, Alert } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 const ProductCard = ({ product }) => {
-  const { addToCart } = useCart();
+  const navigate = useNavigate();
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
-
-  const handleAddToCart = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!product?.sku) {
-      console.error("Missing SKU for product:", product);
-      setSnackbar({ open: true, message: "Lỗi: Sản phẩm thiếu mã SKU!", severity: "error" });
-      return;
-    }
-
-    try {
-      await addToCart(product.sku, 1);
-      setSnackbar({ open: true, message: "Đã thêm vào giỏ hàng!", severity: "success" });
-    } catch (error) {
-      console.error(error);
-      setSnackbar({ open: true, message: "Thêm vào giỏ thất bại.", severity: "error" });
-    }
-  };
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
@@ -102,13 +83,28 @@ const ProductCard = ({ product }) => {
           "
       >
         <HyperTooltip
-          title="Thêm vào giỏ"
+          title="Xem chi tiết & mua hàng"
           placement="top"
           arrow
           disableInteractive={true}
         >
           <button
-            onClick={handleAddToCart}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+
+              // Xử lý name thành slug (thay dấu cách bằng -, loại bỏ ký tự đặc biệt nếu cần)
+              const slug = product.name
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/đ/g, "d")
+                .replace(/[^a-z0-9]+/g, "-")
+                .replace(/^-+|-+$/g, "");
+
+              // Navigate đến trang sản phẩm, truyền id qua state
+              navigate(`/${slug}`, { state: { productId: product.id, productName: product.name } });
+            }}
             className="bg-white hover:bg-[#03A9F4] hover:text-white rounded-full p-3 shadow-md"
           >
             <MdOutlineShoppingCart size={21} />
