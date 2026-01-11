@@ -25,19 +25,19 @@ function Home() {
           <ProductSection
             title="SẢN PHẨM MỚI & NỔI BẬT"
             icon={<FaFire />}
-            categoryName="iphone"
+            sortType="YEAR_DESC"
           />
 
           <ProductSection
             title="ĐIỆN THOẠI"
             icon={<MdPhoneIphone />}
-            categoryName="samsung"
+            keyword="Điện thoại"
           />
 
           <ProductSection
             title="LAPTOP"
             icon={<FaLaptop />}
-            categoryName="macbook"
+            keyword="Laptop"
           />
         </div>
 

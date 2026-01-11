@@ -407,15 +407,15 @@ export default function InventoryList() {
               <Table sx={{ width: "100%" }}>
                 <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
                   <TableRow>
-                    <TableCell sx={{ width: "30%" }}>Tên sản phẩm</TableCell>
-                    <TableCell sx={{ width: "10%" }}>Mã sku</TableCell>
+                    <TableCell sx={{ width: "25%" }}>Tên sản phẩm</TableCell>
+                    <TableCell sx={{ width: "15%" }}>Mã sku</TableCell>
                     <TableCell align="center" sx={{ width: "10%" }}>
                       Màu
                     </TableCell>
-                    <TableCell align="center" sx={{ width: "15%" }}>
+                    <TableCell align="center" sx={{ width: "10%" }}>
                       Số lượng
                     </TableCell>
-                    <TableCell align="center" sx={{ width: "25%" }}>
+                    <TableCell align="center" sx={{ width: "10%" }}>
                       Trạng thái
                     </TableCell>
                     <TableCell sx={{ width: "20%" }}></TableCell>

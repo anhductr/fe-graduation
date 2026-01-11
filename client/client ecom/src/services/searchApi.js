@@ -1,6 +1,6 @@
 import { api } from "../libs/axios";
 
-
+// Helper to handle search request
 export const searchProducts = async ({
     keyword = null,
     page = 1,
@@ -12,45 +12,43 @@ export const searchProducts = async ({
     maxPrice = null,
     sortType = "DEFAULT",
 } = {}) => {
+    const body = {
+        keyword: keyword?.trim() || null,
+        brandName,
+        category, // ID string
+        attributes,
+        minPrice,
+        maxPrice,
+        sortType,
+    };
+
+    // Remove null/undefined keys to keep body clean
+    Object.keys(body).forEach(key => body[key] == null && delete body[key]);
+
     const response = await api.post(
         "/search-service/search/catalog-search",
-        {
-            keyword: keyword?.trim() || null,
-            category,
-            brandName,
-            attributes,
-            minPrice,
-            maxPrice,
-            sortType,
-        },
+        body,
         {
             params: { page, size },
         }
     );
-    console.log("keyword:", keyword)
-    console.log("category:", category)
-    console.log("brandName:", brandName)
-    console.log("attributes:", attributes)
-    console.log("minP:", minPrice)
-    console.log("maxP:", maxPrice)
-    console.log("sort type:", sortType)
-    console.log("response: ", response.data.productGetVMList)
-    return response.data.productGetVMList; // backend trả ProductGetListVM
+    return response.data; // Returns ApiResponse<ProductGetListVM>
 };
 
 /**
- * Gợi ý tìm kiếm (autocomplete
+ * Gợi ý tìm kiếm (autocomplete) quick
  */
-export const getSearchSuggestionsQuick = async (keyword = "") => {
+export const getSearchSuggestionsQuick = async (keyword = "", limit = 5) => {
     if (!keyword.trim()) return [];
 
     const response = await api.get("/search-service/search/autocomplete/quick", {
-        params: { q: keyword.trim() },
+        params: {
+            q: keyword.trim(),
+            limit
+        },
     });
-    console.log('autocomplete response quick: ', response)
-    return response.data;
+    return response.data; // ApiResponse<List<AutoCompletedResponse>>
 };
-
 
 export const getSearchSuggestionsFull = async (keyword = "") => {
     if (!keyword.trim()) return [];
@@ -58,6 +56,13 @@ export const getSearchSuggestionsFull = async (keyword = "") => {
     const response = await api.get("/search-service/search/autocomplete/full", {
         params: { q: keyword.trim() },
     });
-    console.log('autocomplete response full: ', response)
     return response.data;
+};
+
+// Public detail
+export const getProductDetail = async (productId) => {
+    const response = await api.get("/search-service/search/product", {
+        params: { productId }
+    });
+    return response.data; // ApiResponse<ProductGetVM>
 };

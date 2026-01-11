@@ -6,56 +6,32 @@ import { Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { searchProducts, getSearchSuggestionsQuick } from "../../services/searchApi";
+import { searchProducts } from "../../services/searchApi";
 import { IoIosArrowForward } from "react-icons/io";
 import { IoIosArrowBack } from "react-icons/io";
 
-const ProductSection = ({ title, categoryName, icon }) => {
-    const [categoryId, setCategoryId] = useState(null);
+const ProductSection = ({ title, keyword, sortType = "DEFAULT", icon }) => {
 
-    useEffect(() => {
-        const fetchCategoryId = async () => {
-            if (!categoryName) return;
-            try {
-                const res = await getSearchSuggestionsQuick(categoryName);
-                // Assuming the first suggestion result or similar logic helps identify category
-                // For now, if we don't have a direct ID, we might search by keyword or similar.
-                // Given existing code used getSearchSuggestionsQuick logging, we will stick to a simplified fetch
-                // or just search by keyword if searchProducts supports it.
-                // Actually searchProducts takes 'category' ID. 
-                // If we don't have IDs, we might need another way.
-                // Let's assume for now we might fetch products without specific category if ID missing, 
-                // or just rely on keyword if API supports.
-                // The original logic was incomplete (console logging res).
-                // Let's rely on passing an optional ID or just listing 'default' products for now if dynamic lookup is complex.
-
-                // Mocking/Resolving strategy:
-                // Use a known ID if possible, or just fetch 'page 1' general products if category is generic.
-            } catch (error) {
-                console.error(`Failed to fetch data:`, error);
-            }
-        };
-        fetchCategoryId();
-    }, [categoryName]);
-
-    const { data: rawApiData, isLoading, error } = useQuery({
-        queryKey: [
-            categoryName || "default",
-            "DEFAULT",
-        ],
+    // Fetch products using search API
+    const { data: apiResponse, isLoading, error } = useQuery({
+        queryKey: ["products", keyword, sortType],
         queryFn: () => searchProducts({
-            // For demonstration, if we don't have exact ID, we might default or search.
-            // Ideally backend supports text search or we map names to IDs.
-            // We will fetch default page 1 for now to ensure data shows.
-            sortType: "DEFAULT",
+            keyword: keyword,
+            sortType: sortType,
             page: 1,
             size: 10,
         }),
     });
 
-    const products = rawApiData || [];
+    // API Response wrapper: { code, message, result: { productGetVMList, ... } }
+    const products = apiResponse?.result?.productGetVMList || apiResponse?.productGetVMList || [];
 
-    const uniqueId = title.replace(/\s+/g, '-').toLowerCase();
+    const uniqueId = title
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9\s]/g, "")
+        .replace(/\s+/g, "-")
+        .toLowerCase();
 
     return (
         <div className="w-full bg-white relative px-4 md:px-15 rounded-xl my-4">
@@ -88,7 +64,7 @@ const ProductSection = ({ title, categoryName, icon }) => {
                 >
                     {products.map((product, index) => (
                         <SwiperSlide key={index}>
-                            <Link to={`/${product.nameSlug}`}>
+                            <Link to={`/${product.id}`}>
                                 <ProductCard product={product} />
                             </Link>
                         </SwiperSlide>

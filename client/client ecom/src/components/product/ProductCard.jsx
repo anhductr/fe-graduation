@@ -122,8 +122,8 @@ const ProductCard = ({ product }) => {
       {/* IMAGE */}
       <div className="flex justify-center px-4">
         <img
-          src={product.thumbnailUrl}
-          alt={product.alt}
+          src={product.thumbnailUrl || "https://placehold.co/300x300?text=No+Image"}
+          alt={product.name}
           className="rounded-t-lg object-contain w-full h-[180px] transition-transform duration-300 group-hover:scale-105"
         />
       </div>
@@ -140,20 +140,20 @@ const ProductCard = ({ product }) => {
 
         <div className="text-[14px] font-bold text-[#d60000]">
           {/* giá sell */}
-          {/* {new Intl.NumberFormat("vi-VN", {
+          {new Intl.NumberFormat("vi-VN", {
             style: "currency",
             currency: "VND",
-          }).format(product.price)} */}
-          {/* giá thật */}
-          {/* <span className="line-through text-gray-400 ml-1">
-            {product.listPrice.toLocaleString().replace(/,/g, '.')}đ
-          </span> */}
-          <span className="text-gray-400 ml-1">
-            {new Intl.NumberFormat("vi-VN", {
-              style: "currency",
-              currency: "VND",
-            }).format(product.price)}
-          </span>
+          }).format(Number(product.price))}
+
+          {/* giá thật (listPrice) */}
+          {product.listPrice && (
+            <span className="line-through text-gray-400 ml-1 text-[12px]">
+              {new Intl.NumberFormat("vi-VN", {
+                style: "currency",
+                currency: "VND",
+              }).format(Number(product.listPrice))}
+            </span>
+          )}
         </div>
       </div>
 
