@@ -34,7 +34,9 @@ const OtpVerificationModal = ({ isOpen, onClose, username }) => {
         try {
             await verifyOtp({ username, otp });
             setSnackbar({ open: true, message: "Xác thực email thành công!", severity: "success" });
-            setTimeout(() => onClose(), 1500); // Close modal after delay
+            setTimeout(() => {
+                onClose();
+            }, 1000); // Wait a bit to show success message
         } catch (err) {
             const msg = err.response?.data?.message || "Xác thực thất bại. Vui lòng thử lại.";
             setError(msg);
@@ -52,6 +54,10 @@ const OtpVerificationModal = ({ isOpen, onClose, username }) => {
             console.error(err);
             setSnackbar({ open: true, message: "Gửi lại mã thất bại.", severity: "error" });
         }
+    };
+
+    const handleCloseSnackbar = () => {
+        setSnackbar({ ...snackbar, open: false });
     };
 
     if (!isOpen) return null;
@@ -114,13 +120,14 @@ const OtpVerificationModal = ({ isOpen, onClose, username }) => {
                     ✕
                 </button>
             </div>
+
             <Snackbar
                 open={snackbar.open}
                 autoHideDuration={4000}
-                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                onClose={handleCloseSnackbar}
                 anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             >
-                <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+                <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
                     {snackbar.message}
                 </Alert>
             </Snackbar>

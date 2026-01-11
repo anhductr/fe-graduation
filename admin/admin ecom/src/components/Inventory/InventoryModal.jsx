@@ -86,6 +86,7 @@ export default function InventoryModal({ onClose, initialData = null }) {
           label: item.productName || item.sku,
           sku: item.sku,
         },
+        color: item.color,
         quantity: item.quantity,
         unitCost: item.unitCost,
         totalCost: item.quantity * item.unitCost,
@@ -120,19 +121,19 @@ export default function InventoryModal({ onClose, initialData = null }) {
       prevItems.map((item) =>
         item.id === rowId
           ? (() => {
-              const updated = { ...item, [field]: value };
+            const updated = { ...item, [field]: value };
 
-              // Special handling for quantity and unitCost to recalculate totalCost
-              if (field === "quantity") {
-                updated.quantity = Math.max(1, Number(value) || 1);
-                updated.totalCost = updated.quantity * (updated.unitCost || 0);
-              } else if (field === "unitCost") {
-                updated.unitCost = Number(value) || 0;
-                updated.totalCost = (updated.quantity || 0) * updated.unitCost;
-              }
+            // Special handling for quantity and unitCost to recalculate totalCost
+            if (field === "quantity") {
+              updated.quantity = Math.max(1, Number(value) || 1);
+              updated.totalCost = updated.quantity * (updated.unitCost || 0);
+            } else if (field === "unitCost") {
+              updated.unitCost = Number(value) || 0;
+              updated.totalCost = (updated.quantity || 0) * updated.unitCost;
+            }
 
-              return updated;
-            })()
+            return updated;
+          })()
           : item
       )
     );
@@ -194,10 +195,6 @@ export default function InventoryModal({ onClose, initialData = null }) {
     // Gửi dữ liệu qua mutation
     createStockInMutation.mutate(payload);
   };
-
-  useEffect(() => {
-    console.log("item: ", items);
-  }, [items]);
 
   return (
     <>

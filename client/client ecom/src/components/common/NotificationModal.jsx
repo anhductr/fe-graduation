@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { IoMdCheckmarkCircleOutline } from "react-icons/io";
 import { IoNotificationsOutline } from "react-icons/io5";
-import { Snackbar, Alert } from "@mui/material";
+import { IoMdCheckmarkCircleOutline } from "react-icons/io";
 import { useAuth } from "../../context/AuthContext";
 import OtpVerificationModal from "../auth/OtpVerificationModal";
+import { Snackbar, Alert } from "@mui/material";
 
 const NotificationModal = ({ isOpen, onClose }) => {
     // Mock data for notifications
@@ -91,9 +91,17 @@ const NotificationModal = ({ isOpen, onClose }) => {
             await sendOtp({ userName: user.username || user.email });
             setIsOtpModalOpen(true);
             onClose(); // Close notification modal
+            // We might not need a snackbar here if opening the modal is feedback enough, 
+            // but let's show one if helpful or rely on OtpModal's internal feedback.
+            // Actually, sendOtp success usually means "OTP sent", so maybe a small toast.
+            setSnackbar({ open: true, message: "Mã OTP đã được gửi.", severity: "success" });
         } catch (err) {
             setSnackbar({ open: true, message: "Không thể gửi mã OTP. Vui lòng thử lại sau.", severity: "error" });
         }
+    };
+
+    const handleCloseSnackbar = () => {
+        setSnackbar({ ...snackbar, open: false });
     };
 
     // Function to handle notification click actions
@@ -224,10 +232,10 @@ const NotificationModal = ({ isOpen, onClose }) => {
             <Snackbar
                 open={snackbar.open}
                 autoHideDuration={4000}
-                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                onClose={handleCloseSnackbar}
                 anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             >
-                <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+                <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
                     {snackbar.message}
                 </Alert>
             </Snackbar>

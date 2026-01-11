@@ -7,9 +7,35 @@ import { CiCircleCheck } from "react-icons/ci";
 import { MdOutlineShoppingCart } from "react-icons/md";
 import Tooltip, { tooltipClasses } from '@mui/material/Tooltip';
 import { styled } from '@mui/material/styles';
+import { useCart } from "../../context/CartContext";
+import { Snackbar, Alert } from "@mui/material";
 
 const ProductCard = ({ product }) => {
-  console.log('product: ', product);
+  const { addToCart } = useCart();
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+
+  const handleAddToCart = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!product?.sku) {
+      console.error("Missing SKU for product:", product);
+      setSnackbar({ open: true, message: "Lỗi: Sản phẩm thiếu mã SKU!", severity: "error" });
+      return;
+    }
+
+    try {
+      await addToCart(product.sku, 1);
+      setSnackbar({ open: true, message: "Đã thêm vào giỏ hàng!", severity: "success" });
+    } catch (error) {
+      console.error(error);
+      setSnackbar({ open: true, message: "Thêm vào giỏ thất bại.", severity: "error" });
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
 
   function StarRating({ rating }) {
     const fullStars = Math.floor(rating);
@@ -81,7 +107,10 @@ const ProductCard = ({ product }) => {
           arrow
           disableInteractive={true}
         >
-          <button className="bg-white hover:bg-[#03A9F4] hover:text-white rounded-full p-3 shadow-md">
+          <button
+            onClick={handleAddToCart}
+            className="bg-white hover:bg-[#03A9F4] hover:text-white rounded-full p-3 shadow-md"
+          >
             <MdOutlineShoppingCart size={21} />
           </button>
         </HyperTooltip>
@@ -102,8 +131,8 @@ const ProductCard = ({ product }) => {
       {/* IMAGE */}
       <div className="flex justify-center px-4">
         <img
-          src={product.thumbnailUrl}
-          alt={product.alt}
+          src={product.thumbnailUrl || "https://placehold.co/300x300?text=No+Image"}
+          alt={product.name}
           className="rounded-t-lg object-contain w-full h-[180px] transition-transform duration-300 group-hover:scale-105"
         />
       </div>
@@ -120,20 +149,20 @@ const ProductCard = ({ product }) => {
 
         <div className="text-[14px] font-bold text-[#d60000]">
           {/* giá sell */}
-          {/* {new Intl.NumberFormat("vi-VN", {
+          {new Intl.NumberFormat("vi-VN", {
             style: "currency",
             currency: "VND",
-          }).format(product.price)} */}
-          {/* giá thật */}
-          {/* <span className="line-through text-gray-400 ml-1">
-            {product.listPrice.toLocaleString().replace(/,/g, '.')}đ
-          </span> */}
-          <span className="text-gray-400 ml-1">
-            {new Intl.NumberFormat("vi-VN", {
-              style: "currency",
-              currency: "VND",
-            }).format(product.price)}
-          </span>
+          }).format(Number(product.price))}
+
+          {/* giá thật (listPrice) */}
+          {product.listPrice && (
+            <span className="line-through text-gray-400 ml-1 text-[12px]">
+              {new Intl.NumberFormat("vi-VN", {
+                style: "currency",
+                currency: "VND",
+              }).format(Number(product.listPrice))}
+            </span>
+          )}
         </div>
       </div>
 
@@ -178,6 +207,16 @@ const ProductCard = ({ product }) => {
 
         <span className="text-[13px] leading-5">Còn 96 sản phẩm</span>
       </div>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={2000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };

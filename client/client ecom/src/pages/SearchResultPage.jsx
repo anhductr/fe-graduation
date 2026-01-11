@@ -97,7 +97,8 @@ export default function SearchResultPage() {
     // staleTime: 1000 * 60 * 5,
   });
 
-  const products = rawApiData || [];
+  // API return { result: { productGetVMList: [] } } OR { productGetVMList: [] }
+  const products = rawApiData?.result?.productGetVMList || rawApiData?.productGetVMList || [];
 
   // For now, just console.log the response
   useEffect(() => {

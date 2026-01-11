@@ -113,8 +113,8 @@ const Catalogue = () => {
     };
 
     // Fetch dữ liệu cho cả Điện thoại và Laptop
-    fetchCatalogueData('phone').then((data) => setPhoneData(data || data.phone));
-    fetchCatalogueData('laptop').then((data) => setLaptopData(data || data.laptop));
+    fetchCatalogueData('phone').then((data) => setPhoneData(data || []));
+    fetchCatalogueData('laptop').then((data) => setLaptopData(data || []));
   }, []);
 
   const data = {

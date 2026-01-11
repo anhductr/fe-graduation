@@ -197,9 +197,8 @@ export default function InventoryList() {
         vertical: "top",
         horizontal: "center",
         severity: "error",
-        message: `Lỗi khi tải danh sách người dùng: ${
-          serverError || serverDetail || fallbackMessage
-        }`,
+        message: `Lỗi khi tải danh sách người dùng: ${serverError || serverDetail || fallbackMessage
+          }`,
       });
     } else {
       // Khi load xong thì tắt snackbar loading
@@ -250,9 +249,8 @@ export default function InventoryList() {
       setPopup({
         open: true,
         severity: "error",
-        message: `Lỗi khi xóa: ${
-          error.response?.data?.message || error.message
-        }`,
+        message: `Lỗi khi xóa: ${error.response?.data?.message || error.message
+          }`,
       });
     },
   });
@@ -380,7 +378,7 @@ export default function InventoryList() {
           >
             <SearchBar
               ref={inputSearchRef}
-              // onChange={(e) => setSearchTerm(e.target.value)}
+            // onChange={(e) => setSearchTerm(e.target.value)}
             />
 
             <Button
@@ -409,12 +407,15 @@ export default function InventoryList() {
               <Table sx={{ width: "100%" }}>
                 <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
                   <TableRow>
-                    <TableCell sx={{ width: "30%" }}>Tên sản phẩm</TableCell>
+                    <TableCell sx={{ width: "25%" }}>Tên sản phẩm</TableCell>
                     <TableCell sx={{ width: "15%" }}>Mã sku</TableCell>
-                    <TableCell align="center" sx={{ width: "15%" }}>
+                    <TableCell align="center" sx={{ width: "10%" }}>
+                      Màu
+                    </TableCell>
+                    <TableCell align="center" sx={{ width: "10%" }}>
                       Số lượng
                     </TableCell>
-                    <TableCell align="center" sx={{ width: "25%" }}>
+                    <TableCell align="center" sx={{ width: "10%" }}>
                       Trạng thái
                     </TableCell>
                     <TableCell sx={{ width: "20%" }}></TableCell>
@@ -425,6 +426,7 @@ export default function InventoryList() {
                     <TableRow key={inv.id}>
                       <TableCell>{inv.variantName}</TableCell>
                       <TableCell align="left">{inv.sku}</TableCell>
+                      <TableCell align="center">{inv.color}</TableCell>
                       <TableCell align="center">{inv.quantity}</TableCell>
                       <TableCell align="center">{getStatus(inv)}</TableCell>
                       <TableCell>

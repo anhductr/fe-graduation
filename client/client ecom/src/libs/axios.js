@@ -110,7 +110,7 @@ api.interceptors.response.use(
 
 function logout() {
   localStorage.removeItem("token");
-  window.location.href = "/";
+  window.dispatchEvent(new CustomEvent("auth:unauthorized"));
 }
 
 export { api };
