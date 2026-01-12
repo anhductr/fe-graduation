@@ -1,8 +1,10 @@
 import { Button } from "@mui/material";
 import { useState, useEffect } from "react";
 import { FaLeaf } from "react-icons/fa";
+import { useAuth } from "../context/AuthContext";
 
 export default function UserInfoPage() {
+    const { user, isUserLoading } = useAuth();
     const [email, setEmail] = useState("");
     const [lastName, setLastName] = useState("");
     const [firstName, setFirstName] = useState("");
@@ -42,6 +44,29 @@ export default function UserInfoPage() {
         }
     }, [month, year]);
 
+    useEffect(() => {
+        if (user) {
+            setUsername(user.username || "");
+            setEmail(user.email || "");
+            setFirstName(user.firstName || "");
+            setLastName(user.lastName || "");
+            setPhone(user.phone || "");
+            setGender(user.gender || "");
+            setDob(user.dob || "");
+        }
+    }, [user]);
+
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+
+        return `${day}/${month}/${year}`;
+    }
+
+
     return (
         <>
             <div className="flex flex-col gap-2">
@@ -55,22 +80,22 @@ export default function UserInfoPage() {
                             <>
                                 <div className="flex justify-between w-[40%] text-[16px] border-b border-gray-300 p-2">
                                     <span className="text-gray-500">Tên người dùng</span>
-                                    <span>Quan Sky</span>
+                                    <span>{username}</span>
                                 </div>
 
                                 <div className="flex justify-between w-[40%] text-[16px] border-b border-gray-300 p-2">
                                     <span className="text-gray-500">Email</span>
-                                    <span>ducanh020304@gmail.com</span>
+                                    <span>{email}</span>
                                 </div>
 
                                 <div className="flex justify-between w-[40%] text-[16px] border-b border-gray-300 p-2">
                                     <span className="text-gray-500">Họ</span>
-                                    <span>Trần</span>
+                                    <span>{firstName}</span>
                                 </div>
 
                                 <div className="flex justify-between w-[40%] text-[16px] border-b border-gray-300 p-2">
                                     <span className="text-gray-500">Tên</span>
-                                    <span>Đức Anh</span>
+                                    <span>{lastName}</span>
                                 </div>
 
                                 <div className="flex justify-between w-[40%] text-[16px] border-b border-gray-300 p-2">
@@ -80,7 +105,7 @@ export default function UserInfoPage() {
 
                                 <div className="flex justify-between w-[40%] text-[16px] border-b border-gray-300 p-2">
                                     <span className="text-gray-500">Ngày sinh</span>
-                                    <span>04/02/2003</span>
+                                    <span>{formatDate(user.dob)}</span>
                                 </div>
 
                                 <Button
@@ -124,7 +149,7 @@ export default function UserInfoPage() {
                                     <label class="block font-medium text-gray-700 mb-2">Giới tính</label>
                                     <div className="flex gap-4">
                                         <label class="flex items-center cursor-pointer">
-                                            <input type="radio" name="gender" checked class="sr-only peer" />
+                                            <input type="radio" name="gender" class="sr-only peer" />
                                             <div class="relative w-5 h-5 rounded-full border-2 border-red-500 peer-checked:bg-red-500 peer-checked:border-red-500 transition-all">
                                                 <div class="absolute inset-1 bg-white rounded-full peer-checked:scale-100 scale-0 transition-transform"></div>
                                             </div>

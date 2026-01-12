@@ -15,6 +15,7 @@ import PaymentResultPage from "./pages/PaymentResultPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import LoginForm from "./components/auth/LogInForm";
 import { CartProvider } from "./context/CartContext";
+import AddressManager from "./pages/AddressPage";
 
 function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -55,6 +56,12 @@ function App() {
             path="orders"
             element={
               <OrderPage />
+            }
+          />
+          <Route
+            path="address"
+            element={
+              <AddressManager />
             }
           />
         </Route>

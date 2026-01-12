@@ -44,6 +44,10 @@ function Navbar() {
     navigate("/account/orders");
   };
 
+  const goToAddress = () => {
+    navigate("/account/adress");
+  };
+
 
   useEffect(() => {
     const handleScroll = () => {
@@ -367,6 +371,12 @@ function Navbar() {
                             <div className="flex items-center gap-2">
                               <BsBoxSeam />
                               <span>Đơn hàng của tôi</span>
+                            </div>
+                          </button>
+                          <button onClick={goToAddress}>
+                            <div className="flex items-center gap-2">
+                              <BsBoxSeam />
+                              <span>Địa chỉ</span>
                             </div>
                           </button>
                           <button onClick={logout}>
