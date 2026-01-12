@@ -444,7 +444,7 @@ export default function ProductUpload() {
       {
         nameGroup: "RAM",
         specs: [
-          { key: "Dung lượng", value: "", type: "TECH", group: "Performance" },
+          { key: "Dung lượng", value: "", type: "TECH", group: "RAM" },
         ]
       },
       {

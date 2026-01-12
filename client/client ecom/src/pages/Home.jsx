@@ -17,15 +17,15 @@ function Home() {
   return (
     <>
       <Navbar />
-      <div className="bg-gray-50 min-h-screen pb-10">
+      <div className="bg-white min-h-screen pb-10">
         <Banner />
         <CategoriesList />
 
-        <div className="max-w-7xl mx-auto px-1">
+        <div className="mx-auto px-1">
           <ProductSection
             title="SẢN PHẨM MỚI & NỔI BẬT"
             icon={<FaFire />}
-            sortType="YEAR_DESC"
+            sortType="DEFAULT"
           />
 
           <ProductSection

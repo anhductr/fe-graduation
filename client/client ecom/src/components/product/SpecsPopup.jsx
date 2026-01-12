@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function SpecsPopup({ openSpecsPopup, setOpenSpecsPopup }) {
+export default function SpecsPopup({ openSpecsPopup, setOpenSpecsPopup, specifications }) {
     const [activeTab, setActiveTab] = useState(0);
     const containerRef = useRef(null);
     const headerRefs = useRef([]);
@@ -13,93 +13,38 @@ export default function SpecsPopup({ openSpecsPopup, setOpenSpecsPopup }) {
     const [isScrollingByClick, setIsScrollingByClick] = useState(false);
 
     //FAKE DATA
-    const specsData = [
-        {
-            key: "Thiết kế & Trọng lượng",
-            value: [
-                { key: "Trọng lượng sản phẩm", value: "231 g" },
-                { key: "Chuẩn kháng nước / Bụi bẩn", value: "IP68" },
-                { key: "Chất liệu", value: "Khung máy: Nhôm nguyên khối\nMặt lưng máy: Ceramic Shield" },
-            ]
-        },
-        {
-            key: "Bộ xử lý",
-            value: [
-                { key: "Phiên bản CPU", value: "Apple A19 Pro" },
-                { key: "Loại CPU", value: "12-Core" },
-                { key: "Số nhân", value: "6" },
-            ]
-        },
-        {
-            key: "RAM",
-            value: [
-                { key: "Dung lượng RAM", value: "12 GB" },
-            ]
-        },
-        {
-            key: "Màn hình",
-            value: [
-                { key: "Kích thước màn hình", value: "6.9 inch" },
-                { key: "Công nghệ màn hình", value: "OLED" },
-                { key: "Chuẩn màn hình", value: "Super Retina XDR" },
-                { key: "Độ phân giải", value: "2868 x 1320 pixel" },
-            ]
-        },
-        {
-            key: "Đồ họa",
-            value: [
-                { key: "Chip đồ họa (GPU)", value: "Apple GPU 6-core" },
-            ]
-        },
-        {
-            key: "Lưu trữ",
-            value: [
-                { key: "Dung lượng", value: "256 GB" },
-            ]
-        },
-        {
-            key: "Camera sau",
-            value: [
-                { key: "Số camera sau", value: "3 camera" },
-                { key: "Độ phân giải", value: "48MP + 12MP + 12MP" },
-                { key: "Quay phim", value: "8K@24fps, 4K@60fps" },
-            ]
-        },
-        {
-            key: "Giao tiếp và kết nối",
-            value: [
-                { key: "Số khe SIM", value: "1 Nano SIM & 1 eSIM" },
-                { key: "Hỗ trợ mạng", value: "5G" },
-                { key: "Cổng giao tiếp", value: "USB-C" },
-                { key: "Wi-Fi", value: "Wi-Fi 7" },
-                { key: "Bluetooth", value: "Bluetooth 5.4" },
-                { key: "NFC", value: "Có" },
-            ]
-        },
-        {
-            key: "Thông tin pin và sạc",
-            value: [
-                { key: "Loại pin", value: "Li-Ion" },
-                { key: "Dung lượng pin", value: "Khoảng 5000 mAh" },
-                { key: "Sạc nhanh", value: "45W có dây, 25W không dây (MagSafe)" },
-            ]
-        },
-        {
-            key: "Hệ điều hành",
-            value: [
-                { key: "Tên OS", value: "iOS" },
-                { key: "Phiên bản OS", value: "iOS 19" },
-            ]
-        },
-        {
-            key: "Tính năng khác",
-            value: [
-                { key: "Bảo mật", value: "Face ID" },
-                { key: "Cảm biến", value: "Cảm biến vân tay trong màn hình (dự kiến)" },
-                { key: "Chống rung", value: "Sensor-shift OIS" },
-            ]
-        },
-    ];
+    // Process specifications from prop
+    const specsData = useMemo(() => {
+        console.log("SpecsPopup DEBUG - Input specifications:", specifications);
+
+        if (!specifications || specifications.length === 0) return [];
+
+
+        // Group by 'group' field
+        const groups = {};
+        specifications.forEach(spec => {
+            // Support multiple possible key names from backend
+            const groupName = spec.group || spec.groupName || spec.attributeGroup || "Thông số khác";
+            const key = spec.key || spec.name || spec.attributeName || spec.specName || "N/A";
+            const value = spec.value || spec.attributeValue || spec.specValue || "N/A";
+
+            if (!groups[groupName]) {
+                groups[groupName] = [];
+            }
+            groups[groupName].push({
+                key: key,
+                value: value
+            });
+        });
+
+        // Convert to array format expected by UI
+        return Object.keys(groups).map(groupName => ({
+            key: groupName,
+            value: groups[groupName]
+        }));
+    }, [specifications]);
+
+    console.log('specsData', specsData);
 
     //CHẶN CUỘN TRANG KHI MỞ MODAL
     useEffect(() => {
@@ -298,9 +243,10 @@ export default function SpecsPopup({ openSpecsPopup, setOpenSpecsPopup }) {
                                                 key={specIndex}
                                                 label={spec.key}
                                                 value={
-                                                    spec.value.includes('\n') ? (
+                                                    // Ensure valid string before checking includes
+                                                    String(spec.value || "").includes('\n') ? (
                                                         <div className="text-right leading-relaxed">
-                                                            {spec.value.split('\n').map((line, i) => (
+                                                            {String(spec.value).split('\n').map((line, i) => (
                                                                 <div key={i}>{line}</div>
                                                             ))}
                                                         </div>
