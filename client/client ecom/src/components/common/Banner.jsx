@@ -46,11 +46,11 @@ const Banner = () => {
       100% { background-position: 100% 50%; }
     }
   `}</style>
-      <div className="mx-auto flex items-stretch justify-between gap-7 py-4 px-15 h-[570px]">
+      <div className="mx-auto flex items-stretch justify-between gap-6 py-4 px-15 h-[570px]">
         {/* Center big banner */}
-        <div className="w-[70%] max-w-[calc(100%-240px)] flex gap-2 h-full">
+        <div className="w-[75%] max-w-[calc(100%-240px)] flex gap-2 h-full">
           {/* Main Slider */}
-          <div className="rounded-xl shadow-md overflow-hidden relative group h-full">
+          <div className="rounded-xl shadow-sm overflow-hidden relative group h-full">
             <Swiper
               spaceBetween={0}
               centeredSlides={true}
@@ -103,7 +103,7 @@ const Banner = () => {
         </div>
 
         {/* Right Banners - Static */}
-        <div className="hidden xl:flex flex-col justify-between gap-2 w-[30%] h-full">
+        <div className="flex flex-col justify-between gap-2 w-[25%] h-full">
           <div className="h-1/3 w-full rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer">
             <img
               alt="Right Banner 3"

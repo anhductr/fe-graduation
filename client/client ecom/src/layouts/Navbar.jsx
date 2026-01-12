@@ -5,8 +5,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 // import { ProductContext } from "../context/ProductContext";
 // import { WishlistContext } from "../context/WishlistContext";
-// import LoginForm from "../components/auth/LogInForm";
-// import RegistrationForm from "../components/auth/RegisterationForm";
+import LoginForm from "../components/auth/LogInForm";
+import RegistrationForm from "../components/auth/RegistrationForm";
 // import VerificationBanner from "../components/auth/VerificationBanner";
 import Catalogue from "../components/product/Catalogue";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,6 +26,7 @@ import { BsBoxSeam } from "react-icons/bs";
 import { useSearchKeyword } from "../context/SearchContext";
 import { getSearchSuggestionsQuick } from "../services/searchApi";
 import { useQuery } from "@tanstack/react-query";
+import { getSearchSuggestionsFull } from "../services/searchApi";
 
 function Navbar() {
   const { isLoggedIn, user, logout } = useAuth();
@@ -78,6 +79,7 @@ function Navbar() {
   const [isCatalogueOpen, setIsCatalogueOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [authModal, setAuthModal] = useState(null); // 'login', 'register', or null
 
   const style = {
     width: "100%",
@@ -100,7 +102,8 @@ function Navbar() {
   }, [user])
 
 
-  ////////////////////////// Xử lý search ////////////////////////// 
+
+
   const { currentKeyword, setCurrentKeyword } = useSearchKeyword();
   const [inputValue, setInputValue] = useState(currentKeyword);
   const inputRef = useRef(null);
@@ -112,20 +115,21 @@ function Navbar() {
   }, [currentKeyword]);
 
   // React Query: gọi gợi ý tìm kiếm
-  const { data: suggestions = [], isFetching } = useQuery({
-    queryKey: ["search-suggest", inputValue],
-    queryFn: () => getSearchSuggestionsQuick(inputValue),
+  const { data: apiResponse, isFetching } = useQuery({
+    queryKey: ["search-suggest-full", inputValue],
+    queryFn: () => getSearchSuggestionsFull(inputValue),
     enabled: inputValue.trim().length >= 1,
     staleTime: 1000 * 60 * 5, // cache 5 phút
-    placeholderData: [], // không flash khi loading
   });
+
+  const suggestions = apiResponse?.result || [];
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const trimmed = inputValue.trim();
     if (trimmed) {
       setCurrentKeyword(trimmed);
-      navigate(`/search?q=${encodeURIComponent(trimmed)}`);
+      navigate(`/search?q=${encodeURIComponent(trimmed)}`, { state: { type: 'keyword', keyword: trimmed } });
       setShowSuggestions(false);
       inputRef.current?.blur();
     }
@@ -147,24 +151,45 @@ function Navbar() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
   // Khi focus → hiện luôn dropdown(không cần đợi có gợi ý)
   const handleInputFocus = () => {
     setShowSuggestions(true);
   };
 
   const handleSuggestionClick = (suggestion) => {
-    setInputValue(suggestion);
-    setCurrentKeyword(suggestion);
-    navigate(`/search?q=${encodeURIComponent(suggestion)}`);
+    // suggestion is AutoCompletedResponse { autoCompletedType, id, value }
+    const { autoCompletedType, id, value } = suggestion;
+
+    setInputValue(value);
     setShowSuggestions(false);
     inputRef.current?.blur();
+
+    if (autoCompletedType === 'CATEGORY') {
+      // Navigate with categoryId
+      setCurrentKeyword(""); // Clear keyword context if searching by category? Or keep it? Usually category search ignores keyword.
+      navigate(`/search?cate=${id}`, { state: { type: 'category', categoryId: id, cateType: 'phone' } }); // Assuming 'phone' fallback or we might need more info.
+    } else {
+      // Default to product/keyword search
+      setCurrentKeyword(value);
+      navigate(`/search?q=${encodeURIComponent(value)}`, { state: { type: 'keyword', keyword: value } });
+    }
   };
   return (
     <>
-      <div className="h-[110px]"></div>
+      <div
+        className="h-[110px]"
+        style={style}
+      ></div><style>{`
+        @keyframes colorAnim {
+          0%   { background-position: 100% 50%; }
+          50%  { background-position: 0% 50%; }
+          100% { background-position: 100% 50%; }
+        }
+        `}</style>
       <nav
         ref={navbarRef}
-        className="fixed top-0 left-0 right-0 z-30 transform transition-transform duration-300 ease-in-out flex items-center shadow"
+        className="fixed top-0 left-0 right-0 z-30 transform transition-transform duration-300 ease-in-out flex items-center "
         style={style}
       ><style>{`
         @keyframes colorAnim {
@@ -259,12 +284,13 @@ function Navbar() {
                         suggestions.length > 0 ? (
                           suggestions.map((item) => (
                             <div
-                              key={item.id || item.name}
-                              onClick={() => handleSuggestionClick(item.name)}
+                              key={item.id || item.value}
+                              onClick={() => handleSuggestionClick(item)}
                               className="px-6 py-2 hover:bg-gradient-to-r hover:from-blue-50 hover:to-transparent cursor-pointer flex items-center gap-4 transition-all"
                             >
-                              <span className="text-[15px] text-gray-800 font-medium">
-                                {item.name}
+                              <span className="text-[15px] text-gray-800 font-medium flex items-center justify-between w-full">
+                                {item.value}
+                                {item.autoCompletedType === 'CATEGORY' && <span className="text-xs bg-gray-200 px-2 py-0.5 rounded text-gray-600">Danh mục</span>}
                               </span>
                             </div>
                           ))
@@ -388,7 +414,8 @@ function Navbar() {
                             <button
                               className="w-1/2 bg-black text-white text-[13px] font-semibold px-1 py-2 rounded border border-black"
                               onClick={() => {
-                                navigate('/login');
+                                setAuthModal('login');
+                                setIsUserMenuOpen(false);
                               }}
                             >
                               ĐĂNG NHẬP
@@ -396,7 +423,8 @@ function Navbar() {
                             <button
                               className="w-1/2 text-[13px] font-semibold text-black px-1 py-2 border border-black rounded"
                               onClick={() => {
-                                navigate('/signup');
+                                setAuthModal('register');
+                                setIsUserMenuOpen(false);
                               }}
                             >
                               ĐĂNG KÝ
@@ -438,6 +466,18 @@ function Navbar() {
       }
 
       {/* Modals removed in favor of pages */}
+      <LoginForm
+        isOpen={authModal === 'login'}
+        onClose={() => setAuthModal(null)}
+        onSwitchToRegister={() => setAuthModal('register')}
+        isModal={true}
+      />
+      <RegistrationForm
+        isOpen={authModal === 'register'}
+        onClose={() => setAuthModal(null)}
+        onSwitchToLogin={() => setAuthModal('login')}
+        isModal={true}
+      />
     </>
   );
 }
