@@ -50,7 +50,7 @@ const ProductViewDetails = ({ clickedIndex, isOpen, onClose, product }) => {
     <div className="sticky inset-0 z-50 relative mx-auto py-2 bg-white flex flex-col justify-start h-screen">
       {/* Header */}
       <div className="flex items-center justify-between my-[0px] px-4">
-        <div className="font-semibold text-xl leading-5">iPhone 16 Pro Max</div>
+        <div className="font-semibold text-xl leading-5">{product.name}</div>
         <div className="flex space-x-4 text-gray-600 text-xl">
           <button
             onClick={onClose}

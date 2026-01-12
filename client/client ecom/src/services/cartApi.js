@@ -13,7 +13,7 @@ export const cartApi = {
     getMyCart: () => api.get(`${API_URL}/cart/get-my-cart`),
 
     // Delete items from cart
-    deleteItems: (cartItemIds) => api.delete(`${API_URL}/cart/delete-items`, { data: { cartItemIds } }),
+    deleteItems: (cartItemIds) => api.delete(`${API_URL}/cart/delete-items`, { data: { cartItemId: cartItemIds } }),
 };
 
 export default cartApi;

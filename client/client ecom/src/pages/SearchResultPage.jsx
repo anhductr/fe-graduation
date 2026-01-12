@@ -33,13 +33,23 @@ export default function SearchResultPage() {
   const cateType = searchType === "category" ? state?.cateType || "phone" : "phone";
 
   const {
-    os,
-    rom,
-    connection,
+    storage,            // Dung lượng ROM
+    connectivity,       // Hỗ trợ mạng
+    display,            // Kích thước màn hình
+    operatingSystem,    // Hệ điều hành (iOS/Android)
+    ram,
     priceRange,
     priceRangeSlider,
     sortType,
+    resetFilters,
   } = useFilterStore();
+
+  // Reset filters when unmounting (leaving page)
+  useEffect(() => {
+    return () => {
+      resetFilters();
+    };
+  }, [resetFilters]);
 
   const [isClearChip, setIsClearChip] = useState(false);
 
@@ -72,6 +82,49 @@ export default function SearchResultPage() {
   }
   const backendSortType = sortTypeMap[sortType] || "DEFAULT";
 
+  const attributes = [];
+
+  // Dung lượng ROM (Storage)
+  storage.forEach((value) => {
+    attributes.push({
+      key: "Dung lượng",
+      value: value
+    });
+  });
+
+  ////////////// xử lý attribute //////////////  
+  // Hỗ trợ mạng (Connectivity)
+  connectivity.forEach((value) => {
+    attributes.push({
+      key: "Hỗ trợ mạng",
+      value: value
+    });
+  });
+
+  // Kích thước màn hình (Display)
+  display.forEach((value) => {
+    attributes.push({
+      key: "Kích thước màn hình",
+      value: value
+    });
+  });
+
+  // RAM
+  ram.forEach((value) => {
+    attributes.push({
+      key: "Dung lượng",
+      value: value
+    });
+  });
+
+  // Hệ điều hành (OperatingSystem)
+  operatingSystem.forEach((value) => {
+    attributes.push({
+      key: "Tên OS",
+      value: value
+    });
+  });
+
   // Use useQuery to fetch products based on the keyword
   const { data: rawApiData, isLoading, error } = useQuery({
     queryKey: [
@@ -82,6 +135,7 @@ export default function SearchResultPage() {
       minPrice ?? null,
       maxPrice ?? null,
       backendSortType,
+      attributes,
     ],
     queryFn: () => searchProducts({
       keyword: keyword || null,
@@ -90,6 +144,7 @@ export default function SearchResultPage() {
       minPrice: minPrice === 0 ? 0 : minPrice || null,
       maxPrice: maxPrice || null,
       sortType: backendSortType,
+      attributes,
       page: 1,
       size: 20,
     }),
@@ -207,6 +262,17 @@ export default function SearchResultPage() {
     );
   }
 
+  // State to hold valid specification aggregations.
+  // Initialized only once when valid data is received to serve as the filter source.
+  const [specAggregations, setSpecAggregations] = useState(null);
+
+  useEffect(() => {
+    const aggregations = rawApiData?.result?.specificationAggregations || rawApiData?.specificationAggregations;
+    if (aggregations && !specAggregations) {
+      setSpecAggregations(aggregations);
+    }
+  }, [rawApiData, specAggregations]);
+
   return (
     <div className="component-container">
       <Navbar />
@@ -224,6 +290,7 @@ export default function SearchResultPage() {
               isClearChip={isClearChip}
               setIsClearChip={setIsClearChip}
               cateType={cateType}
+              specAggregations={specAggregations}
             />
             {!isLoading && (
               <>

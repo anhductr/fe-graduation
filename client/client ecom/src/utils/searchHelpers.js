@@ -17,24 +17,69 @@ export const sortTypeMap = {
 
 export const specFilters = {
     phone: [
-        { group: "Dung lượng ROM", key: "rom", options: ["≤128 GB", "256 GB", "512 GB", "1 TB"] },
-        { group: "Hiệu năng & Pin", key: "performance", options: ["Pin ≥ 5000 mAh", "Sạc nhanh ≥ 65W", "Chip flagship (Snapdragon 8 Gen / A17 Pro trở lên)"] },
-        { group: "Hỗ trợ mạng", key: "network", options: ["5G", "eSIM", "Dual SIM"] },
-        { group: "Kích thước màn hình", key: "screenSize", options: ["Dưới 6.1 inch", "6.1 - 6.7 inch", "Trên 6.7 inch"] },
+        { groupName: "Dung lượng ROM", group: "Storage", key: "Dung lượng" },
+        { groupName: "Hỗ trợ mạng", group: "Connectivity", key: "Hỗ trợ mạng" },
+        { groupName: "Kích thước màn hình", group: "Display", key: "Kích thước màn hình" },
+        { groupName: "Hệ điều hành", group: "OperatingSystem", key: "Tên OS" },
+        { groupName: "RAM", group: "RAM", key: "Dung lượng" },
+    ],
+    phoneChild: [
+        { groupName: "Dung lượng ROM", group: "Storage", key: "Dung lượng" },
+        { groupName: "Hỗ trợ mạng", group: "Connectivity", key: "Hỗ trợ mạng" },
+        { groupName: "Kích thước màn hình", group: "Display", key: "Kích thước màn hình" },
+        { groupName: "RAM", group: "RAM", key: "Dung lượng" },
     ],
     default: []
 };
 
 const createFilterStore = (priceOptions) => {
     return create((set, get) => ({
+        connectivity: [],
+        storage: [],        // cho Dung lượng ROM
+        display: [],        // cho Kích thước màn hình
+        operatingSystem: [],// cho Hệ điều hành (chỉ có trong phone)
+        ram: [],
         priceRange: ["all"],
-        os: [],
-        rom: [],
-        connection: [],
         priceRangeSlider: [0, 46990000],
         sortType: "default", // "default" | "asc" | "desc"
 
         setSortType: (type) => set({ sortType: type }),
+
+        // Actions toggle tương ứng với spec
+        toggleStorage: (value) =>
+            set((state) => ({
+                storage: state.storage.includes(value)
+                    ? [] // Nếu đã chọn thì bỏ chọn
+                    : [value], // Nếu chưa chọn thì thay thế = mảng chỉ có 1 phần tử
+            })),
+
+        toggleConnectivity: (value) =>
+            set((state) => ({
+                connectivity: state.connectivity.includes(value)
+                    ? []
+                    : [value],
+            })),
+
+        toggleDisplay: (value) =>
+            set((state) => ({
+                display: state.display.includes(value)
+                    ? []
+                    : [value],
+            })),
+
+        toggleOperatingSystem: (value) =>
+            set((state) => ({
+                operatingSystem: state.operatingSystem.includes(value)
+                    ? []
+                    : [value],
+            })),
+
+        toggleRam: (value) =>
+            set((state) => ({
+                ram: state.ram.includes(value)
+                    ? []
+                    : [value],
+            })),
 
         togglePrice: (range) =>
             set((state) => {
@@ -62,34 +107,16 @@ const createFilterStore = (priceOptions) => {
 
         setPriceRangeSlider: (range) => set({ priceRangeSlider: range }),
 
-        toggleOs: (value) =>
-            set((state) => ({
-                os: state.os.includes(value)
-                    ? state.os.filter((v) => v !== value)
-                    : [...state.os, value],
-            })),
-
-        toggleRom: (value) =>
-            set((state) => ({
-                rom: state.rom.includes(value)
-                    ? state.rom.filter((v) => v !== value)
-                    : [...state.rom, value],
-            })),
-
-        toggleConnection: (value) =>
-            set((state) => ({
-                connection: state.connection.includes(value)
-                    ? state.connection.filter((v) => v !== value)
-                    : [...state.connection, value],
-            })),
 
         resetFilters: () =>
             set({
                 priceRange: ["all"],
                 priceRangeSlider: [0, 46990000],
-                os: [],
-                rom: [],
-                connection: [],
+                storage: [],
+                connectivity: [],
+                display: [],
+                operatingSystem: [],
+                ram: [],
             }),
     }));
 };
