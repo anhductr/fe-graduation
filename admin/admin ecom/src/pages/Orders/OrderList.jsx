@@ -11,7 +11,7 @@ import { MdDelete } from "react-icons/md";
 import { IoEye } from "react-icons/io5";
 import { FaRegUser } from "react-icons/fa6";
 import { MdCardMembership } from "react-icons/md";
-import SearchBar from '../../components/common/SearchBar';
+// import SearchBar from '../../components/common/SearchBar';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
@@ -321,10 +321,10 @@ export default function OrderList() {
                             }
                         }}
                     >
-                        <SearchBar
+                        {/* <SearchBar
                             ref={inputSearchRef}
                         // onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                        /> */}
 
                         {/* <Button variant="contained" className='!ml-auto !normal-case !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow' onClick={handleOpenInventory}>
                             <TbCubePlus className='mr-1 text-[18px]' />
