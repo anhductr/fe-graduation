@@ -24,7 +24,7 @@ import { Link } from "react-router";
 import { IoEye } from "react-icons/io5";
 import { FaRegUser } from "react-icons/fa6";
 import { MdCardMembership } from "react-icons/md";
-import SearchBar from "../../components/common/SearchBar";
+// import SearchBar from "../../components/common/SearchBar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
@@ -376,10 +376,10 @@ export default function InventoryList() {
               }
             }}
           >
-            <SearchBar
+            {/* <SearchBar
               ref={inputSearchRef}
             // onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            /> */}
 
             <Button
               variant="contained"
