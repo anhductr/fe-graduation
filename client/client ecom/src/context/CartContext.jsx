@@ -84,8 +84,8 @@ export const CartProvider = ({ children }) => {
         cartError,
 
         // Actions
-        addToCart: (sku, quantity) => addToCartMutation.mutateAsync({ sku, quantity }),
-        updateCart: (sku, quantity) => updateCartMutation.mutateAsync({ sku, quantity }),
+        addToCart: (data) => addToCartMutation.mutateAsync(data),
+        updateCart: (data) => updateCartMutation.mutateAsync(data),
         deleteItems: (cartItemIds) => deleteItemsMutation.mutateAsync(cartItemIds),
         refetchCart,
     };

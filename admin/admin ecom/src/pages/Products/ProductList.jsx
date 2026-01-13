@@ -22,7 +22,7 @@ import {
 import { Link } from "react-router-dom";
 import { FiBox } from "react-icons/fi";
 import { MdOutlineDiscount } from "react-icons/md";
-import SearchBar from "../../components/common/SearchBar";
+import SearchBar from "../../components/common/ProductSearchBar";
 import { VscFilter } from "react-icons/vsc";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
 import { FaPlus } from "react-icons/fa6";
@@ -280,8 +280,32 @@ export default function ProductList() {
     keepPreviousData: true,
   });
 
-  const totalProduct = productData?.totalElements || 0;
-  const totalPageProduct = productData?.pageSize || 1;
+  // state cho kết quả tìm kiếm
+  const [searchResults, setSearchResults] = useState(null);
+
+  const handleSelectProduct = (product) => {
+    if (product) {
+      // Map data từ search API (SearchVM) sang structure của ProductRow (ProductResponse)
+      const mappedProduct = {
+        ...product,
+        listCategory: product.categories || [],
+        variantsResponses: product.variants || [],
+        mediaList: product.mediaList || (product.imageList ? product.imageList.map(img => ({ url: img })) : [])
+      };
+
+      // Đảm bảo mediaList luôn là mảng để tránh lỗi truy cập [0]
+      if (!mappedProduct.mediaList) {
+        mappedProduct.mediaList = [];
+      }
+
+      setSearchResults([mappedProduct]);
+    } else {
+      setSearchResults(null);
+    }
+  };
+
+  const totalProduct = searchResults ? searchResults.length : (productData?.totalElements || 0);
+  const totalPageProduct = searchResults ? 1 : (productData?.pageSize || 1);
 
   // filter state
   const inputSearchRef = useRef(null);
@@ -396,27 +420,29 @@ export default function ProductList() {
           >
             <SearchBar
               ref={inputSearchRef}
+              onSelectProduct={handleSelectProduct}
               onChange={(e) => {
                 /* Implement search logic later or debounce */
+                if (!e.target.value) {
+                  setSearchResults(null);
+                }
               }}
               placeholder="Tìm kiếm sản phẩm..."
             />
             <Button
               size="medium"
-              className={`${
-                isToggleFilter
-                  ? "!border-2 !border-gray-500"
-                  : "!border !border-[#ccc]"
-              } !text-[#403e57] !ml-4 !px-3 !rounded-[10px] !hover:bg-gray-100 !normal-case`}
+              className={`${isToggleFilter
+                ? "!border-2 !border-gray-500"
+                : "!border !border-[#ccc]"
+                } !text-[#403e57] !ml-4 !px-3 !rounded-[10px] !hover:bg-gray-100 !normal-case`}
               variant="outlined"
               onClick={() => setIsToggleFilter(!isToggleFilter)}
             >
               <VscFilter className="" />
               <span className="ml-1">Bộ lọc</span>
               <IoIosArrowUp
-                className={`ml-1 transition-transform duration-200 ${
-                  isToggleFilter ? "rotate-180" : "rotate-0"
-                }`}
+                className={`ml-1 transition-transform duration-200 ${isToggleFilter ? "rotate-180" : "rotate-0"
+                  }`}
               />
             </Button>
             <Button
@@ -432,11 +458,10 @@ export default function ProductList() {
           {/* filter submenu */}
           <div
             aria-label="submenu"
-            className={`${
-              isToggleFilter === true
-                ? "pointer-events-auto"
-                : "h-[0px] opacity-0 pointer-events-none"
-            } !text-[rgba(0,0,0,0.7)] overflow-hidden transition-all duration-300 flex flex-col gap-3`}
+            className={`${isToggleFilter === true
+              ? "pointer-events-auto"
+              : "h-[0px] opacity-0 pointer-events-none"
+              } !text-[rgba(0,0,0,0.7)] overflow-hidden transition-all duration-300 flex flex-col gap-3`}
           >
             <div className="flex flex-col mt-[10px] gap-1">
               <h1 className="text-[18px] font-bold">Danh mục</h1>
@@ -491,14 +516,14 @@ export default function ProductList() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {productData?.data?.map((product) => (
+              {(searchResults || productData?.data)?.map((product) => (
                 <ProductRow
                   key={product.id}
                   product={product}
                   onDelete={handleDeleteClick}
                 />
               ))}
-              {(!productData?.data || productData.data.length === 0) && (
+              {(!(searchResults || productData?.data) || (searchResults || productData?.data).length === 0) && (
                 <TableRow>
                   <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
                     {isLoadingProducts

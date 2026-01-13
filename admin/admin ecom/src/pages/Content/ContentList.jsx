@@ -6,7 +6,7 @@ import { Button, Dialog, DialogActions, DialogTitle, Select, MenuItem } from "@m
 import { Link, useLocation } from 'react-router-dom';
 import { FiBox } from "react-icons/fi";
 import { MdOutlineDiscount } from "react-icons/md";
-import SearchBar from '../../components/common/SearchBar';
+// import SearchBar from '../../components/common/SearchBar';
 import { VscFilter } from "react-icons/vsc";
 import { IoIosArrowUp } from "react-icons/io";
 import { FaPlus } from "react-icons/fa6";
@@ -173,11 +173,11 @@ export default function ContentList() {
             {/* Search & Filter */}
             <div className='shadow border-0 p-5 my-[20px] bg-white rounded-[10px]'>
                 <div className="relative flex items-center">
-                    <SearchBar
+                    {/* <SearchBar
                         ref={inputSearchRef}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder="Tìm kiếm title..."
-                    />
+                    /> */}
                     <Button
                         className={`${isToggleFilter ? "!border-2 !border-gray-500" : "!border !border-[#ccc]"} !text-[#403e57] !ml-4 !px-3 !rounded-[10px] !hover:bg-gray-100 !normal-case`}
                         variant="outlined"

@@ -21,7 +21,7 @@ import { MdDelete } from "react-icons/md";
 import { IoEye } from "react-icons/io5";
 import { FaRegUser } from "react-icons/fa6";
 import { MdCardMembership } from "react-icons/md";
-import SearchBar from "../../components/common/SearchBar";
+// import SearchBar from "../../components/common/SearchBar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
@@ -166,9 +166,8 @@ export default function UserList() {
         vertical: "top",
         horizontal: "center",
         severity: "error",
-        message: `Lỗi khi tải danh sách người dùng: ${
-          serverError || serverDetail || fallbackMessage
-        }`,
+        message: `Lỗi khi tải danh sách người dùng: ${serverError || serverDetail || fallbackMessage
+          }`,
       });
     } else {
       // Khi load xong thì tắt snackbar loading
@@ -223,7 +222,7 @@ export default function UserList() {
             }
           }}
         >
-          <SearchBar ref={inputSearchRef} />
+          {/* <SearchBar ref={inputSearchRef} /> */}
         </div>
 
         <div className="shadow border-0 p-5 my-[20px] mx-[0px] bg-white rounded-[10px]">

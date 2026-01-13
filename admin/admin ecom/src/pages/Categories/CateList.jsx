@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useMemo } from "react";
-import SearchBar from "../../components/common/SearchBar";
+import LocalSearchBar from "../../components/common/LocalSearchBar";
 import Boxes from "../../components/common/Boxes";
 import { Link } from "react-router-dom";
 import { MdDelete, MdEdit, MdOutlineCategory } from "react-icons/md";
@@ -196,24 +196,29 @@ export default function CateList() {
   );
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [brandSearchTerm, setBrandSearchTerm] = useState("");
 
-  // Recursive search filter
+  // Recursive search filter to find all matching nodes
   const filterTree = (nodes, term) => {
     if (!term) return nodes;
-    return nodes.reduce((acc, node) => {
-      const matches = node.name.toLowerCase().includes(term.toLowerCase());
-      const filteredChildren = node.children
-        ? filterTree(node.children, term)
-        : [];
 
-      if (matches || filteredChildren.length > 0) {
-        acc.push({
-          ...node,
-          children: filteredChildren,
-        });
+    let matches = [];
+    nodes.forEach(node => {
+      const isMatch = node.name.toLowerCase().includes(term.toLowerCase());
+      if (isMatch) {
+        matches.push(node);
       }
-      return acc;
-    }, []);
+      // Tiếp tục tìm trong children bất kể node cha có match hay không
+      // Nếu node cha match thì ta đã push nó (cùng toàn bộ children) vào rồi.
+      // Tuy nhiên, logic người dùng yêu cầu là "cate nào đúng thì build lại tree, đầu tree gốc là cate đấy".
+      // Nghĩa là nếu cha match thì cha là root. Nếu con match thì con CŨNG là root (trong view này)?
+      // Nếu muốn tránh trùng lặp (vd: cha match thì không cần hiện con ở root nữa), ta có thể chỉnh logic.
+      // Nhưng yêu cầu "tìm đúng cate nào thì build lại tree từ cate đấy" -> implied list of roots.
+      if (node.children && node.children.length > 0) {
+        matches = matches.concat(filterTree(node.children, term));
+      }
+    });
+    return matches;
   };
 
   const filteredTreeData = useMemo(
@@ -534,9 +539,10 @@ export default function CateList() {
                 }}
               >
                 <div className="flex gap-2 w-full">
-                  <SearchBar
+                  <LocalSearchBar
                     ref={inputSearchRef}
                     onChange={(e) => setSearchTerm(e.target.value)}
+                    value={searchTerm}
                   />
                   <Button
                     variant="contained"
@@ -599,7 +605,11 @@ export default function CateList() {
                   }
                 }}
               >
-                <SearchBar ref={inputSearchRef} />
+                <LocalSearchBar
+                  ref={inputSearchRef}
+                  onChange={(e) => setBrandSearchTerm(e.target.value)}
+                  value={brandSearchTerm}
+                />
 
                 <Button
                   variant="contained"
@@ -635,61 +645,63 @@ export default function CateList() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {brands.map((brand, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{brand.name}</TableCell>
-                        <TableCell>
-                          {brand.categoryId && brand.categoryId.length > 0 ? (
-                            <Box
-                              sx={{
-                                display: "flex",
-                                flexWrap: "wrap",
-                                gap: 0.5,
+                    {brands
+                      .filter(b => !brandSearchTerm || b.name.toLowerCase().includes(brandSearchTerm.toLowerCase()))
+                      .map((brand, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{brand.name}</TableCell>
+                          <TableCell>
+                            {brand.categoryId && brand.categoryId.length > 0 ? (
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  flexWrap: "wrap",
+                                  gap: 0.5,
+                                }}
+                              >
+                                {brand.categoryId.map((catId) => {
+                                  const catName =
+                                    categoryMap[catId] ||
+                                    `ID: ${catId} (không tìm thấy)`;
+                                  return (
+                                    <Chip
+                                      key={catId}
+                                      label={catName}
+                                      size="small"
+                                      color="primary"
+                                      variant="outlined"
+                                    />
+                                  );
+                                })}
+                              </Box>
+                            ) : (
+                              <span style={{ color: "#999" }}>
+                                Chưa liên kết thể loại nào
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell align="center">
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                navigate("/categories/brand-edit", {
+                                  state: { brand },
+                                  replace: false,
+                                });
                               }}
                             >
-                              {brand.categoryId.map((catId) => {
-                                const catName =
-                                  categoryMap[catId] ||
-                                  `ID: ${catId} (không tìm thấy)`;
-                                return (
-                                  <Chip
-                                    key={catId}
-                                    label={catName}
-                                    size="small"
-                                    color="primary"
-                                    variant="outlined"
-                                  />
-                                );
-                              })}
-                            </Box>
-                          ) : (
-                            <span style={{ color: "#999" }}>
-                              Chưa liên kết thể loại nào
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell align="center">
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              navigate("/categories/brand-edit", {
-                                state: { brand },
-                                replace: false,
-                              });
-                            }}
-                          >
-                            <MdEdit />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteBrandClick(brand.name)}
-                            color="error"
-                          >
-                            <MdDelete />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                              <MdEdit />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleDeleteBrandClick(brand.name)}
+                              color="error"
+                            >
+                              <MdDelete />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                   </TableBody>
                 </Table>
               </TableContainer>

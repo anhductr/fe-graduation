@@ -20,6 +20,10 @@ export default function UserDashboardPage() {
     const goToOrder = () => {
         navigate("/account/orders");
     };
+
+    const goToAddress = () =>{
+        navigate("/account/address")
+    }
     return (
         <>
             <Navbar></Navbar>
@@ -37,6 +41,12 @@ export default function UserDashboardPage() {
                             <div className="flex gap-3 items-center transform hover:translate-x-1 transition-all duration-200 p-2">
                                 <BsBoxSeam />
                                 <span>Đơn hàng của tôi</span>
+                            </div>
+                        </button>
+                        <button onClick={goToAddress} className={`${location.pathname === '/account/address' ? "bg-gradient-to-r from-[#03A9F4]/50 to-transparent border-l-3 border-[#03A9F4]" : ""} text-[18px]`}>
+                            <div className="flex gap-3 items-center transform hover:translate-x-1 transition-all duration-200 p-2">
+                                <BsBoxSeam />
+                                <span>Địa chỉ</span>
                             </div>
                         </button>
                         <button onClick={logout} className="flex gap-3 items-center hover:translate-x-1 transform transition-all duration-200 text-[18px] p-2">

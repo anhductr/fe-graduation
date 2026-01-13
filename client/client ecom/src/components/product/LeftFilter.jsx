@@ -54,10 +54,13 @@ function FilterToggle({ title, children }) {
     );
 }
 
-export default function LeftFilter({ isSliderDefault, min, max, isClearChip, setIsClearChip, cateType }) {
+export default function LeftFilter({ isSliderDefault, min, max, isClearChip, setIsClearChip, cateType, specAggregations }) {
     const {
-        os,
-        toggleOs,
+        storage, toggleStorage,
+        connectivity, toggleConnectivity,
+        display, toggleDisplay,
+        operatingSystem, toggleOperatingSystem,
+        ram, toggleRam,
         priceRange,
         togglePrice,
         toggleAllPrices,
@@ -169,22 +172,52 @@ export default function LeftFilter({ isSliderDefault, min, max, isClearChip, set
                     setIsCheckBox={setIsCheckBox}
                 />
             </FilterToggle>
-            {currentSpecs.map((specGroup) => (
-                <FilterToggle key={specGroup.key} title={specGroup.group}>
-                    <div className="grid grid-cols-2 gap-2 text-[12px]">
-                        {specGroup.options.map((option) => (
-                            <button
-                                key={option}
-                                type="button"
-                                className="border border-gray-300 rounded px-2 py-[3px] text-gray-600 hover:bg-gray-100"
-                            // TODO: sau này sẽ thêm toggle logic cho từng spec
-                            >
-                                {option}
-                            </button>
-                        ))}
-                    </div>
-                </FilterToggle>
-            ))}
+            {currentSpecs.map((specGroup) => {
+                const groupData = specAggregations?.[specGroup.group];
+                const optionsData = groupData?.[specGroup.key];
+
+                // console.log(`Debug Filter:`, {
+                //     name: specGroup.groupName,
+                //     group: specGroup.group,
+                //     key: specGroup.key,
+                //     hasData: !!optionsData
+                // });
+
+                // optionsData shape: { "128 GB": 1, "256 GB": 2 }
+                const options = optionsData ? Object.keys(optionsData) : [];
+
+                if (!options.length) return null;
+
+                let selectedArray, toggleFunc;
+                if (specGroup.group === "Storage") { selectedArray = storage; toggleFunc = toggleStorage; }
+                else if (specGroup.group === "Connectivity") { selectedArray = connectivity; toggleFunc = toggleConnectivity; }
+                else if (specGroup.group === "Display") { selectedArray = display; toggleFunc = toggleDisplay; }
+                else if (specGroup.group === "OperatingSystem") { selectedArray = operatingSystem; toggleFunc = toggleOperatingSystem; }
+                else if (specGroup.group === "RAM") { selectedArray = ram; toggleFunc = toggleRam; }
+
+                return (
+                    <FilterToggle key={`${specGroup.group}-${specGroup.key}`} title={specGroup.groupName}>
+                        <div className="flex flex-wrap gap-2 text-[12px]">
+                            {options.map((option) => {
+                                const isSelected = selectedArray?.includes(option);
+                                return (
+                                    <button
+                                        key={option}
+                                        type="button"
+                                        className={`border rounded px-3 py-1 transition-colors ${isSelected
+                                            ? "border-blue-500 bg-blue-50 text-blue-700"
+                                            : "border-gray-300 text-gray-600 hover:bg-gray-100"
+                                            }`}
+                                        onClick={() => toggleFunc && toggleFunc(option)}
+                                    >
+                                        {option}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </FilterToggle>
+                );
+            })}
         </aside>
     );
 }
