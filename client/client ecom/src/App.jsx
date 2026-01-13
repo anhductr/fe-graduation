@@ -16,6 +16,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import LoginForm from "./components/auth/LogInForm";
 import { CartProvider } from "./context/CartContext";
 import AddressManager from "./pages/AddressPage";
+import Chatbot from "./components/Chatbot/Chatbot";
 
 function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -76,6 +77,8 @@ function App() {
           navigate("/signup");
         }}
       />
+
+      <Chatbot />
     </CartProvider>
   );
 }
