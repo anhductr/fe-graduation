@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState, useRef } from "react";
+import "./ProductPage.css";
 import { Link, useParams } from "react-router-dom";
 // import CartContext from "../context/CartContext";
 // import { ProductContext } from "../context/ProductContext";
@@ -751,12 +752,11 @@ const ProductPage = () => {
                   <IoStar className="text-yellow-500" />
                   <span className="text-gray-600 ">4.8</span>
                 </div>
-                <span className="text-[#0096FF] text-[16px]">289 đánh giá</span>
-                <span className="text-[#0096FF] text-[16px]" onClick={() => setOpenSpecsPopup(true)}>Thông số kĩ thuật</span>
+                <span className="text-[#0096FF] text-[16px] cursor-pointer" onClick={() => setOpenSpecsPopup(true)}>Thông số kĩ thuật</span>
               </div>
 
               {/* Storage options */}
-              <div className="flex">
+              <div className="flex ">
                 <p className="w-[18%] text-[16px] font-semibold">Dung lượng</p>
                 <div className="w-[82%] flex gap-4 text-center text-[14px] text-gray-700 font-semibold flex-wrap">
                   {allVersions.map((version) => {
@@ -841,14 +841,31 @@ const ProductPage = () => {
                 )}
               </div>
 
-              <div className="flex gap-3 items-center text-[#27ae60]">
+              {/* Policy / Trust Info Box */}
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 my-4 shadow-sm">
+                <h3 className="font-bold text-gray-900 mb-3 text-sm">Thông tin sản phẩm & Khuyến mãi</h3>
+                <ul className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start gap-2">
+                    <FaCheck className="text-green-500 mt-1 shrink-0" />
+                    <span>Bộ sản phẩm gồm: Hộp, Sách hướng dẫn, Cây lấy sim, Cáp Type C</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <FaCheck className="text-green-500 mt-1 shrink-0" />
+                    <span>Bảo hành chính hãng 12 tháng tại trung tâm bảo hành ủy quyền</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <FaCheck className="text-green-500 mt-1 shrink-0" />
+                    <span>1 đổi 1 trong 30 ngày nếu có lỗi phần cứng từ nhà sản xuất</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Stock Status */}
+              <div className="flex gap-3 items-center text-[#27ae60] mb-4">
                 <div className="relative w-[25px] h-[25px] rounded-full bg-[#27ae60] group flex items-center justify-center">
-                  {/* Icon trung tâm */}
                   <div className="bg-white rounded-full w-[20px] h-[20px] z-[2] text-[11px] transition-all duration-150 ease-linear flex items-center justify-center">
                     <FaCheck className="" />
                   </div>
-
-                  {/* Sóng ánh sáng lan tỏa */}
                   <motion.span
                     className="absolute inset-0 rounded-full bg-[#27ae60] z-[1]"
                     initial={{ scale: 0.95, opacity: 0.1 }}
@@ -869,45 +886,32 @@ const ProductPage = () => {
                     }}
                   />
                 </div>
-
-                <h1 className="text-[16px]">Còn 96 sản phẩm</h1>
+                <h1 className="text-[14px] font-medium">Sản phẩm có sẵn tại cửa hàng</h1>
               </div>
 
-              {/* buying options */}
-              <div className="flex justify-between gap-4">
-                {/* <Box
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="space-between"
-                  border="1px solid #ccc"
-                  borderRadius="10px"
-                  px={1}
-                  py={0.5}
-                  width="25%"
-                  marginY={"9px"}
-                >
-                  <IconButton size="small" className="!text-black" onClick={handleDecrease}>
-                    <IoMdRemove />
-                  </IconButton>
-                  <Typography>{quantity}</Typography>
-                  <IconButton size="small" className="!text-black" onClick={handleIncrease}>
-                    <IoMdAdd />
-                  </IconButton>
-                </Box> */}
+              {/* Buying Actions - Fixed Layout */}
+              <div className="flex gap-4 box-order-button-container">
+                <div className="flex flex-col gap-2 w-[80%]">
+                  <Button variant="contained" className="order-button !normal-case !text-lg !font-bold !h-[50px] shadow-lg hover:shadow-xl transition-all">
+                    <div className="flex flex-col items-center leading-tight">
+                      <span>MUA NGAY</span>
+                      <span className="text-[11px] font-normal">(Giao nhanh từ 2 giờ hoặc nhận tại cửa hàng)</span>
+                    </div>
+                  </Button>
+                </div>
 
-                <Button
-                  onClick={handleAddToCart}
-                  variant="contained"
-                  className="!bg-gray-200 !text-gray-900 !rounded-[10px] !my-[10px] !w-[20%] flex items-center justify-center gap-2"
-                >
-                  <FaShoppingCart className="text-[22px]" />
-                </Button>
-
-
-                {/* <Button variant="outlined" className="!bg-white !text-gray-900 !border-[#ccc] !rounded-[10px] !my-[10px] !py-[18px] !w-[5%]">
-                  <FaHeart className="text-[24px]" />
-                </Button> */}
-                <Button variant="contained" className="!text-[20px] !bg-white !font-semibold !text-gray-900 !rounded-[10px] !px-6 !py-4 !my-[10px] !w-full ![box-shadow:rgba(60,64,67,0.3)_0px_1px_2px_0px,rgba(60,64,67,0.15)_0px_2px_6px_2px]">mua ngay</Button>
+                <div className="flex flex-col gap-2 w-[20%]">
+                  <Button
+                    onClick={handleAddToCart}
+                    variant="outlined"
+                    className="!border-red-600 !border-[2px] !rounded-[10px] !h-[50px] !min-w-[50px] flex items-center justify-center group hover:!bg-red-50"
+                  >
+                    <div className="flex flex-col items-center text-red-600">
+                      <FaShoppingCart className="text-[20px]" />
+                      <span className="text-[9px] font-bold mt-1">THÊM GIỎ</span>
+                    </div>
+                  </Button>
+                </div>
               </div>
 
 
@@ -951,16 +955,9 @@ const ProductPage = () => {
           </div>
 
           {/* đánh giá, commnet và thông số kỹ thuật*/}
-          <div className="flex py-6">
-            <div className="w-full rounded-lg border border-gray-200 shadow-sm p-4">
-              <h2 className="font-semibold text-sm mb-4">
-                Đánh giá &amp; nhận xét {currentProduct.name}
-              </h2>
-              <RatingSection productId={currentProduct.id} productName={currentProduct.name} />
-              <div className="border-t border-gray-200 my-6"></div>
-              {/* Comment Section */}
-              <CommentSection productId={currentProduct.id} />
-            </div>
+          <div className="flex flex-col py-6 gap-6">
+            <RatingSection productId={currentProduct.id} productName={currentProduct.name} />
+            <CommentSection productId={currentProduct.id} />
           </div>
         </div>
       </div >
