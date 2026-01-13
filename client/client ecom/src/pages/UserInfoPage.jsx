@@ -2,6 +2,8 @@ import { Button } from "@mui/material";
 import { useState, useEffect } from "react";
 import { FaLeaf } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
+import { authApi } from "../services/authApi";
+import { api } from "../libs/axios";
 
 export default function UserInfoPage() {
     const { user, isUserLoading } = useAuth();
@@ -12,7 +14,13 @@ export default function UserInfoPage() {
     const [username, setUsername] = useState("");
     const [phone, setPhone] = useState("");
     const [dob, setDob] = useState("");
-    const [gender, setGender] = useState("");
+    const [sex, setSex] = useState("");
+    const [avatar, setAvatar] = useState("");
+    const [previewAvatar, setPreviewAvatar] = useState(null);
+
+    const [avatarFile, setAvatarFile] = useState(null);
+    const [avatarUrl, setAvatarUrl] = useState("");
+    const [uploading, setUploading] = useState(false);
 
     const [updateInfo, setUpdateInfo] = useState(false);
     const [day, setDay] = useState('1');
@@ -32,6 +40,12 @@ export default function UserInfoPage() {
         return new Date(y, m, 0).getDate(); // 0 = ngày cuối tháng trước
     };
 
+    const DEFAULT_AVATAR_BG = "#E3F2FD";
+
+    function getInitial(name = "") {
+        return name.charAt(0).toUpperCase();
+    }
+
     // Cập nhật danh sách ngày khi tháng/năm thay đổi
     useEffect(() => {
         const maxDays = getDaysInMonth(parseInt(month), parseInt(year));
@@ -46,13 +60,80 @@ export default function UserInfoPage() {
 
     useEffect(() => {
         if (user) {
+            console.log("checkavt: ", user)
             setUsername(user.username || "");
             setEmail(user.email || "");
             setFirstName(user.firstName || "");
             setLastName(user.lastName || "");
             setPhone(user.phone || "");
-            setGender(user.gender || "");
+            setSex(user.sex || "");
             setDob(user.dob || "");
+            setAvatar(user.avatarUrl || "");
+        }
+    }, [user]);
+
+    async function handleAvatarChange(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+            alert("Vui lòng chọn file ảnh");
+            return;
+        }
+
+        // preview ngay
+        setPreviewAvatar(URL.createObjectURL(file));
+        setAvatarFile(file);
+
+        // upload lên media-service
+        try {
+            setUploading(true);
+
+            const formData = new FormData();
+            formData.append("multipartFile", file);
+
+            const res = await api.post(
+                "/media-service/media/user/avatar",
+                formData,
+                {
+                    headers: { "Content-Type": "multipart/form-data" }
+                }
+            );
+
+            console.log("resurl: ", res)
+            setAvatarUrl(res.data.url);
+        } catch (err) {
+            console.error(err);
+            alert("Upload ảnh thất bại");
+        } finally {
+            setUploading(false);
+        }
+    }
+
+
+    async function handleUpdateProfile() {
+        const payload = {
+            username,
+            email,
+            firstName,
+            lastName,
+            phone,
+            sex,
+            dob: `${year}-${month}-${day}`,
+            avatarUrl: avatarUrl || user.avatarUrl
+        };
+        console.log("payload: ", payload)
+        await api.put("/profile-service/profile", payload);
+
+        setUpdateInfo(false);
+    }
+
+    useEffect(() => {
+        if (user?.dob) {
+            const date = new Date(user.dob);
+            setDay(String(date.getDate()));
+            setMonth(String(date.getMonth() + 1));
+            setYear(String(date.getFullYear()));
         }
     }, [user]);
 
@@ -64,6 +145,14 @@ export default function UserInfoPage() {
         const year = date.getFullYear();
 
         return `${day}/${month}/${year}`;
+    }
+
+    if (isUserLoading) {
+        return <div className="p-10 text-center">Đang tải thông tin...</div>;
+    }
+
+    if (!user) {
+        return <div className="p-10 text-center">Không tìm thấy thông tin người dùng</div>;
     }
 
 
@@ -78,6 +167,26 @@ export default function UserInfoPage() {
                     <div className="w-full flex flex-col justify-center items-center p-5 gap-4">
                         {updateInfo === false ? (
                             <>
+                                <div className="flex flex-col items-center gap-3">
+                                    {avatar ? (
+                                        <img
+                                            src={previewAvatar ||
+                                                avatarUrl ||
+                                                user.avatarUrl ||
+                                                ""
+                                            }
+                                            alt="avatar"
+                                            className="w-24 h-24 rounded-full object-cover border"
+                                        />
+                                    ) : (
+                                        <div
+                                            className="w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold"
+                                            style={{ backgroundColor: DEFAULT_AVATAR_BG, color: "#1976D2" }}
+                                        >
+                                            {getInitial(firstName || username)}
+                                        </div>
+                                    )}
+                                </div>
                                 <div className="flex justify-between w-[40%] text-[16px] border-b border-gray-300 p-2">
                                     <span className="text-gray-500">Tên người dùng</span>
                                     <span>{username}</span>
@@ -100,12 +209,12 @@ export default function UserInfoPage() {
 
                                 <div className="flex justify-between w-[40%] text-[16px] border-b border-gray-300 p-2">
                                     <span className="text-gray-500">Giới tính</span>
-                                    <span>Nam</span>
+                                    <span>{sex}</span>
                                 </div>
 
                                 <div className="flex justify-between w-[40%] text-[16px] border-b border-gray-300 p-2">
                                     <span className="text-gray-500">Ngày sinh</span>
-                                    <span>{formatDate(user.dob)}</span>
+                                    <span>{user.dob ? formatDate(user.dob) : "—"}</span>
                                 </div>
 
                                 <Button
@@ -124,12 +233,39 @@ export default function UserInfoPage() {
                         ) : (
                             <>
                                 <div className="w-[40%] flex flex-col gap-1">
-                                    <span>Tên người dùng</span>
-                                    <input type="text" placeholder="Username" className="input-field" onChange={(e) => setUsername(e.target.value)} required />
-                                </div>
-                                <div className="w-[40%] flex flex-col gap-1">
-                                    <span>Email</span>
-                                    <input type="email" placeholder="Email" className="input-field" onChange={(e) => setEmail(e.target.value)} required />
+                                    <div className="flex flex-col items-center gap-3">
+                                        {previewAvatar ? (
+                                            <img
+                                                src={previewAvatar}
+                                                alt="preview"
+                                                className="w-24 h-24 rounded-full object-cover border"
+                                            />
+                                        ) : avatar ? (
+                                            <img
+                                                src={avatar}
+                                                alt="avatar"
+                                                className="w-24 h-24 rounded-full object-cover border"
+                                            />
+                                        ) : (
+                                            <div
+                                                className="w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold"
+                                                style={{ backgroundColor: DEFAULT_AVATAR_BG, color: "#1976D2" }}
+                                            >
+                                                {getInitial(firstName || username)}
+                                            </div>
+                                        )}
+
+                                        <label className="cursor-pointer text-blue-500 text-sm">
+                                            Chọn ảnh đại diện
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                hidden
+                                                onChange={handleAvatarChange}
+                                            />
+                                        </label>
+                                    </div>
+
                                 </div>
                                 <div className="w-[40%] flex gap-4">
                                     <div className="flex flex-col gap-1 flex-1">
@@ -146,29 +282,34 @@ export default function UserInfoPage() {
                                     <input type="text" placeholder="Số điện thoại" className="input-field" onChange={(e) => setPhone(e.target.value)} />
                                 </div>
                                 <div className="w-[40%] flex flex-col gap-1">
-                                    <label class="block font-medium text-gray-700 mb-2">Giới tính</label>
+                                    <label className="block font-medium text-gray-700 mb-2">Giới tính</label>
                                     <div className="flex gap-4">
-                                        <label class="flex items-center cursor-pointer">
-                                            <input type="radio" name="gender" class="sr-only peer" />
-                                            <div class="relative w-5 h-5 rounded-full border-2 border-red-500 peer-checked:bg-red-500 peer-checked:border-red-500 transition-all">
-                                                <div class="absolute inset-1 bg-white rounded-full peer-checked:scale-100 scale-0 transition-transform"></div>
-                                            </div>
-                                            <span class="ml-2 text-gray-900">Nam</span>
+                                        <label className="flex items-center gap-2">
+                                            <input
+                                                type="radio"
+                                                name="sex"
+                                                value="Nam"
+                                                checked={sex === "Nam"}
+                                                onChange={(e) => setSex(e.target.value)}
+                                            />
+                                            Nam
                                         </label>
-
-                                        <label class="flex items-center cursor-pointer">
-                                            <input type="radio" name="gender" class="sr-only peer" />
-                                            <div class="relative w-5 h-5 rounded-full border-2 border-gray-300 peer-checked:bg-white peer-checked:border-gray-400 transition-all">
-                                                <div class="absolute inset-1 bg-white rounded-full peer-checked:scale-0 scale-100 transition-transform peer-checked:hidden"></div>
-                                            </div>
-                                            <span class="ml-2 text-gray-600">Nữ</span>
+                                        <label className="flex items-center gap-2">
+                                            <input
+                                                type="radio"
+                                                name="sex"
+                                                value="Nữ"
+                                                checked={sex === "Nữ"}
+                                                onChange={(e) => setSex(e.target.value)}
+                                            />
+                                            Nữ
                                         </label>
                                     </div>
                                 </div>
                                 <div className="w-[40%] flex flex-col gap-1">
-                                    <label class="block font-medium text-gray-700 mb-2">Ngày sinh</label>
-                                    <div class="flex gap-3">
-                                        <div class="relative flex-1">
+                                    <label className="block font-medium text-gray-700 mb-2">Ngày sinh</label>
+                                    <div className="flex gap-3">
+                                        <div className="relative flex-1">
                                             <select
                                                 value={day}
                                                 onChange={(e) => setDay(e.target.value)}
@@ -179,15 +320,15 @@ export default function UserInfoPage() {
                                                     <option key={d} value={d}>{d}</option>
                                                 ))}
                                             </select>
-                                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                                                 </svg>
                                             </div>
                                         </div>
 
 
-                                        <div class="relative flex-1">
+                                        <div className="relative flex-1">
                                             <select
                                                 value={month}
                                                 onChange={(e) => setMonth(e.target.value)}
@@ -198,15 +339,15 @@ export default function UserInfoPage() {
                                                     <option key={m} value={m}>{m}</option>
                                                 ))}
                                             </select>
-                                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                                                 </svg>
                                             </div>
                                         </div>
 
 
-                                        <div class="relative flex-1">
+                                        <div className="relative flex-1">
                                             <select
                                                 value={year}
                                                 onChange={(e) => setYear(e.target.value)}
@@ -217,8 +358,8 @@ export default function UserInfoPage() {
                                                     <option key={y} value={y}>{y}</option>
                                                 ))}
                                             </select>
-                                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                                                 </svg>
                                             </div>
@@ -227,15 +368,16 @@ export default function UserInfoPage() {
                                 </div>
                                 <Button
                                     variant="contained"
+                                    disabled={uploading}
                                     sx={{
                                         bgcolor: '#03A9F4',
                                         '&:hover': { bgcolor: '#03A9F4' },
                                         textTransform: 'none',
                                         fontSize: '18px'
                                     }}
-                                    onClick={() => setUpdateInfo(false)}
+                                    onClick={handleUpdateProfile}
                                 >
-                                    Cập nhật thông tin
+                                    {uploading ? "Đang upload ảnh..." : "Cập nhật thông tin"}
                                 </Button>
                             </>
                         )}

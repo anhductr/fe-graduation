@@ -24,9 +24,10 @@ export const AuthProvider = ({ children }) => {
         enabled: !!token,
         retry: false,
         select: (data) => data.data.result,
-        onError: () => {
-            // Token invalid or expired
-            logout();
+        onError: (error) => {
+            if (error?.response?.status === 401) {
+                logout();
+            }
         }
     });
 
@@ -108,7 +109,6 @@ export const AuthProvider = ({ children }) => {
 
     const value = {
         token,
-        isLoggedIn: !!token,
         isLoggedIn: !!token,
         user: user,
         isUserLoading,
