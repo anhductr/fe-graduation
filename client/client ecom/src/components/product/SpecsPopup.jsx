@@ -13,6 +13,22 @@ export default function SpecsPopup({ openSpecsPopup, setOpenSpecsPopup, specific
     const [isScrollingByClick, setIsScrollingByClick] = useState(false);
 
     //FAKE DATA
+    const groupMap = {
+        General: "Thông tin hàng hóa",
+        Design: "Thiết kế & Trọng lượng",
+        Performance: "Bộ xử lý", // hoặc "Hiệu năng" tùy bạn muốn
+        Display: "Màn hình",
+        Graphic: "Đồ họa",
+        Storage: "Lưu trữ",
+        Camera: "Camera sau",
+        Connectivity: "Giao tiếp và kết nối",
+        Battery: "Thông tin pin và sạc",
+        OperatingSystem: "Hệ điều hành",
+        Feature: "Tính năng & Đặc điểm",
+        BasicSpecification: "Thông số cơ bản",
+        RAM: "RAM",
+    };
+
     // Process specifications from prop
     const specsData = useMemo(() => {
         console.log("SpecsPopup DEBUG - Input specifications:", specifications);
@@ -24,7 +40,9 @@ export default function SpecsPopup({ openSpecsPopup, setOpenSpecsPopup, specific
         const groups = {};
         specifications.forEach(spec => {
             // Support multiple possible key names from backend
-            const groupName = spec.group || spec.groupName || spec.attributeGroup || "Thông số khác";
+            let groupName = spec.group || spec.groupName || spec.attributeGroup || "Thông số khác";
+            // Map to Vietnamese if exists
+            groupName = groupMap[groupName] || groupName;
             const key = spec.key || spec.name || spec.attributeName || spec.specName || "N/A";
             const value = spec.value || spec.attributeValue || spec.specValue || "N/A";
 

@@ -309,8 +309,8 @@ export default function CartPage() {
                   variant="contained"
                   sx={{
                     width: 120,
-                    bgcolor: "#d32f2f",
-                    "&:hover": { bgcolor: "#b71c1c" },
+                    bgcolor: "#0096FF",
+                    "&:hover": { bgcolor: "#0096FF" },
                     textTransform: "none",
                     fontWeight: 500,
                     borderRadius: 2,
@@ -325,9 +325,9 @@ export default function CartPage() {
                   variant="outlined"
                   sx={{
                     width: 120,
-                    color: "#d32f2f",
-                    borderColor: "#d32f2f",
-                    "&:hover": { bgcolor: "#fdecea", borderColor: "#d32f2f" },
+                    color: "#0096FF",
+                    borderColor: "#0096FF",
+                    "&:hover": { bgcolor: "#fdecea", borderColor: "#0096FF" },
                     textTransform: "none",
                     fontWeight: 500,
                     borderRadius: 2,
@@ -354,14 +354,14 @@ export default function CartPage() {
               <DialogActions className="justify-center gap-4 pb-6 px-4">
                 <Button
                   onClick={handleCancelBulkDelete}
-                  className="!bg-[#d32f2f] !text-white !px-10 !py-2 !rounded-lg !font-medium !normal-case hover:!bg-[#b71c1c]"
+                  className="!bg-[#0096FF] !text-white !px-10 !py-2 !rounded-lg !font-medium !normal-case hover:!bg-[#b71c1c]"
                   variant="contained"
                 >
                   Hủy bỏ
                 </Button>
                 <Button
                   onClick={handleConfirmBulkDelete}
-                  className="!bg-white !text-[#d32f2f] !border-[#d32f2f] !border !px-10 !py-2 !rounded-lg !font-medium !normal-case hover:!bg-red-50"
+                  className="!bg-white !text-[#0096FF] !border-[#0096FF] !border !px-10 !py-2 !rounded-lg !font-medium !normal-case hover:!bg-red-50"
                   variant="outlined"
                 >
                   Xóa
@@ -383,7 +383,7 @@ export default function CartPage() {
 
                 <button
                   type="button"
-                  className="mt-6 w-full bg-red-600 text-white font-bold py-3 rounded hover:bg-red-700 transition"
+                  className="mt-6 w-full bg-[#0096FF] text-white font-bold py-3 rounded hover:bg-[#0096FF] transition"
                   onClick={handleCheckout}
                 >
                   Thanh toán

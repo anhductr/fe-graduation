@@ -383,7 +383,7 @@ function Navbar() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
                       transition={{ duration: 0.3, ease: "easeInOut" }}
-                      className="absolute top-[calc(100%+1px)] left-[0px] w-[210px] h-[100px] bg-white text-black rounded shadow-lg border border-gray-200 z-30 px-2 gap-2 flex flex-col justify-center"
+                      className="absolute top-[calc(100%+1px)] left-[0px] w-[210px] h-auto py-2 bg-white text-black rounded shadow-lg border border-gray-200 z-30 px-2 gap-2 flex flex-col justify-center"
                     >
                       {isLoggedIn ? (
                         <>
