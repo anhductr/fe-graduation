@@ -17,7 +17,9 @@ import { Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import { FaShoppingCart } from "react-icons/fa";
-import { Box, IconButton, Typography } from "@mui/material";
+import { Box, IconButton, Typography, Dialog, DialogContent, DialogActions, DialogTitle } from "@mui/material";
+import CommentSection from "../components/product/CommentSection";
+import RatingSection from "../components/product/RatingSection";
 import { IoMdAdd } from "react-icons/io";
 import { IoMdRemove } from "react-icons/io";
 import { MdCheck } from "react-icons/md";
@@ -38,6 +40,10 @@ import { useProductAutocomplete } from "../services/productApi";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
+import { cartApi } from "../services/cartApi";
+import { toast } from "react-toastify"; // Assuming toast is available or use simple verify
+import { useNavigate } from "react-router-dom";
+import { useCart } from "../context/CartContext";
 
 const ProductPage = () => {
   // const {category, name, productId} = useParams();
@@ -49,6 +55,9 @@ const ProductPage = () => {
   const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false);
   const [productFromDBState, setProductFromDBState] = useState(null);
   const [clickedIndex, setClickedIndex] = useState(0);
+  const [showCartSuccessModal, setShowCartSuccessModal] = useState(false);
+  const navigate = useNavigate();
+  const { refetchCart } = useCart();
 
 
   ////////////////////////////////// xử lý tìm kiếm ////////////////////////////////// 
@@ -389,6 +398,52 @@ const ProductPage = () => {
   const handleIncrease = () => setQuantity((q) => q + 1);
   const handleDecrease = () => setQuantity((q) => (q > 1 ? q - 1 : 1));
 
+  const handleAddToCart = async () => {
+    try {
+      // User requested: "thêm sku của variant currentProduct"
+      // currentProduct here is the displayed product (specific storage). 
+      // selectedVariant is the specific color variant of that product.
+      // We prioritize selectedVariant.sku because that's the actual buyable item (SKU usually ties to physical item)
+
+      console.log("=== ADD TO CART DEBUG ===");
+      console.log("selectedVariant:", selectedVariant);
+      console.log("currentProduct:", currentProduct);
+      console.log("quantity:", quantity);
+
+      const targetSku = selectedVariant?.sku || currentProduct?.sku;
+
+      if (!targetSku) {
+        alert("Lỗi: Không tìm thấy SKU sản phẩm!");
+        return;
+      }
+
+      const payload = {
+        sku: targetSku,
+        quantity: quantity || 1
+      };
+
+      console.log("✅ Final payload to send:", payload);
+      console.log("Payload structure matches CartItemRequest:", {
+        sku: typeof payload.sku === 'string',
+        quantity: typeof payload.quantity === 'number'
+      });
+
+      await cartApi.addToCart(payload);
+      console.log("✅ Cart API call successful!");
+      await refetchCart(); // Immediately refresh cart data to update icon
+      setShowCartSuccessModal(true); // Show modal instead of alert
+    } catch (error) {
+      console.error("❌ Add to cart error:", error);
+      console.error("Error response:", error.response?.data);
+      alert("Thêm vào giỏ hàng thất bại: " + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleViewCart = async () => {
+    setShowCartSuccessModal(false);
+    navigate('/cart'); // Navigate to cart page
+  };
+
   // Handle loading/error (Simple fallback for now)
   if (isLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!productData) return <div className="min-h-screen flex items-center justify-center">Error loading product</div>;
@@ -406,6 +461,44 @@ const ProductPage = () => {
         product={productFromDBState}
         clickedIndex={clickedIndex}
       />
+
+      <Dialog
+        open={showCartSuccessModal}
+        onClose={() => setShowCartSuccessModal(false)}
+        maxWidth="xs"
+        PaperProps={{
+          style: {
+            backgroundColor: '#383e42', // Dark background color from image
+            color: 'white',
+            borderRadius: '12px',
+            padding: '20px',
+            textAlign: 'center',
+            minWidth: '400px'
+          },
+        }}
+      >
+        <DialogContent className="flex flex-col items-center justify-center p-0 overflow-hidden">
+          <div className="mb-4">
+            {/* Green shopping cart icon */}
+            <FaShoppingCart className="text-[#00c853] text-[50px]" />
+            <div className="text-[#00c853] absolute ml-6 mt-[-15px] bg-white rounded-full border border-[#383e42]">
+              <FaCheck className="text-[12px] m-1" strokeWidth="2" />
+            </div>
+          </div>
+
+          <h2 className="text-xl font-bold text-white mb-6">
+            Sản phẩm đã được thêm vào giỏ hàng
+          </h2>
+
+          <Button
+            onClick={handleViewCart}
+            variant="contained"
+            className="!bg-white !text-gray-800 !px-8 !py-2 !rounded-full !font-medium !normal-case hover:!bg-gray-100"
+          >
+            Xem giỏ hàng
+          </Button>
+        </DialogContent>
+      </Dialog>
       <Navbar />
       <div className="px-15 bg-white text-gray-900 py-2">
         {/* Breadcrumb */}
@@ -418,7 +511,10 @@ const ProductPage = () => {
               <div className="relative group">
                 <div
                   onClick={() => {
-                    openProductDetails(currentProduct);
+                    // Pass clean images (rawImages) to popup to avoid empty slots for Feature/Video
+                    const popupProduct = { ...currentProduct, images: rawImages };
+                    openProductDetails(popupProduct);
+
                     if (currentImg >= 1)
                       setClickedIndex(currentImg);
                     // console.log("Clicked index:", currentImg);
@@ -452,23 +548,36 @@ const ProductPage = () => {
                           `}</style>
                           {/* bg-gradient-to-r from-pink-500 to-orange-300  */}
                           {index === 0 ? (
-                            <div className="flex gap-2">
-                              <div className="rounded-[10px] flex items-center justify-center max-w-[280px]">
+                            <div className="flex w-full h-full items-center">
+                              <div className="w-1/2 h-full flex items-center justify-center p-4">
                                 <img
-                                  alt="iPhone 16 Pro Max gold color front and back view"
-                                  className="rounded-[10px] h-full w-full object-cover flex-shrink-0"
+                                  alt="Feature"
+                                  className="max-w-full max-h-full object-contain rounded-[10px]"
                                   loading="lazy"
-                                  src={currentProduct.images[2]?.src || "https://via.placeholder.com/300"}
+                                  src={selectedVariant?.thumbnail || "https://via.placeholder.com/300"}
                                 />
                               </div>
-                              <div className="flex flex-col justify-center items-center text-white p-3">
-                                <h2 className="font-bold mb-3 text-lg">
-                                  TÍNH NĂNG NỔI BẬT
-                                </h2>
-                                <div
-                                  className="text-[13px] space-y-2 [&_ul]:list-disc [&_ul]:list-inside [&_li]:mb-1"
-                                  dangerouslySetInnerHTML={{ __html: currentProduct.description }}
-                                />
+                              <style>{`
+                                .no-scrollbar::-webkit-scrollbar {
+                                  display: none;
+                                }
+                                .no-scrollbar {
+                                  -ms-overflow-style: none; /* IE and Edge */
+                                  scrollbar-width: none;  /* Firefox */
+                                }
+                              `}</style>
+                              <div className="w-1/2 h-full flex justify-center items-center">
+                                <div className="h-[370px] flex flex-col justify-center items-center text-white p-6">
+                                  <h2 className="font-bold mb-3 text-lg shrink-0">
+                                    TÍNH NĂNG NỔI BẬT
+                                  </h2>
+                                  <div className="w-full overflow-y-auto no-scrollbar flex-1">
+                                    <div
+                                      className="text-[13px] space-y-2 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:mb-1 leading-relaxed w-full text-left"
+                                      dangerouslySetInnerHTML={{ __html: currentProduct.description }}
+                                    />
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           ) : index === 1 ? (
@@ -642,8 +751,8 @@ const ProductPage = () => {
                   <IoStar className="text-yellow-500" />
                   <span className="text-gray-600 ">4.8</span>
                 </div>
-                <span className="text-gray-600 text-[16px]">289 đánh giá</span>
-                <span className="text-gray-600 text-[16px]" onClick={() => setOpenSpecsPopup(true)}>Thông số kĩ thuật</span>
+                <span className="text-[#0096FF] text-[16px]">289 đánh giá</span>
+                <span className="text-[#0096FF] text-[16px]" onClick={() => setOpenSpecsPopup(true)}>Thông số kĩ thuật</span>
               </div>
 
               {/* Storage options */}
@@ -787,6 +896,7 @@ const ProductPage = () => {
                 </Box> */}
 
                 <Button
+                  onClick={handleAddToCart}
                   variant="contained"
                   className="!bg-gray-200 !text-gray-900 !rounded-[10px] !my-[10px] !w-[20%] flex items-center justify-center gap-2"
                 >
@@ -842,108 +952,18 @@ const ProductPage = () => {
 
           {/* đánh giá, commnet và thông số kỹ thuật*/}
           <div className="flex py-6">
-            {/* đánh giá, commnet*/}
             <div className="w-full rounded-lg border border-gray-200 shadow-sm p-4">
-              {/* Header Title */}
               <h2 className="font-semibold text-sm mb-4">
-                Đánh giá &amp; nhận xét iPhone 16 Pro Max 256GB | Chính hãng VN/A
+                Đánh giá &amp; nhận xét {currentProduct.name}
               </h2>
-
-              <div className="flex flex-col md:flex-row md:space-x-8 border border-gray-200 rounded-md p-4 mb-6">
-                {/* Left side: avgRating summary */}
-                <div className="flex flex-col items-center md:items-start md:w-1/3 border-b md:border-b-0 md:border-r border-[#ccc] pb-4 md:pb-0 md:pr-6">
-                  <div className="text-3xl font-semibold leading-none">
-                    4.9
-                    <span className="text-gray-500 text-xl">/5</span>
-                  </div>
-                  <div className="flex space-x-1 mt-1 text-yellow-400 text-lg">
-                    <i className="fas fa-star"></i>
-                    <i className="fas fa-star"></i>
-                    <i className="fas fa-star"></i>
-                    <i className="fas fa-star"></i>
-                    <i className="fas fa-star"></i>
-                  </div>
-                  <a
-                    href="#"
-                    className="mt-1 text-blue-700 text-sm font-semibold underline"
-                  >
-                    290 đánh giá
-                  </a>
-                </div>
-
-                {/* Right side: avgRating bars */}
-                <div className="flex-1 pt-4 md:pt-0">
-                  <div className="flex items-center space-x-2 text-sm mb-2">
-                    <span className="w-4 font-semibold">5</span>
-                    <i className="fas fa-star text-yellow-400"></i>
-                    <div className="flex-1 h-3 rounded-full bg-gray-300 overflow-hidden">
-                      <div
-                        className="h-3 bg-red-700 rounded-full"
-                        style={{ width: "80%" }}
-                      ></div>
-                    </div>
-                    <span className="w-20 text-right text-xs text-gray-600">
-                      258 đánh giá
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm mb-2">
-                    <span className="w-4 font-semibold">4</span>
-                    <i className="fas fa-star text-yellow-400"></i>
-                    <div className="flex-1 h-3 rounded-full bg-gray-300 overflow-hidden">
-                      <div
-                        className="h-3 bg-red-700 rounded-full"
-                        style={{ width: "20%" }}
-                      ></div>
-                    </div>
-                    <span className="w-20 text-right text-xs text-gray-600">
-                      32 đánh giá
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm mb-2">
-                    <span className="w-4 font-semibold">3</span>
-                    <i className="fas fa-star text-yellow-400"></i>
-                    <div className="flex-1 h-3 rounded-full bg-gray-300 overflow-hidden">
-                      <div
-                        className="h-3 bg-red-700 rounded-full"
-                        style={{ width: "0%" }}
-                      ></div>
-                    </div>
-                    <span className="w-20 text-right text-xs text-gray-600">
-                      0 đánh giá
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm mb-2">
-                    <span className="w-4 font-semibold">2</span>
-                    <i className="fas fa-star text-yellow-400"></i>
-                    <div className="flex-1 h-3 rounded-full bg-gray-300 overflow-hidden">
-                      <div
-                        className="h-3 bg-red-700 rounded-full"
-                        style={{ width: "0%" }}
-                      ></div>
-                    </div>
-                    <span className="w-20 text-right text-xs text-gray-600">
-                      0 đánh giá
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm mb-2">
-                    <span className="w-4 font-semibold">1</span>
-                    <i className="fas fa-star text-yellow-400"></i>
-                    <div className="flex-1 h-3 rounded-full bg-gray-300 overflow-hidden">
-                      <div
-                        className="h-3 bg-red-700 rounded-full"
-                        style={{ width: "0%" }}
-                      ></div>
-                    </div>
-                    <span className="w-20 text-right text-xs text-gray-600">
-                      0 đánh giá
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <RatingSection productId={currentProduct.id} productName={currentProduct.name} />
+              <div className="border-t border-gray-200 my-6"></div>
+              {/* Comment Section */}
+              <CommentSection productId={currentProduct.id} />
             </div>
           </div>
         </div>
-      </div>
+      </div >
       <Footer />
     </>
   );
