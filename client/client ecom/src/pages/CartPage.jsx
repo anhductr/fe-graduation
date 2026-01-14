@@ -286,31 +286,7 @@ export default function CartPage() {
         </DialogActions>
       </Dialog>
 
-            {/* Right content */}
-            <div className="w-full max-w-sm bg-white rounded-lg p-6 sticky top-20 h-fit">
-              <div>
-                <h2 className="font-semibold text-lg mb-4">Thông tin đơn hàng</h2>
 
-                <dl className="space-y-3">
-                  <div className="flex justify-between border-b border-dashed border-gray-300 pb-1 font-semibold text-red-600 text-lg">
-                    <dt>Tổng tiền</dt>
-                    <dd>{formatPrice(selectedTotal)}</dd>
-                  </div>
-                </dl>
-
-                <button
-                  type="button"
-                  className="mt-6 w-full bg-[#0096FF] text-white font-bold py-3 rounded hover:bg-[#0096FF] transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={handleCheckout}
-                  disabled={selectedItems.length === 0}
-                >
-                  Thanh toán ({selectedItems.length})
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
       <Footer />
     </div>
   );

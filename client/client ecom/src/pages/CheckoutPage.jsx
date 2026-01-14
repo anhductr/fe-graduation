@@ -6,6 +6,7 @@ import { orderApi } from "../services/orderApi";
 import { paymentApi } from "../services/paymentApi";
 import { authApi } from "../services/authApi";
 import { promotionApi } from "../services/promotionApi";
+import { api } from "../libs/axios"; // Import api for address creation
 import Navbar from "../layouts/Navbar";
 import Footer from "../layouts/Footer";
 
@@ -24,7 +25,24 @@ export default function CheckoutPage() {
     const [addresses, setAddresses] = useState([]);
     const [selectedAddress, setSelectedAddress] = useState(null);
     const [showAddressModal, setShowAddressModal] = useState(false);
-    const [voucher, setVoucher] = useState("");
+    const [vouchers, setVouchers] = useState([]);
+    const [selectedVoucher, setSelectedVoucher] = useState(null);
+    const [showVoucherModal, setShowVoucherModal] = useState(false);
+    const [discountAmount, setDiscountAmount] = useState(0);
+
+    // Address Form State
+    const [isAddingAddress, setIsAddingAddress] = useState(false);
+    const [receiverName, setReceiverName] = useState("");
+    const [receiverPhone, setReceiverPhone] = useState("");
+    const [addressLine, setAddressLine] = useState("");
+    const [street, setStreet] = useState("");
+    const [province, setProvince] = useState(null);
+    const [district, setDistrict] = useState(null);
+    const [ward, setWard] = useState(null);
+    const [provinces, setProvinces] = useState([]);
+    const [districts, setDistricts] = useState([]);
+    const [wards, setWards] = useState([]);
+
     const [orderDesc, setOrderDesc] = useState("");
     const [orderFee, setOrderFee] = useState(30000); // Default shipping fee
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
@@ -72,15 +90,15 @@ export default function CheckoutPage() {
     }, [isLoggedIn]);
 
     useEffect(() => {
-        if (!checkoutItems || checkoutItems.length === 0) return;
+        if (!items || items.length === 0) return;
 
-        const skus = checkoutItems.map(item => item.sku);
+        const skus = items.map(item => item.sku);
         const today = new Date().toLocaleDateString("en-CA"); // yyyy-mm-dd
 
         promotionApi
             .getVouchers({
                 skus,
-                totalAmount: checkoutSubtotal,
+                totalAmount: totalPrice,
                 today,
             })
             .then((res) => {
@@ -93,7 +111,92 @@ export default function CheckoutPage() {
             .catch((err) => {
                 console.error("🔴 Voucher error:", err);
             });
-    }, [checkoutItems, checkoutSubtotal]);
+    }, [items, totalPrice]);
+
+    // Location API Effects
+    useEffect(() => {
+        if (showAddressModal && isAddingAddress) {
+            fetch("https://provinces.open-api.vn/api/p/")
+                .then(res => res.json())
+                .then(setProvinces)
+                .catch(err => console.error(err));
+        }
+    }, [showAddressModal, isAddingAddress]);
+
+    useEffect(() => {
+        if (!province) return;
+        fetch(`https://provinces.open-api.vn/api/p/${province.code}?depth=2`)
+            .then(res => res.json())
+            .then(data => {
+                setDistricts(data.districts || []);
+                setDistrict(null);
+                setWard(null);
+                setWards([]);
+            });
+    }, [province]);
+
+    useEffect(() => {
+        if (!district) return;
+        fetch(`https://provinces.open-api.vn/api/d/${district.code}?depth=2`)
+            .then(res => res.json())
+            .then(data => {
+                setWards(data.wards || []);
+                setWard(null);
+            });
+    }, [district]);
+
+    const handleAddAddress = async () => {
+        if (!receiverName || !receiverPhone || !province || !district || !ward) {
+            // Simple validation feedback (could be better with toast)
+            alert("Vui lòng nhập đầy đủ thông tin");
+            return;
+        }
+
+        const payload = {
+            receiverName,
+            receiverPhone,
+            addressLine,
+            street,
+            ward: ward.name,
+            district: district.name,
+            city: province.name,
+        };
+
+        try {
+            await api.post("/profile-service/address", payload);
+
+            // Refresh address list
+            const res = await authApi.getMyInfo();
+            if (res.data.code === 200) {
+                const addrList = res.data.result.address || [];
+                setAddresses(addrList);
+                // Select the new address (last one added usually, but good enough to pick the last one or by finding matches)
+                // For simplicity, pick the last one
+                if (addrList.length > 0) {
+                    const newAddr = addrList[addrList.length - 1];
+                    setSelectedAddress(newAddr);
+                    setAddressId(newAddr.id);
+                    localStorage.setItem("checkout_address_id", newAddr.id);
+                }
+            }
+
+            setIsAddingAddress(false);
+            resetAddressForm();
+        } catch (err) {
+            console.error("Add address error:", err);
+            alert("Thêm địa chỉ thất bại");
+        }
+    };
+
+    const resetAddressForm = () => {
+        setReceiverName("");
+        setReceiverPhone("");
+        setAddressLine("");
+        setStreet("");
+        setProvince(null);
+        setDistrict(null);
+        setWard(null);
+    };
 
 
 
@@ -103,7 +206,7 @@ export default function CheckoutPage() {
         let discount = 0;
 
         if (voucher.discountType === "DISCOUNT_PERCENT") {
-            discount = (checkoutSubtotal * voucher.discountPercent) / 100;
+            discount = (totalPrice * voucher.discountPercent) / 100;
 
             if (voucher.maxDiscountAmount) {
                 discount = Math.min(discount, voucher.maxDiscountAmount);
@@ -154,11 +257,11 @@ export default function CheckoutPage() {
         try {
             const payload = {
                 orderDesc: orderDesc || "",
-                orderFee, 
+                orderFee,
                 addressId,
                 paymentMethod: "VNPAY",
                 voucher: selectedVoucher ? selectedVoucher.voucherCode : null,
-                items: checkoutItems.map((item) => ({
+                items: items.map((item) => ({
                     sku: item.sku,
                     quantity: item.quantity,
                     price: item.sellPrice, // Use sellPrice
@@ -197,7 +300,7 @@ export default function CheckoutPage() {
         }
     };
 
-    const finalTotal = checkoutSubtotal + orderFee - discountAmount;
+    const finalTotal = totalPrice + orderFee - discountAmount;
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -248,34 +351,134 @@ export default function CheckoutPage() {
                                     <h3 className="text-lg font-semibold mb-4">Chọn địa chỉ giao hàng</h3>
 
                                     <div className="space-y-3 max-h-80 overflow-y-auto">
-                                        {addresses.map((addr) => (
-                                            <div
-                                                key={addr.id}
-                                                onClick={() => {
-                                                    setSelectedAddress(addr);
-                                                    setAddressId(addr.id);
-                                                    localStorage.setItem("checkout_address_id", addr.id);
-                                                    setShowAddressModal(false);
-                                                }}
-                                                className={`border rounded-lg p-4 cursor-pointer hover:border-blue-500 ${selectedAddress?.id === addr.id
-                                                    ? "border-blue-500 bg-blue-50"
-                                                    : ""
-                                                    }`}
-                                            >
-                                                <p className="font-semibold">
-                                                    {addr.receiverName} - {addr.receiverPhone}
-                                                </p>
-                                                <p className="text-sm text-gray-600">
-                                                    {addr.addressLine}, {addr.street},{" "}
-                                                    {addr.ward}, {addr.district}, {addr.city}
-                                                </p>
-                                            </div>
-                                        ))}
+                                        {!isAddingAddress ? (
+                                            <>
+                                                {addresses.map((addr) => (
+                                                    <div
+                                                        key={addr.id}
+                                                        onClick={() => {
+                                                            setSelectedAddress(addr);
+                                                            setAddressId(addr.id);
+                                                            localStorage.setItem("checkout_address_id", addr.id);
+                                                            setShowAddressModal(false);
+                                                        }}
+                                                        className={`border rounded-lg p-4 cursor-pointer hover:border-blue-500 ${selectedAddress?.id === addr.id
+                                                            ? "border-blue-500 bg-blue-50"
+                                                            : ""
+                                                            }`}
+                                                    >
+                                                        <p className="font-semibold">
+                                                            {addr.receiverName} - {addr.receiverPhone}
+                                                        </p>
+                                                        <p className="text-sm text-gray-600">
+                                                            {addr.addressLine}, {addr.street},{" "}
+                                                            {addr.ward}, {addr.district}, {addr.city}
+                                                        </p>
+                                                    </div>
+                                                ))}
 
-                                        {addresses.length === 0 && (
-                                            <p className="text-sm text-gray-500 text-center">
-                                                Bạn chưa có địa chỉ nào
-                                            </p>
+                                                {addresses.length === 0 && (
+                                                    <p className="text-sm text-gray-500 text-center">
+                                                        Bạn chưa có địa chỉ nào
+                                                    </p>
+                                                )}
+
+                                                <button
+                                                    onClick={() => setIsAddingAddress(true)}
+                                                    className="w-full py-2 mt-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50"
+                                                >
+                                                    + Thêm địa chỉ mới
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <div className="space-y-3 p-1">
+                                                <input
+                                                    placeholder="Tên người nhận"
+                                                    value={receiverName}
+                                                    onChange={e => setReceiverName(e.target.value)}
+                                                    className="w-full border rounded p-2"
+                                                />
+                                                <input
+                                                    placeholder="Số điện thoại"
+                                                    value={receiverPhone}
+                                                    onChange={e => setReceiverPhone(e.target.value)}
+                                                    className="w-full border rounded p-2"
+                                                />
+                                                <input
+                                                    placeholder="Số nhà / địa chỉ cụ thể"
+                                                    value={addressLine}
+                                                    onChange={e => setAddressLine(e.target.value)}
+                                                    className="w-full border rounded p-2"
+                                                />
+                                                <input
+                                                    placeholder="Tên đường"
+                                                    value={street}
+                                                    onChange={e => setStreet(e.target.value)}
+                                                    className="w-full border rounded p-2"
+                                                />
+
+                                                <select
+                                                    value={province?.code ?? ""}
+                                                    onChange={(e) => {
+                                                        const code = Number(e.target.value);
+                                                        const selected = provinces.find(p => p.code === code);
+                                                        setProvince(selected);
+                                                    }}
+                                                    className="w-full border rounded p-2"
+                                                >
+                                                    <option value="">Chọn Tỉnh / Thành phố</option>
+                                                    {provinces.map(p => (
+                                                        <option key={p.code} value={p.code}>{p.name}</option>
+                                                    ))}
+                                                </select>
+
+                                                <select
+                                                    value={district?.code ?? ""}
+                                                    onChange={(e) => {
+                                                        const code = Number(e.target.value);
+                                                        const selected = districts.find(d => d.code === code);
+                                                        setDistrict(selected);
+                                                    }}
+                                                    disabled={!districts.length}
+                                                    className="w-full border rounded p-2"
+                                                >
+                                                    <option value="">Chọn Quận / Huyện</option>
+                                                    {districts.map(d => (
+                                                        <option key={d.code} value={d.code}>{d.name}</option>
+                                                    ))}
+                                                </select>
+
+                                                <select
+                                                    value={ward?.code ?? ""}
+                                                    onChange={(e) => {
+                                                        const code = Number(e.target.value);
+                                                        const selected = wards.find(w => w.code === code);
+                                                        setWard(selected);
+                                                    }}
+                                                    disabled={!wards.length}
+                                                    className="w-full border rounded p-2"
+                                                >
+                                                    <option value="">Chọn Phường / Xã</option>
+                                                    {wards.map(w => (
+                                                        <option key={w.code} value={w.code}>{w.name}</option>
+                                                    ))}
+                                                </select>
+
+                                                <div className="flex gap-2 mt-2">
+                                                    <button
+                                                        onClick={handleAddAddress}
+                                                        className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+                                                    >
+                                                        Lưu địa chỉ
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setIsAddingAddress(false)}
+                                                        className="px-4 py-2 border rounded hover:bg-gray-100"
+                                                    >
+                                                        Quay lại
+                                                    </button>
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
 
@@ -381,7 +584,7 @@ export default function CheckoutPage() {
 
                             {/* Items */}
                             <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
-                                {checkoutItems.map((item, idx) => (
+                                {items.map((item, idx) => (
                                     <div key={idx} className="flex justify-between text-sm">
                                         <span className="text-gray-600">
                                             {item.productName || item.variantName || item.sku} x{item.quantity}
@@ -401,7 +604,7 @@ export default function CheckoutPage() {
                             {/* Subtotal */}
                             <div className="flex justify-between mb-2">
                                 <span className="text-gray-600">Tạm tính</span>
-                                <span>{formatPrice(checkoutSubtotal)}</span>
+                                <span>{formatPrice(totalPrice)}</span>
                             </div>
 
                             {/* Shipping */}
