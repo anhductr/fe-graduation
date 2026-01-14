@@ -1,8 +1,15 @@
+import axios from "axios";
+
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: "http://localhost:8888",
 });
 
 axiosClient.interceptors.request.use(config => {
+  const fullUrl =
+    (config.baseURL || "") +
+    config.url;
+
+  console.log("🚀 FULL API URL:", fullUrl);
   const token = localStorage.getItem("accessToken");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

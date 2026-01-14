@@ -87,26 +87,27 @@ export default function CheckoutPage() {
     useEffect(() => {
         if (!checkoutItems || checkoutItems.length === 0) return;
 
-        const fetchVouchers = async () => {
-            try {
-                const res = await promotionApi.getVouchers({
-                    skus: checkoutItems.map(i => i.sku).join(","),
-                    totalAmount: checkoutSubtotal,
-                    today,
-                });
+        const skus = checkoutItems.map(item => item.sku);
+        const today = new Date().toLocaleDateString("en-CA"); // yyyy-mm-dd
 
-                console.log("Voucher API response:", res.data);
+        promotionApi
+            .getVouchers({
+                skus,
+                totalAmount: checkoutSubtotal,
+                today,
+            })
+            .then((res) => {
+                console.log("🟢 Voucher response:", res.data);
 
                 if (res.data.code === 200) {
                     setVouchers(res.data.result || []);
                 }
-            } catch (err) {
-                console.error("Fetch voucher error:", err);
-            }
-        };
+            })
+            .catch((err) => {
+                console.error("🔴 Voucher error:", err);
+            });
+    }, [checkoutItems, checkoutSubtotal]);
 
-        fetchVouchers();
-    }, [checkoutItems, checkoutSubtotal, today]);
 
 
     const calculateDiscount = (voucher) => {
