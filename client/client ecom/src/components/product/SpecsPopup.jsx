@@ -31,7 +31,6 @@ export default function SpecsPopup({ openSpecsPopup, setOpenSpecsPopup, specific
 
     // Process specifications from prop
     const specsData = useMemo(() => {
-        console.log("SpecsPopup DEBUG - Input specifications:", specifications);
 
         if (!specifications || specifications.length === 0) return [];
 

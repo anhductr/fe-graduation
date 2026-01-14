@@ -251,7 +251,7 @@ export default function UserList() {
                       <TableCell>{user.email}</TableCell>
                       <TableCell align="center">
                         <Link
-                          to={`/users/users-list/users-view/${user.username}`}
+                          to={`/users/users-view/${user.id}`}
                         >
                           <IconButton size="small">
                             <IoEye />

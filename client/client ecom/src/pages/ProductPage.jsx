@@ -117,13 +117,6 @@ const ProductPage = () => {
       .map(item => item.id);
   }, [suggestions, productNameFromState]);
 
-  useEffect(() => {
-    if (filteredProductIds.length > 0) {
-      console.log("Các product ID phù hợp với keyword:", productNameFromState);
-      console.log(filteredProductIds);
-    }
-  }, [filteredProductIds]);
-
   const productDetailQueries = useQueries({
     queries: filteredProductIds.map(id => ({
       ...productDetailOptions(id),           // spread toàn bộ config từ options helper
@@ -286,8 +279,6 @@ const ProductPage = () => {
     video: "https://www.youtube.com/watch?v=bPkenYE4qzw",
     specifications: activeProductData?.specifications || []
   };
-
-  console.log("ProductPage DEBUG - currentProduct.specifications:", currentProduct.specifications);
 
   // Derived price/discount from selected variant
   const sellPrice = selectedVariant?.sellPrice || 0;
