@@ -133,6 +133,7 @@ export default function CheckoutPage() {
     const handleSelectVoucher = (voucher) => {
         setSelectedVoucher(voucher);
         setDiscountAmount(calculateDiscount(voucher));
+        localStorage.setItem("checkout_voucher_code", voucher.voucherCode);
         setShowVoucherModal(false);
     };
 
@@ -143,7 +144,18 @@ export default function CheckoutPage() {
         }).format(price);
     };
 
+    const extractVnpayUrl = (rawPaymentUrl) => {
+        if (!rawPaymentUrl || typeof rawPaymentUrl !== "string") return null;
+
+        const match = rawPaymentUrl.match(/paymentUrl=([^,}]+)/);
+
+        return match ? match[1] : null;
+    };
+
+
     const handleCheckout = async () => {
+        const addressId = localStorage.getItem("checkout_address_id");
+
         if (!addressId) {
             setError("Vui lòng chọn địa chỉ giao hàng");
             return;
@@ -153,45 +165,47 @@ export default function CheckoutPage() {
         setError(null);
 
         try {
-            // 1. Create order
-            const orderData = {
-                orderDate: new Date().toISOString(),
-                orderDesc: orderDesc || "Đơn hàng online",
-                orderFee,
+            const payload = {
+                orderDesc: orderDesc || "",
+                orderFee, 
                 addressId,
-                voucher: selectedVoucher?.voucherCode,
+                paymentMethod: "VNPAY",
+                voucher: selectedVoucher ? selectedVoucher.voucherCode : null,
                 items: checkoutItems.map((item) => ({
                     sku: item.sku,
-                    quantity: item.quantity,
-                    price: item.sellPrice || item.price,
+                    quantity: String(item.quantity),    
+                    listPrice: item.listPrice,
+                    sellPrice: item.sellPrice,
                 })),
             };
 
-            const orderResponse = await orderApi.createOrder(orderData);
+            console.log("Order create payload:", payload);
 
-            if (orderResponse.data.code !== 200) {
-                throw new Error(orderResponse.data.message || "Tạo đơn hàng thất bại");
+            const res = await orderApi.createOrder(payload);
+
+            if (res.data.code !== 200) {
+                throw new Error(res.data.message || "Tạo đơn hàng thất bại");
             }
 
-            const orderId = orderResponse.data.result.id;
+            const rawPaymentUrl = res.data.result.paymentUrl;
 
-            // 2. Create payment
-            const paymentResponse = await paymentApi.createPayment({
-                method: "VNPAY",
-                orderId,
-            });
+            const vnpayUrl = extractVnpayUrl(rawPaymentUrl);
 
-            if (paymentResponse.data.code !== 200) {
-                throw new Error(paymentResponse.data.message || "Khởi tạo thanh toán thất bại");
+            if (!vnpayUrl) {
+                throw new Error("Không lấy được VNPay paymentUrl");
             }
 
-            // 3. Redirect to VNPay
-            const paymentUrl = paymentResponse.data.result.paymentUrl;
-            window.location.href = paymentUrl;
+            console.log("VNPay URL:", vnpayUrl);
+
+            window.open(vnpayUrl, "_blank");
 
         } catch (err) {
             console.error("Checkout error:", err);
-            setError(err.response?.data?.message || err.message || "Lỗi xảy ra khi thanh toán");
+            setError(
+                err.response?.data?.message ||
+                err.message ||
+                "Lỗi xảy ra khi thanh toán"
+            );
         } finally {
             setIsCreatingOrder(false);
         }
@@ -254,6 +268,7 @@ export default function CheckoutPage() {
                                                 onClick={() => {
                                                     setSelectedAddress(addr);
                                                     setAddressId(addr.id);
+                                                    localStorage.setItem("checkout_address_id", addr.id);
                                                     setShowAddressModal(false);
                                                 }}
                                                 className={`border rounded-lg p-4 cursor-pointer hover:border-blue-500 ${selectedAddress?.id === addr.id

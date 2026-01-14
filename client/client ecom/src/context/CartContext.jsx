@@ -27,6 +27,7 @@ export const CartProvider = ({ children }) => {
         queryKey: ["cart"],
         queryFn: async () => {
             const response = await cartApi.getMyCart();
+            console.log('cartdata: ', response)
             return response.data.result;
         },
         staleTime: 1000 * 60 * 5, // 5 minutes
