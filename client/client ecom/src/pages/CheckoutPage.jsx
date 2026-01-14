@@ -4,6 +4,8 @@ import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { orderApi } from "../services/orderApi";
 import { paymentApi } from "../services/paymentApi";
+import { authApi } from "../services/authApi";
+import { promotionApi } from "../services/promotionApi";
 import Navbar from "../layouts/Navbar";
 import Footer from "../layouts/Footer";
 
@@ -12,8 +14,29 @@ export default function CheckoutPage() {
     const location = useLocation();
     const { cart, items, totalPrice } = useCart();
     const { user, isLoggedIn } = useAuth();
+    const { selectedItems, subtotal } = location.state || {};
+    const checkoutItems = selectedItems && selectedItems.length > 0
+        ? selectedItems
+        : items;
+    const checkoutSubtotal =
+        typeof subtotal === "number"
+            ? subtotal
+            : totalPrice;
+    const checkoutState = location.state;
+
+    const skuList = checkoutItems.map(item => item.sku).join(",");
+    const today = new Date()
+        .toLocaleDateString("en-CA");
+    const [vouchers, setVouchers] = useState([]);
+    const [selectedVoucher, setSelectedVoucher] = useState(null);
+    const [showVoucherModal, setShowVoucherModal] = useState(false);
+    const [discountAmount, setDiscountAmount] = useState(0);
+
 
     const [addressId, setAddressId] = useState("");
+    const [addresses, setAddresses] = useState([]);
+    const [selectedAddress, setSelectedAddress] = useState(null);
+    const [showAddressModal, setShowAddressModal] = useState(false);
     const [voucher, setVoucher] = useState("");
     const [orderDesc, setOrderDesc] = useState("");
     const [orderFee, setOrderFee] = useState(30000); // Default shipping fee
@@ -29,10 +52,88 @@ export default function CheckoutPage() {
 
     // Redirect if cart is empty
     useEffect(() => {
-        if (!items || items.length === 0) {
+        if (
+            (!location.state || !location.state.selectedItems) &&
+            (!items || items.length === 0)
+        ) {
             navigate("/cart");
         }
-    }, [items, navigate]);
+    }, [location.state, items, navigate]);
+
+
+    useEffect(() => {
+        const fetchAddresses = async () => {
+            try {
+                const res = await authApi.getMyInfo();
+                if (res.data.code === 200) {
+                    const addrList = res.data.result.address || [];
+                    setAddresses(addrList);
+
+                    if (addrList.length > 0) {
+                        setSelectedAddress(addrList[0]);
+                        setAddressId(addrList[0].id);
+                    }
+                }
+            } catch (err) {
+                console.error("Fetch addresses error:", err);
+            }
+        };
+
+        if (isLoggedIn) {
+            fetchAddresses();
+        }
+    }, [isLoggedIn]);
+
+    useEffect(() => {
+        if (!checkoutItems || checkoutItems.length === 0) return;
+
+        const fetchVouchers = async () => {
+            try {
+                const res = await promotionApi.getVouchers({
+                    skus: checkoutItems.map(i => i.sku).join(","),
+                    totalAmount: checkoutSubtotal,
+                    today,
+                });
+
+                console.log("Voucher API response:", res.data);
+
+                if (res.data.code === 200) {
+                    setVouchers(res.data.result || []);
+                }
+            } catch (err) {
+                console.error("Fetch voucher error:", err);
+            }
+        };
+
+        fetchVouchers();
+    }, [checkoutItems, checkoutSubtotal, today]);
+
+
+    const calculateDiscount = (voucher) => {
+        if (!voucher) return 0;
+
+        let discount = 0;
+
+        if (voucher.discountType === "DISCOUNT_PERCENT") {
+            discount = (checkoutSubtotal * voucher.discountPercent) / 100;
+
+            if (voucher.maxDiscountAmount) {
+                discount = Math.min(discount, voucher.maxDiscountAmount);
+            }
+        }
+
+        if (voucher.discountType === "DISCOUNT_FIXED") {
+            discount = voucher.fixedAmount;
+        }
+
+        return Math.floor(discount);
+    };
+
+    const handleSelectVoucher = (voucher) => {
+        setSelectedVoucher(voucher);
+        setDiscountAmount(calculateDiscount(voucher));
+        setShowVoucherModal(false);
+    };
 
     const formatPrice = (price) => {
         return new Intl.NumberFormat("vi-VN", {
@@ -57,11 +158,11 @@ export default function CheckoutPage() {
                 orderDesc: orderDesc || "Đơn hàng online",
                 orderFee,
                 addressId,
-                voucher: voucher || undefined,
-                items: items.map((item) => ({
+                voucher: selectedVoucher?.voucherCode,
+                items: checkoutItems.map((item) => ({
                     sku: item.sku,
                     quantity: item.quantity,
-                    price: item.price,
+                    price: item.sellPrice || item.price,
                 })),
             };
 
@@ -95,7 +196,7 @@ export default function CheckoutPage() {
         }
     };
 
-    const finalTotal = totalPrice + orderFee;
+    const finalTotal = checkoutSubtotal + orderFee - discountAmount;
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -110,34 +211,154 @@ export default function CheckoutPage() {
                         {/* Shipping Address */}
                         <div className="bg-white rounded-lg shadow p-6">
                             <h2 className="text-lg font-semibold mb-4">Địa chỉ giao hàng</h2>
-                            <div className="space-y-4">
-                                <input
-                                    type="text"
-                                    placeholder="Nhập ID địa chỉ (tạm thời)"
-                                    value={addressId}
-                                    onChange={(e) => setAddressId(e.target.value)}
-                                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                                {/* TODO: Replace with address selector component */}
-                            </div>
+
+                            {selectedAddress ? (
+                                <div className="border rounded-lg p-4 flex justify-between items-center">
+                                    <div>
+                                        <p className="font-semibold">
+                                            {selectedAddress.receiverName} - {selectedAddress.receiverPhone}
+                                        </p>
+                                        <p className="text-sm text-gray-600">
+                                            {selectedAddress.addressLine}, {selectedAddress.street},{" "}
+                                            {selectedAddress.ward}, {selectedAddress.district},{" "}
+                                            {selectedAddress.city}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowAddressModal(true)}
+                                        className="text-blue-600 text-sm hover:underline"
+                                    >
+                                        Thay đổi
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => setShowAddressModal(true)}
+                                    className="w-full border border-dashed border-gray-400 py-3 rounded-lg text-gray-600 hover:bg-gray-50"
+                                >
+                                    + Chọn địa chỉ giao hàng
+                                </button>
+                            )}
                         </div>
+
+                        {showAddressModal && (
+                            <div className="fixed inset-0 bg-white/40 backdrop-blur-md flex items-center justify-center z-50">
+                                <div className="bg-white w-full max-w-lg rounded-lg shadow-lg p-6">
+                                    <h3 className="text-lg font-semibold mb-4">Chọn địa chỉ giao hàng</h3>
+
+                                    <div className="space-y-3 max-h-80 overflow-y-auto">
+                                        {addresses.map((addr) => (
+                                            <div
+                                                key={addr.id}
+                                                onClick={() => {
+                                                    setSelectedAddress(addr);
+                                                    setAddressId(addr.id);
+                                                    setShowAddressModal(false);
+                                                }}
+                                                className={`border rounded-lg p-4 cursor-pointer hover:border-blue-500 ${selectedAddress?.id === addr.id
+                                                    ? "border-blue-500 bg-blue-50"
+                                                    : ""
+                                                    }`}
+                                            >
+                                                <p className="font-semibold">
+                                                    {addr.receiverName} - {addr.receiverPhone}
+                                                </p>
+                                                <p className="text-sm text-gray-600">
+                                                    {addr.addressLine}, {addr.street},{" "}
+                                                    {addr.ward}, {addr.district}, {addr.city}
+                                                </p>
+                                            </div>
+                                        ))}
+
+                                        {addresses.length === 0 && (
+                                            <p className="text-sm text-gray-500 text-center">
+                                                Bạn chưa có địa chỉ nào
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-end gap-2 mt-6">
+                                        <button
+                                            onClick={() => setShowAddressModal(false)}
+                                            className="px-4 py-2 border rounded-lg hover:bg-gray-100"
+                                        >
+                                            Hủy
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
 
                         {/* Voucher */}
                         <div className="bg-white rounded-lg shadow p-6">
                             <h2 className="text-lg font-semibold mb-4">Mã giảm giá</h2>
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    placeholder="Nhập mã voucher"
-                                    value={voucher}
-                                    onChange={(e) => setVoucher(e.target.value)}
-                                    className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                                <button className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900 transition">
-                                    Áp dụng
+
+                            {selectedVoucher ? (
+                                <div className="border rounded-lg p-4 flex justify-between items-center">
+                                    <div>
+                                        <p className="font-semibold">{selectedVoucher.name}</p>
+                                        <p className="text-sm text-gray-600">
+                                            Mã: {selectedVoucher.voucherCode}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowVoucherModal(true)}
+                                        className="text-blue-600 text-sm hover:underline"
+                                    >
+                                        Thay đổi
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => setShowVoucherModal(true)}
+                                    className="w-full border border-dashed border-gray-400 py-3 rounded-lg text-gray-600"
+                                >
+                                    + Chọn voucher
                                 </button>
-                            </div>
+                            )}
                         </div>
+
+                        {showVoucherModal && (
+                            <div className="fixed inset-0 bg-white/40 backdrop-blur-md flex items-center justify-center z-50">
+                                <div className="bg-white w-full max-w-lg rounded-lg shadow-lg p-6">
+                                    <h3 className="text-lg font-semibold mb-4">Chọn voucher</h3>
+
+                                    <div className="space-y-3 max-h-80 overflow-y-auto">
+                                        {vouchers.map(v => (
+                                            <div
+                                                key={v.id}
+                                                onClick={() => handleSelectVoucher(v)}
+                                                className={`border rounded-lg p-4 cursor-pointer hover:border-blue-500
+              ${selectedVoucher?.id === v.id ? "border-blue-500 bg-blue-50" : ""}`}
+                                            >
+                                                <p className="font-semibold">{v.name}</p>
+                                                <p className="text-sm text-gray-600">{v.descriptions}</p>
+                                                <p className="text-sm text-red-600">
+                                                    Giảm {v.discountPercent}% (tối đa {formatPrice(v.maxDiscountAmount)})
+                                                </p>
+                                            </div>
+                                        ))}
+
+                                        {vouchers.length === 0 && (
+                                            <p className="text-center text-gray-500 text-sm">
+                                                Không có voucher phù hợp
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-end mt-4">
+                                        <button
+                                            onClick={() => setShowVoucherModal(false)}
+                                            className="px-4 py-2 border rounded-lg"
+                                        >
+                                            Đóng
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
 
                         {/* Order Note */}
                         <div className="bg-white rounded-lg shadow p-6">
@@ -158,12 +379,16 @@ export default function CheckoutPage() {
 
                             {/* Items */}
                             <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
-                                {items.map((item, idx) => (
+                                {checkoutItems.map((item, idx) => (
                                     <div key={idx} className="flex justify-between text-sm">
                                         <span className="text-gray-600">
-                                            {item.productName || item.sku} x{item.quantity}
+                                            {item.productName || item.variantName || item.sku} x{item.quantity}
                                         </span>
-                                        <span>{formatPrice(item.price * item.quantity)}</span>
+                                        <span>
+                                            {formatPrice(
+                                                (item.sellPrice || item.price) * item.quantity
+                                            )}
+                                        </span>
                                     </div>
                                 ))}
                             </div>
@@ -173,7 +398,7 @@ export default function CheckoutPage() {
                             {/* Subtotal */}
                             <div className="flex justify-between mb-2">
                                 <span className="text-gray-600">Tạm tính</span>
-                                <span>{formatPrice(totalPrice)}</span>
+                                <span>{formatPrice(checkoutSubtotal)}</span>
                             </div>
 
                             {/* Shipping */}
@@ -181,6 +406,13 @@ export default function CheckoutPage() {
                                 <span className="text-gray-600">Phí vận chuyển</span>
                                 <span>{formatPrice(orderFee)}</span>
                             </div>
+
+                            {selectedVoucher && (
+                                <div className="flex justify-between mb-2 text-green-600">
+                                    <span>Giảm giá</span>
+                                    <span>-{formatPrice(discountAmount)}</span>
+                                </div>
+                            )}
 
                             <hr className="my-4" />
 
