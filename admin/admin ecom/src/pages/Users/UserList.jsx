@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import Pagination from "@mui/material/Pagination";
+import PaginationComponent from "../../components/common/PaginationComponent";
 import Boxes from "../../components/common/Boxes";
 import axios from "axios";
 import {
@@ -31,12 +31,18 @@ export default function UserList() {
   const inputSearchRef = useRef(null);
   const token = localStorage.getItem("token"); // lấy token nếu cần
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   //api
   const fetchUsers = async () => {
     const res = await axios.get("/api/v1/user-service/users/admin/get-all", {
       headers: {
         Authorization: token ? `Bearer ${token}` : "",
+      },
+      params: {
+        page: page, // API likely 1-indexed based on "Page index must not be less than zero" when sending 0
+        size: pageSize,
       },
     });
 
@@ -61,15 +67,19 @@ export default function UserList() {
     isError: isErrorUsers,
     error: errorUsers,
   } = useQuery({
-    queryKey: ["users"],
+    queryKey: ["users", page],
     queryFn: fetchUsers,
+    keepPreviousData: true,
     refetchOnMount: "always",
   });
 
   // Khi có dữ liệu:
   const users = data?.data || [];
-  const totalUsers = data?.totalElements || 0;
   const totalPage = data?.totalPage || 1;
+
+  const handlePageChange = (event, value) => {
+    setPage(value);
+  };
 
   const deleteMutation = useMutation({
     mutationFn: deleteUser,
@@ -246,7 +256,7 @@ export default function UserList() {
                 </TableHead>
                 <TableBody>
                   {users.map((user) => (
-                    <TableRow>
+                    <TableRow key={user.id}>
                       <TableCell>{user.username}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell align="center">
@@ -257,7 +267,7 @@ export default function UserList() {
                             <IoEye />
                           </IconButton>
                         </Link>
-                        <IconButton size="small">
+                        <IconButton size="small" onClick={() => handleDeleteClick(user.id)}>
                           <MdDelete />
                         </IconButton>
                       </TableCell>
@@ -267,17 +277,11 @@ export default function UserList() {
               </Table>
             </TableContainer>
 
-            <div className="flex justify-center pb-[20px] pt-[30px]">
-              <Pagination
-                count={10}
-                sx={{
-                  "& .MuiPaginationItem-root.Mui-selected": {
-                    background: "linear-gradient(to right, #4a2fcf, #6440F5)",
-                    color: "#fff",
-                  },
-                }}
-              />
-            </div>
+            <PaginationComponent
+              count={totalPage}
+              page={page}
+              onChange={handlePageChange}
+            />
           </div>
         </div>
       </div>

@@ -14,6 +14,7 @@ const CommentSection = ({ productId }) => {
     const [content, setContent] = useState("");
     const [editingCommentId, setEditingCommentId] = useState(null);
     const [editContent, setEditContent] = useState("");
+
     const [replyingToId, setReplyingToId] = useState(null);
     const [replyContent, setReplyContent] = useState("");
     const [expandedComments, setExpandedComments] = useState({}); // State để quản lý thu gọn
@@ -38,12 +39,38 @@ const CommentSection = ({ productId }) => {
         }));
     };
 
+
+    // Push image mutation
+    const pushImageMutation = useMutation({
+        mutationFn: commentApi.pushImageComment,
+        onError: (error) => {
+            console.error("Push image error:", error);
+        }
+    });
+
     // Create comment mutation
     const createMutation = useMutation({
         mutationFn: commentApi.createComment,
-        onSuccess: () => {
+        onSuccess: async (data, variables) => {
+            // Push image if exists (using user.avatarUrl)
+            const userAvatar = user?.avatarUrl;
+            if (userAvatar) {
+                const newCommentId = data?.data?.result?.id;
+                if (newCommentId) {
+                    try {
+                        await pushImageMutation.mutateAsync({
+                            commentId: newCommentId,
+                            imageUrl: userAvatar
+                        });
+                    } catch (err) {
+                        console.error("Failed to push image", err);
+                        // toast.error("Gửi ảnh thất bại"); // Optional: suppress error or show
+                    }
+                }
+            }
             queryClient.invalidateQueries({ queryKey: ["comments", productId] });
             setContent("");
+
             toast.success("Gửi câu hỏi thành công!");
         },
         onError: (error) => {
@@ -54,10 +81,23 @@ const CommentSection = ({ productId }) => {
     // Update comment mutation
     const updateMutation = useMutation({
         mutationFn: commentApi.updateComment,
-        onSuccess: () => {
+        onSuccess: async (data, variables) => {
+            const userAvatar = user?.avatarUrl;
+            if (userAvatar) {
+                try {
+                    await pushImageMutation.mutateAsync({
+                        commentId: variables.id,
+                        imageUrl: userAvatar
+                    });
+                } catch (err) {
+                    console.error("Failed to push image update", err);
+                    // toast.error("Cập nhật ảnh thất bại");
+                }
+            }
             queryClient.invalidateQueries({ queryKey: ["comments", productId] });
             setEditingCommentId(null);
             setEditContent("");
+
             toast.success("Cập nhật thành công!");
         },
         onError: (error) => {
@@ -127,11 +167,13 @@ const CommentSection = ({ productId }) => {
     const handleEditClick = (comment) => {
         setEditingCommentId(comment.id);
         setEditContent(comment.content);
+
     };
 
     const handleCancelEdit = () => {
         setEditingCommentId(null);
         setEditContent("");
+
     };
 
     const handleSaveEdit = (commentId) => {
@@ -194,6 +236,7 @@ const CommentSection = ({ productId }) => {
                                 className: "!rounded-lg !pr-32"
                             }}
                         />
+
                         <div className="absolute bottom-3 right-3">
                             <Button
                                 type="submit"
@@ -271,6 +314,7 @@ const CommentSection = ({ productId }) => {
                                                         value={editContent}
                                                         onChange={(e) => setEditContent(e.target.value)}
                                                     />
+
                                                     <div className="flex gap-2 mt-2 justify-end">
                                                         <Button
                                                             size="small"

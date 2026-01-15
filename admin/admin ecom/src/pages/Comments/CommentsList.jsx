@@ -5,13 +5,12 @@ import CommentModal from '../../components/Comments/CommentModal';
 import AlertContext from '../../context/AlertContext';
 import './CommentsList.css';
 
-const CommentsList = () => {
+const CommentsList = ({ productId }) => {
   const { showAlert } = useContext(AlertContext);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedComment, setSelectedComment] = useState(null);
-  const [productId, setProductId] = useState('');
   const [pagination, setPagination] = useState({
     page: 1,
     size: 10,
@@ -27,8 +26,7 @@ const CommentsList = () => {
   }, [productId, pagination.page]);
 
   const fetchComments = async () => {
-    if (!productId.trim()) {
-      showAlert('Please enter a product ID', 'warning');
+    if (!productId) {
       return;
     }
 
@@ -47,7 +45,7 @@ const CommentsList = () => {
           totalPage: response.data.result.totalPage,
           totalElements: response.data.result.totalElements
         }));
-        showAlert('Comments loaded successfully', 'success');
+        // showAlert('Comments loaded successfully', 'success');
       }
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -132,32 +130,19 @@ const CommentsList = () => {
     setPagination(prev => ({ ...prev, page: newPage }));
   };
 
-  const handleSearch = () => {
-    setPagination(prev => ({ ...prev, page: 1 }));
-    fetchComments();
-  };
+  // handleSearch removed
 
   return (
     <div className="comments-list-container">
+      {/* 
       <div className="page-header">
         <h1>Comment Management</h1>
         <p>Manage user comments on your products</p>
       </div>
+      */}
 
       <div className="search-filter-section">
-        <div className="search-group">
-          <input
-            type="text"
-            placeholder="Enter Product ID..."
-            value={productId}
-            onChange={(e) => setProductId(e.target.value)}
-            className="search-input"
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-          />
-          <button className="btn-search" onClick={handleSearch} disabled={loading}>
-            {loading ? 'Loading...' : 'Search'}
-          </button>
-        </div>
+        {/* Search group removed */}
 
         {productId && (
           <button className="btn-add-comment" onClick={handleAddComment} disabled={loading}>
@@ -166,9 +151,9 @@ const CommentsList = () => {
         )}
 
         {comments.length > 0 && (
-          <button 
-            className="btn-delete-all" 
-            onClick={handleDeleteAllComments} 
+          <button
+            className="btn-delete-all"
+            onClick={handleDeleteAllComments}
             disabled={loading}
           >
             Delete All

@@ -34,7 +34,13 @@ export const commentApi = {
         return api.delete('rating-service/comment/delete/product', {
             params: { ProductId: productId }
         });
-    }
+    },
+
+    //Push image comment 
+    pushImageComment: (data) => {
+        return api.put('rating-service/comment/image?id=' + data.commentId + '&imageUrl=' + data.imageUrl);
+    },
+
 };
 
 export default commentApi;
