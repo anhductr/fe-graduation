@@ -12,6 +12,7 @@ import CateUpload from "./pages/Categories/CateUpload.jsx";
 
 import ProductEdit from './pages/Products/ProductEdit.jsx';
 import UserList from './pages/Users/UserList.jsx';
+import UserProfile from './pages/Users/UserProfile.jsx';
 import InventoryList from './pages/Inventory/InventoryList.jsx'
 import AddStock from './pages/Inventory/AddStock.jsx'
 import PromotionList from './pages/Promotions/PromotionList.jsx'
@@ -22,6 +23,7 @@ import BrandUpload from './pages/Brands/BrandUpload.jsx'
 import BrandEdit from './pages/Brands/BrandEdit.jsx'
 import ContentList from './pages/Content/ContentList.jsx'
 import ContentUpload from './pages/Content/ContentUpload.jsx'
+import ReviewsIndex from './pages/Reviews/ReviewsIndex.jsx'
 import ProtectedRoute from './components/common/ProtectedRoute.jsx'
 
 function App() {
@@ -92,6 +94,19 @@ function App() {
                 transition={{ duration: 0.3 }}
               >
                 <UserList />
+              </motion.div>
+            }
+          />
+          <Route
+            path="users-view/:id"
+            element={
+              <motion.div
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                transition={{ duration: 0.3 }}
+              >
+                <UserProfile />
               </motion.div>
             }
           />
@@ -340,6 +355,23 @@ function App() {
                 transition={{ duration: 0.3 }}
               >
                 <ContentUpload />
+              </motion.div>
+            }
+          />
+        </Route>
+
+        {/* Reviews (Ratings & Comments) */}
+        <Route path="/reviews" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+          <Route
+            index
+            element={
+              <motion.div
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ReviewsIndex />
               </motion.div>
             }
           />

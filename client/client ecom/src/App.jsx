@@ -14,12 +14,18 @@ import CheckoutPage from "./pages/CheckoutPage";
 import PaymentResultPage from "./pages/PaymentResultPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import LoginForm from "./components/auth/LogInForm";
+import RegistrationForm from "./components/auth/RegistrationForm";
+import ScrollToTop from "./components/utils/ScrollToTop";
 import { CartProvider } from "./context/CartContext";
 import AddressManager from "./pages/AddressPage";
 import Chatbot from "./components/Chatbot/Chatbot";
 
+import "react-toastify/dist/ReactToastify.css";
+import { ToastContainer } from "react-toastify";
+
 function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,6 +42,7 @@ function App() {
 
   return (
     <CartProvider>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<Home />}></Route>
         <Route path="/login" element={<LoginPage />}></Route>
@@ -74,11 +81,22 @@ function App() {
         isModal={true}
         onSwitchToRegister={() => {
           setIsLoginModalOpen(false);
-          navigate("/signup");
+          setIsRegisterModalOpen(true);
         }}
       />
 
       <Chatbot />
+      <ToastContainer position="top-right" autoClose={3000} />
+
+      <RegistrationForm
+        isOpen={isRegisterModalOpen}
+        onClose={() => setIsRegisterModalOpen(false)}
+        isModal={true}
+        onSwitchToLogin={() => {
+          setIsRegisterModalOpen(false);
+          setIsLoginModalOpen(true);
+        }}
+      />
     </CartProvider>
   );
 }

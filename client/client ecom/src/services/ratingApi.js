@@ -38,11 +38,20 @@ export const getRatingSummary = async (productId) => {
     return response.data;
 };
 
+export const deleteRating = async (id) => {
+    // DELETE /delete
+    const response = await api.delete(`${RATING_URL_PREFIX}/delete`, {
+        params: { id }
+    });
+    return response.data;
+};
+
 export const ratingApi = {
     createRating,
     updateRating,
     getRatingsByFilter,
-    getRatingSummary
+    getRatingSummary,
+    deleteRating
 };
 
 export default ratingApi;

@@ -14,8 +14,8 @@ export default function OrderPage() {
         { label: "Tất cả", status: undefined },
         { label: "Chờ thanh toán", status: "PENDING" },
         { label: "Đang xử lý", status: "PROCESSING" },
+        { label: "Đang giao hàng", status: "DELIVERED" },
         { label: "Hoàn tất", status: "COMPLETED" },
-        { label: "Đã giao", status: "DELIVERED" },
         { label: "Đã hủy", status: "CANCELLED" },
         { label: "Hoàn tiền", status: "REFUNDED" },
         { label: "Trả hàng", status: "RETURNED" },
@@ -30,17 +30,12 @@ export default function OrderPage() {
                 page: 1,
                 size: 20,
             };
-
             if (currentTab?.status) {
                 params.status = currentTab.status;
             }
-
             console.log("Call get-my-order with params:", params);
-
             const res = await orderApi.getMyOrders(params);
-
             console.log("API response:", res.data);
-
             return res.data.result;
         },
     });
@@ -77,12 +72,11 @@ export default function OrderPage() {
         RETURNED: "bg-orange-100 text-orange-800",
     }[status] || "bg-gray-100 text-gray-800");
 
-
     const getStatusLabel = (status) => ({
         PENDING: "Chờ thanh toán",
         PROCESSING: "Đang xử lý",
         COMPLETED: "Hoàn tất",
-        DELIVERED: "Đã giao",
+        DELIVERED: "Đang giao hàng",
         CANCELLED: "Đã hủy",
         REFUNDED: "Hoàn tiền",
         RETURNED: "Trả hàng",
@@ -164,7 +158,6 @@ export default function OrderPage() {
                                     </span>
                                 </div>
 
-                                {/* Items preview */}
                                 <div className="space-y-2 mb-3">
                                     {order.items?.slice(0, 2).map((item, idx) => (
                                         <div key={idx} className="flex items-center gap-3">

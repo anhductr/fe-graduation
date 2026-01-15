@@ -101,12 +101,6 @@ function Navbar() {
     right: 3px;
   }
 `;
-  useEffect(() => {
-    console.log("user: ", user)
-  }, [user])
-
-
-
 
   const { currentKeyword, setCurrentKeyword } = useSearchKeyword();
   const [inputValue, setInputValue] = useState(currentKeyword);
@@ -361,17 +355,13 @@ function Navbar() {
                 <button
                   type="button"
                   aria-label="User profile"
-                  className="relative rounded-full bg-white/20 p-2"
+                  className="relative rounded-full bg-white/20 p-2 cursor-pointer"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-7 w-7 text-white"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle cx="12" cy="7" r="5" />
-                    <path d="M4 20c0-4 7-4 8-4s8 0 8 4v1H4v-1z" />
-                  </svg>
+                  {user?.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover border" />
+                  ) : (
+                    <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="" className="w-10 h-10 rounded-full object-cover border" />
+                  )}
                   <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-orange-400 ring-2 ring-red-600"></span>
                 </button>
 
@@ -388,25 +378,25 @@ function Navbar() {
                       {isLoggedIn ? (
                         <>
                           <button onClick={goToProfile}>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 cursor-pointer">
                               <LuUserRound />
                               <span>Thông tin cá nhân</span>
                             </div>
                           </button>
                           <button onClick={goToOrder}>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 cursor-pointer">
                               <BsBoxSeam />
                               <span>Đơn hàng của tôi</span>
                             </div>
                           </button>
                           <button onClick={goToAddress}>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 cursor-pointer">
                               <BsBoxSeam />
                               <span>Địa chỉ</span>
                             </div>
                           </button>
                           <button onClick={logout}>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 cursor-pointer">
                               <MdLogout />
                               <span>Đăng xuất</span>
                             </div>
@@ -469,7 +459,7 @@ function Navbar() {
           <>
             {/* Backdrop */}
             <div
-              className="fixed inset-0 z-20 backdrop-blur-md bg-white/20 transition-all duration-300"
+              className="fixed inset-0 z-20 backdrop-blur-sm bg-white/20 transition-all duration-300"
             ></div>
           </>
         )

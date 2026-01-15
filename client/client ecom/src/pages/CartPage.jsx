@@ -112,10 +112,8 @@ export default function CartPage() {
   return (
     <div className="component-container">
       <Navbar />
-
       <div className="min-h-screen bg-gray-100 px-15">
         <Breadcrumbs pagename="Giỏ Hàng" product={null} />
-
         {items.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-lg shadow mt-4">
             <p className="text-xl text-gray-500 mb-4">Giỏ hàng của bạn đang trống</p>
@@ -173,24 +171,37 @@ export default function CartPage() {
                     />
 
                     <div className="flex-1">
-                      <p className="font-semibold">{item.variantName}</p>
-                      <p className="text-xs text-gray-500">SKU: {item.sku}</p>
+                      <h3 className="text-black font-semibold text-sm leading-tight">
+                        {item.variantName}
+                      </h3>
+                      {/* <p className="text-xs text-gray-500 mt-1">SKU: {item.sku}</p> */}
+
                     </div>
 
                     <div className="text-red-600 font-semibold">
                       {formatPrice(item.sellPrice)}
                     </div>
 
-                    <div className="flex items-center border rounded">
+
+                    <div className="flex flex-shrink-0 items-center space-x-2 border border-gray-400 rounded-[5px] overflow-hidden">
                       <button
                         onClick={() => decreaseQty(item)}
+                        className="px-3 py-1 bg-white hover:bg-gray-100 border-r border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={item.quantity <= 1}
-                        className="px-3"
                       >
                         -
                       </button>
-                      <span className="px-3">{item.quantity}</span>
-                      <button onClick={() => increaseQty(item)} className="px-3">
+
+                      <div className="w-12 h-full flex items-center justify-center">
+                        <span className="text-sm font-medium leading-none">
+                          {item.quantity}
+                        </span>
+                      </div>
+                      <button
+                        aria-label="Tăng số lượng"
+                        onClick={() => increaseQty(item)}
+                        className="px-3 py-1 bg-white hover:bg-gray-100 border-l border-gray-300"
+                      >
                         +
                       </button>
                     </div>
@@ -294,4 +305,5 @@ export default function CartPage() {
       <Footer />
     </div>
   );
-}
+};
+

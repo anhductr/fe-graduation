@@ -12,7 +12,7 @@ import Footer from "../layouts/Footer";
 export default function CheckoutPage() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { cart, items, totalPrice } = useCart();
+    const { cart, items: cartItems, totalPrice: cartTotalPrice } = useCart();
     const { user, isLoggedIn } = useAuth();
     const {
         source,
@@ -40,6 +40,10 @@ export default function CheckoutPage() {
     const [showVoucherModal, setShowVoucherModal] = useState(false);
     const [discountAmount, setDiscountAmount] = useState(0);
 
+    // Use selected items from state if available, otherwise fallback to all cart items
+    const items = location.state?.selectedItems || cartItems;
+    // Calculate total price based on the actual items being purchased
+    const totalPrice = items.reduce((sum, item) => sum + (item.sellPrice * item.quantity), 0);
 
     const [addressId, setAddressId] = useState("");
     const [addresses, setAddresses] = useState([]);
@@ -410,6 +414,7 @@ export default function CheckoutPage() {
                                                 (item.sellPrice || item.price) * item.quantity
                                             )}
                                         </span>
+                                        <span>{formatPrice(item.sellPrice * item.quantity)}</span>
                                     </div>
                                 ))}
                             </div>

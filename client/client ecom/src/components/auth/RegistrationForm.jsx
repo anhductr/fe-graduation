@@ -13,7 +13,7 @@ const RegistrationForm = ({ isOpen, onClose, onSwitchToLogin, isModal = true }) 
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [dob, setDob] = useState("");
-  // const [gender, setGender] = useState(""); // Not in API spec
+  const [sex, setSex] = useState("");
   const [error, setError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -25,6 +25,7 @@ const RegistrationForm = ({ isOpen, onClose, onSwitchToLogin, isModal = true }) 
         lastName,
         username,
         password,
+        sex,
         email,
         phone,
         dob,
@@ -102,6 +103,36 @@ const RegistrationForm = ({ isOpen, onClose, onSwitchToLogin, isModal = true }) 
           <div className="flex gap-4">
             <input type="date" placeholder="Ngày sinh" className="input-field" onChange={(e) => setDob(e.target.value)} />
           </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm text-gray-700 font-medium">
+              Giới tính
+            </label>
+
+            <div className="flex gap-8">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="sex"
+                  value="Nam"
+                  checked={sex === "Nam"}
+                  onChange={(e) => setSex(e.target.value)}
+                  required
+                />
+                Nam
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="sex"
+                  value="Nữ"
+                  checked={sex === "Nữ"}
+                  onChange={(e) => setSex(e.target.value)}
+                />
+                Nữ
+              </label>
+            </div>
+          </div>
 
           <div className="relative">
             <input
@@ -146,7 +177,7 @@ const RegistrationForm = ({ isOpen, onClose, onSwitchToLogin, isModal = true }) 
           <hr className="flex-grow border-t border-gray-300" />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        {/* <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
             className="flex items-center justify-center gap-2 bg-[#dd4b39] hover:bg-[#c43d2f] text-white font-semibold text-sm py-3 rounded-md"
@@ -161,7 +192,7 @@ const RegistrationForm = ({ isOpen, onClose, onSwitchToLogin, isModal = true }) 
             <i className="fab fa-facebook-f text-lg"></i>
             <span>Facebook</span>
           </button>
-        </div>
+        </div> */}
 
         <p className="mt-6 text-center text-gray-700 text-sm">
           Bạn đã có tài khoản?{" "}
