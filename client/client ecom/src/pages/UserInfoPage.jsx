@@ -4,6 +4,7 @@ import { FaLeaf } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import { authApi } from "../services/authApi";
 import { api } from "../libs/axios";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function UserInfoPage() {
     const { user, isUserLoading } = useAuth();
@@ -81,37 +82,42 @@ export default function UserInfoPage() {
             return;
         }
 
-        // preview ngay
         setPreviewAvatar(URL.createObjectURL(file));
         setAvatarFile(file);
 
-        // upload lên media-service
         try {
             setUploading(true);
 
             const formData = new FormData();
-            formData.append("multipartFile", file);
+            formData.append("avatarFile", file);
 
             const res = await api.post(
                 "/media-service/media/user/avatar",
-                formData,
-                {
-                    headers: { "Content-Type": "multipart/form-data" }
-                }
+                formData
             );
 
-            console.log("resurl: ", res)
-            setAvatarUrl(res.data.url);
+            console.log("Upload avatar response:", res.data.result?.url);
+            setAvatarUrl(res.data.result?.url);
+
         } catch (err) {
-            console.error(err);
+            console.error(
+                "Upload avatar error:",
+                err.response?.data || err
+            );
             alert("Upload ảnh thất bại");
         } finally {
             setUploading(false);
         }
     }
 
+    const queryClient = useQueryClient();
 
     async function handleUpdateProfile() {
+        const pad = (n) => String(n).padStart(2, "0");
+        const dob =
+            year && month && day
+                ? `${year}-${pad(month)}-${pad(day)}`
+                : null;
         const payload = {
             username,
             email,
@@ -119,12 +125,12 @@ export default function UserInfoPage() {
             lastName,
             phone,
             sex,
-            dob: `${year}-${month}-${day}`,
+            dob,
             avatarUrl: avatarUrl || user.avatarUrl
         };
         console.log("payload: ", payload)
         await api.put("/profile-service/profile", payload);
-
+        queryClient.invalidateQueries({ queryKey: ["user"] });
         setUpdateInfo(false);
     }
 
@@ -270,11 +276,11 @@ export default function UserInfoPage() {
                                 <div className="w-[40%] flex gap-4">
                                     <div className="flex flex-col gap-1 flex-1">
                                         <span>Họ</span>
-                                        <input type="text" placeholder="Họ" className="input-field" onChange={(e) => setLastName(e.target.value)} required />
+                                        <input type="text" placeholder="Họ" className="input-field" onChange={(e) => setFirstName(e.target.value)} required />
                                     </div>
                                     <div className="flex flex-col gap-1 flex-1">
                                         <span>Tên</span>
-                                        <input type="text" placeholder="Tên" className="input-field" onChange={(e) => setFirstName(e.target.value)} required />
+                                        <input type="text" placeholder="Tên" className="input-field" onChange={(e) => setLastName(e.target.value)} required />
                                     </div>
                                 </div>
                                 <div className="w-[40%] flex flex-col gap-1">
