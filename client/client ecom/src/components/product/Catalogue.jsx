@@ -28,7 +28,7 @@ const Catalogue = () => {
 
             const catNameLower = res.result.name.toLowerCase();
 
-            if (type === 'phone') {
+            if (type === 'Điện thoại') {
               // Loại bỏ các category rõ ràng là laptop/tablet
               if (
                 catNameLower.includes("macbook") ||
@@ -113,7 +113,7 @@ const Catalogue = () => {
     };
 
     // Fetch dữ liệu cho cả Điện thoại và Laptop
-    fetchCatalogueData('phone').then((data) => setPhoneData(data || []));
+    fetchCatalogueData('Điện thoại').then((data) => setPhoneData(data || []));
     fetchCatalogueData('laptop').then((data) => setLaptopData(data || []));
   }, []);
 
