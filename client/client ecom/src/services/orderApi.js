@@ -6,6 +6,9 @@ export const orderApi = {
     // Create a new order
     createOrder: (data) => api.post(`${API_URL}/order/create`, data),
 
+    rePayment: (data) =>
+        api.post(`${API_URL}/order/rePayment`, data),
+
     // Get order by ID
     getOrder: (orderId) => api.get(`${API_URL}/order`, { params: { orderId } }),
 

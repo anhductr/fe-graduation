@@ -91,8 +91,13 @@ export default function CartPage() {
   );
 
   const handleCheckout = () => {
-    if (selectedItems.length === 0) return;
-    navigate('/checkout', { state: { selectedItems } });
+    navigate("/checkout", {
+      state: {
+        source: "cart",
+        selectedItems,
+        subtotal: selectedTotal,
+      },
+    });
   };
 
 
