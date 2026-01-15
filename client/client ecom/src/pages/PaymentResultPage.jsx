@@ -159,7 +159,6 @@ export default function PaymentResultPage() {
                     )}
                 </div>
             </div>
-
             <Footer />
         </div>
     );

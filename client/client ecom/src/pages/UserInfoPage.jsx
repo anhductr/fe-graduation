@@ -4,11 +4,7 @@ import { FaLeaf } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import { authApi } from "../services/authApi";
 import { api } from "../libs/axios";
-<<<<<<< HEAD
 import { useQueryClient } from "@tanstack/react-query";
-=======
-import { toast } from 'react-toastify';
->>>>>>> 332e1d45265e7b17963f7d4d8c6d53e993f5b701
 
 export default function UserInfoPage() {
     const { user, isUserLoading } = useAuth();
