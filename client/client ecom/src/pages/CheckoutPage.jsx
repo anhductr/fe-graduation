@@ -14,14 +14,20 @@ export default function CheckoutPage() {
     const location = useLocation();
     const { cart, items, totalPrice } = useCart();
     const { user, isLoggedIn } = useAuth();
-    const { selectedItems, subtotal } = location.state || {};
-    const checkoutItems = selectedItems && selectedItems.length > 0
-        ? selectedItems
-        : items;
-    const checkoutSubtotal =
-        typeof subtotal === "number"
-            ? subtotal
-            : totalPrice;
+    const {
+        source,
+        selectedItems,
+        items: orderItems,
+        subtotal,
+        orderId,
+        orderDesc: initOrderDesc,
+        orderFee: initOrderFee,
+    } = location.state || {};
+
+    const checkoutItems =
+        source === "cart" ? selectedItems : orderItems;
+
+    const checkoutSubtotal = subtotal || 0;
     const checkoutState = location.state;
 
     const skuList = checkoutItems.map(item => item.sku).join(",");
@@ -42,6 +48,7 @@ export default function CheckoutPage() {
     const [orderFee, setOrderFee] = useState(30000); // Default shipping fee
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
     const [error, setError] = useState(null);
+
 
     // Redirect if not logged in
     useEffect(() => {
@@ -152,64 +159,68 @@ export default function CheckoutPage() {
         return match ? match[1] : null;
     };
 
+    const handleCheckoutFromCart = async () => {
+        const payload = {
+            orderDesc,
+            orderFee,
+            addressId,
+            paymentMethod: "VNPAY",
+            voucher: selectedVoucher?.voucherCode || null,
+            items: checkoutItems.map(item => ({
+                sku: item.sku,
+                quantity: String(item.quantity),
+                listPrice: item.listPrice,
+                sellPrice: item.sellPrice,
+            })),
+        };
+
+        const res = await orderApi.createOrder(payload);
+
+        const raw = res.data.result.paymentUrl;
+        const url = extractVnpayUrl(raw);
+
+        window.open(url, "_blank");
+    };
+
+    const handleCheckoutFromOrder = async () => {
+        const payload = {
+            orderId,
+            orderDesc,
+            orderFee,
+            addressId,
+            totalPrice: checkoutSubtotal,
+            paymentMethod: "VNPAY",
+            items: checkoutItems.map(item => ({
+                sku: item.sku,
+                quantity: String(item.quantity),
+                listPrice: item.listPrice,
+                sellPrice: item.sellPrice,
+            })),
+        };
+
+        const res = await orderApi.rePayment(payload);
+
+        const raw =
+            res.data.result.paymentUrl.body.result.body.paymentUrl;
+
+        window.open(raw, "_blank");
+    };
 
     const handleCheckout = async () => {
-        const addressId = localStorage.getItem("checkout_address_id");
-
         if (!addressId) {
             setError("Vui lòng chọn địa chỉ giao hàng");
             return;
         }
 
-        setIsCreatingOrder(true);
-        setError(null);
+        if (source === "cart") {
+            await handleCheckoutFromCart();
+        }
 
-        try {
-            const payload = {
-                orderDesc: orderDesc || "",
-                orderFee, 
-                addressId,
-                paymentMethod: "VNPAY",
-                voucher: selectedVoucher ? selectedVoucher.voucherCode : null,
-                items: checkoutItems.map((item) => ({
-                    sku: item.sku,
-                    quantity: String(item.quantity),    
-                    listPrice: item.listPrice,
-                    sellPrice: item.sellPrice,
-                })),
-            };
-
-            console.log("Order create payload:", payload);
-
-            const res = await orderApi.createOrder(payload);
-
-            if (res.data.code !== 200) {
-                throw new Error(res.data.message || "Tạo đơn hàng thất bại");
-            }
-
-            const rawPaymentUrl = res.data.result.paymentUrl;
-
-            const vnpayUrl = extractVnpayUrl(rawPaymentUrl);
-
-            if (!vnpayUrl) {
-                throw new Error("Không lấy được VNPay paymentUrl");
-            }
-
-            console.log("VNPay URL:", vnpayUrl);
-
-            window.open(vnpayUrl, "_blank");
-
-        } catch (err) {
-            console.error("Checkout error:", err);
-            setError(
-                err.response?.data?.message ||
-                err.message ||
-                "Lỗi xảy ra khi thanh toán"
-            );
-        } finally {
-            setIsCreatingOrder(false);
+        if (source === "order") {
+            await handleCheckoutFromOrder();
         }
     };
+
 
     const finalTotal = checkoutSubtotal + orderFee - discountAmount;
 

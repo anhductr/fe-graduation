@@ -93,6 +93,7 @@ export default function CartPage() {
   const handleCheckout = () => {
     navigate("/checkout", {
       state: {
+        source: "cart",
         selectedItems,
         subtotal: selectedTotal,
       },
