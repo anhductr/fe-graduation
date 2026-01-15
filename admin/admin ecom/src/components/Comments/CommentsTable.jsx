@@ -56,9 +56,9 @@ const CommentsTable = ({ comments, onEdit, onDelete, onReply, loading }) => {
         {/* Header của comment */}
         <div className="comment-header">
           <div className="comment-user">
-            {comment.avatarUrl ? (
+            {comment.imageUrl ? (
               <img
-                src={comment.avatarUrl}
+                src={comment.imageUrl}
                 alt={comment.firstName}
                 className={`comment-avatar ${isAdmin ? 'admin-avatar' : ''}`}
               />

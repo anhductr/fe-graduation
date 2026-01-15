@@ -69,7 +69,6 @@ export default function UserInfoPage() {
 
     useEffect(() => {
         if (user) {
-            console.log("checkavt: ", user)
             setUsername(user.username || "");
             setEmail(user.email || "");
             setFirstName(user.firstName || "");
