@@ -3,15 +3,15 @@ import RatingService from '../../services/RatingService';
 import RatingsTable from '../../components/Ratings/RatingsTable';
 import RatingModal from '../../components/Ratings/RatingModal';
 import AlertContext from '../../context/AlertContext';
+import Pagination from '../../components/common/Pagination';
 import './RatingsList.css';
 
-const RatingsList = () => {
+const RatingsList = ({ productId }) => {
   const { showAlert } = useContext(AlertContext);
   const [ratings, setRatings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedRating, setSelectedRating] = useState(null);
-  const [productId, setProductId] = useState('');
   const [filterType, setFilterType] = useState('ALL');
   const [pagination, setPagination] = useState({
     page: 1,
@@ -22,25 +22,27 @@ const RatingsList = () => {
 
   // Fetch ratings on mount and when filters change
   useEffect(() => {
-    if (productId) {
-      fetchRatings();
-    }
+    fetchRatings();
   }, [productId, filterType, pagination.page]);
 
   const fetchRatings = async () => {
-    if (!productId.trim()) {
-      showAlert('Please enter a product ID', 'warning');
-      return;
-    }
-
     try {
       setLoading(true);
-      const response = await RatingService.getAllRatingsFiltered(
-        productId,
-        pagination.page,
-        pagination.size,
-        filterType
-      );
+      let response;
+
+      if (productId && productId.trim()) {
+        response = await RatingService.getAllRatingsFiltered(
+          productId,
+          pagination.page,
+          pagination.size,
+          filterType
+        );
+      } else {
+        response = await RatingService.getAllRatings(
+          pagination.page,
+          pagination.size
+        );
+      }
 
       if (response.data && response.data.result) {
         setRatings(response.data.result.data);
@@ -49,7 +51,6 @@ const RatingsList = () => {
           totalPage: response.data.result.totalPage,
           totalElements: response.data.result.totalElements
         }));
-        showAlert('Ratings loaded successfully', 'success');
       }
     } catch (error) {
       console.error('Error fetching ratings:', error);
@@ -105,11 +106,6 @@ const RatingsList = () => {
     setPagination(prev => ({ ...prev, page: newPage }));
   };
 
-  const handleSearch = () => {
-    setPagination(prev => ({ ...prev, page: 1 }));
-    fetchRatings();
-  };
-
   const handleFilterChange = (newFilter) => {
     setFilterType(newFilter);
     setPagination(prev => ({ ...prev, page: 1 }));
@@ -117,30 +113,18 @@ const RatingsList = () => {
 
   return (
     <div className="ratings-list-container">
+      {/* 
       <div className="page-header">
         <h1>Rating Management</h1>
         <p>Manage user ratings for your products</p>
       </div>
+       */}
 
       <div className="search-filter-section">
-        <div className="search-group">
-          <input
-            type="text"
-            placeholder="Enter Product ID..."
-            value={productId}
-            onChange={(e) => setProductId(e.target.value)}
-            className="search-input"
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-          />
-          <button className="btn-search" onClick={handleSearch} disabled={loading}>
-            {loading ? 'Loading...' : 'Search'}
-          </button>
-        </div>
-
         <div className="filter-group">
           <label>Filter by:</label>
-          <select 
-            value={filterType} 
+          <select
+            value={filterType}
             onChange={(e) => handleFilterChange(e.target.value)}
             className="filter-select"
           >
@@ -179,27 +163,14 @@ const RatingsList = () => {
         loading={loading}
       />
 
-      {productId && pagination.totalPage > 1 && (
-        <div className="pagination-section">
-          <button
-            className="btn-pagination"
-            onClick={() => handlePageChange(pagination.page - 1)}
-            disabled={pagination.page === 1 || loading}
-          >
-            Previous
-          </button>
-          <span className="page-info">
-            Page {pagination.page} of {pagination.totalPage}
-          </span>
-          <button
-            className="btn-pagination"
-            onClick={() => handlePageChange(pagination.page + 1)}
-            disabled={pagination.page === pagination.totalPage || loading}
-          >
-            Next
-          </button>
-        </div>
-      )}
+      <Pagination
+        currentPage={pagination.page}
+        totalPage={pagination.totalPage}
+        totalElements={pagination.totalElements}
+        pageSize={pagination.size}
+        onPageChange={handlePageChange}
+        loading={loading}
+      />
 
       {showModal && (
         <RatingModal

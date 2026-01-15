@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import Pagination from "@mui/material/Pagination";
+import Pagination from "../../components/common/Pagination";
 import Boxes from "../../components/common/Boxes";
 import {
   Table,
@@ -204,9 +204,8 @@ export default function PromotionList() {
         vertical: "top",
         horizontal: "center",
         severity: "error",
-        message: `Lỗi khi tải danh sách khuyến mãi: ${
-          serverError || serverDetail || fallbackMessage
-        }`,
+        message: `Lỗi khi tải danh sách khuyến mãi: ${serverError || serverDetail || fallbackMessage
+          }`,
       });
     } else {
       // Khi load xong thì tắt snackbar loading
@@ -357,20 +356,18 @@ export default function PromotionList() {
             /> */}
             <Button
               size="medium"
-              className={`${
-                isToggleFilter
-                  ? "!border-2 !border-gray-500"
-                  : "!border !border-[#ccc]"
-              } !text-[#403e57] !ml-4 !px-3 !rounded-[10px] !hover:bg-gray-100 !normal-case`}
+              className={`${isToggleFilter
+                ? "!border-2 !border-gray-500"
+                : "!border !border-[#ccc]"
+                } !text-[#403e57] !ml-4 !px-3 !rounded-[10px] !hover:bg-gray-100 !normal-case`}
               variant="outlined"
               onClick={isOpenFilter}
             >
               <VscFilter className="" />
               <span className="ml-1">Bộ lọc</span>
               <IoIosArrowUp
-                className={`ml-1 transition-transform duration-200 ${
-                  isToggleFilter ? "rotate-180" : "rotate-0"
-                }`}
+                className={`ml-1 transition-transform duration-200 ${isToggleFilter ? "rotate-180" : "rotate-0"
+                  }`}
               />
             </Button>
             <Button
@@ -386,11 +383,10 @@ export default function PromotionList() {
           {/* filter */}
           <div
             aria-label="submenu"
-            className={`${
-              isToggleFilter === true
-                ? "pointer-events-auto"
-                : "h-[0px] opacity-0 pointer-events-none"
-            } !text-[rgba(0,0,0,0.7)] overflow-hidden transition-all duration-300 flex flex-col items-center gap-5`}
+            className={`${isToggleFilter === true
+              ? "pointer-events-auto"
+              : "h-[0px] opacity-0 pointer-events-none"
+              } !text-[rgba(0,0,0,0.7)] overflow-hidden transition-all duration-300 flex flex-col items-center gap-5`}
           >
             {/* Trạng thái */}
             <div className="flex mt-[20px] w-full">
@@ -755,15 +751,11 @@ export default function PromotionList() {
 
             <div className="flex justify-center pb-[20px] pt-[30px]">
               <Pagination
-                count={totalPage}
-                page={page}
-                onChange={(event, value) => setPage(value)}
-                sx={{
-                  "& .MuiPaginationItem-root.Mui-selected": {
-                    background: "linear-gradient(to right, #4a2fcf, #6440F5)",
-                    color: "#fff",
-                  },
-                }}
+                currentPage={page}
+                totalPage={totalPage}
+                totalElements={totalPromotions}
+                pageSize={pageSize}
+                onPageChange={(newPage) => setPage(newPage)}
               />
             </div>
           </div>

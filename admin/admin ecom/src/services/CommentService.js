@@ -1,13 +1,23 @@
 import { api } from "../libs/axios";
 
-const COMMENT_API_BASE = 'http://localhost:8888/api/v1/rating-service';
+const COMMENT_API_BASE = '/rating-service';
 
 const CommentService = {
   // Get all comments for a product
   getCommentsByProduct: (productId, page = 1, size = 10) => {
     return api.get(`${COMMENT_API_BASE}/comment/get/product`, {
-      params: { 
+      params: {
         productId,
+        page,
+        size
+      }
+    });
+  },
+
+  // Get all comments (new)
+  getAllComments: (page = 1, size = 10) => {
+    return api.get(`${COMMENT_API_BASE}/comment/get-all`, {
+      params: {
         page,
         size
       }

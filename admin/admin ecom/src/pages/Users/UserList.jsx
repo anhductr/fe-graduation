@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import PaginationComponent from "../../components/common/PaginationComponent";
+import Pagination from "../../components/common/Pagination";
 import Boxes from "../../components/common/Boxes";
 import axios from "axios";
 import {
@@ -75,7 +75,7 @@ export default function UserList() {
 
   // Khi có dữ liệu:
   const users = data?.data || [];
-  const totalPage = data?.totalPage || 1;
+  const totalPage = data?.totalPage || (data?.totalElements ? Math.ceil(data.totalElements / pageSize) : 1);
 
   const handlePageChange = (event, value) => {
     setPage(value);
@@ -277,10 +277,12 @@ export default function UserList() {
               </Table>
             </TableContainer>
 
-            <PaginationComponent
-              count={totalPage}
-              page={page}
-              onChange={handlePageChange}
+            <Pagination
+              currentPage={page}
+              totalPage={totalPage}
+              totalElements={data?.totalElements}
+              pageSize={pageSize}
+              onPageChange={(newPage) => setPage(newPage)}
             />
           </div>
         </div>

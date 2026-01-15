@@ -37,13 +37,13 @@ const RatingsTable = ({ ratings, onEdit, onDelete, loading }) => {
         <table className="ratings-table">
           <thead>
             <tr>
-              <th>User</th>
-              <th>Rating</th>
-              <th>Content</th>
-              <th>Product ID</th>
-              <th>Verified Purchase</th>
-              <th>Created Date</th>
-              <th>Actions</th>
+              <th>Người dùng</th>
+              <th>Đánh giá</th>
+              <th>Nội dung</th>
+              <th>ID sản phẩm</th>
+              <th>Đã mua</th>
+              <th>Ngày tạo</th>
+              <th>Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -79,15 +79,12 @@ const RatingsTable = ({ ratings, onEdit, onDelete, loading }) => {
                 <td>{rating.productId}</td>
                 <td>
                   <span className={`badge ${rating.verifiedPurchase ? 'verified' : 'unverified'}`}>
-                    {rating.verifiedPurchase ? '✓ Yes' : '✗ No'}
+                    {rating.verifiedPurchase ? '✓' : '✗'}
                   </span>
                 </td>
                 <td>{new Date(rating.createdAt).toLocaleDateString()}</td>
                 <td>
                   <div className="action-buttons">
-                    <button className="btn-edit" onClick={() => onEdit(rating)} title="Edit">
-                      ✎
-                    </button>
                     <button className="btn-delete" onClick={() => onDelete(rating.id)} title="Delete">
                       🗑
                     </button>

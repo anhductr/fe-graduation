@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import Pagination from "@mui/material/Pagination";
+import Pagination from "../../components/common/Pagination";
 import Boxes from "../../components/common/Boxes";
 import {
   Box,
@@ -539,15 +539,11 @@ export default function ProductList() {
         <div className="shadow border-0 p-5 my-[20px] bg-white rounded-[10px]">
           <div className="flex justify-center">
             <Pagination
-              count={totalPageProduct}
-              page={page}
-              onChange={(e, value) => setPage(value)}
-              sx={{
-                "& .MuiPaginationItem-root.Mui-selected": {
-                  background: "linear-gradient(to right, #4a2fcf, #6440F5)",
-                  color: "#fff",
-                },
-              }}
+              currentPage={page}
+              totalPage={totalPageProduct}
+              totalElements={totalProduct}
+              pageSize={size}
+              onPageChange={(newPage) => setPage(newPage)}
             />
           </div>
         </div>

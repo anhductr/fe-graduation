@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import Pagination from '@mui/material/Pagination';
+import Pagination from '../../components/common/Pagination';
 import Boxes from '../../components/common/Boxes';
 import axios from "axios";
 import { Button, Dialog, DialogActions, DialogTitle, Select, MenuItem } from "@mui/material";
@@ -280,15 +280,11 @@ export default function ContentList() {
             {contentData?.totalPages > 1 && (
                 <div className="shadow border-0 p-5 my-[20px] bg-white rounded-[10px] flex justify-center">
                     <Pagination
-                        count={contentData.totalPages}
-                        page={page}
-                        onChange={(e, v) => setPage(v)}
-                        sx={{
-                            "& .MuiPaginationItem-root.Mui-selected": {
-                                background: "linear-gradient(to right, #4a2fcf, #6440F5)",
-                                color: "#fff",
-                            },
-                        }}
+                        currentPage={page}
+                        totalPage={contentData.totalPages}
+                        totalElements={contentData.total || 0}
+                        pageSize={size}
+                        onPageChange={(newPage) => setPage(newPage)}
                     />
                 </div>
             )}
