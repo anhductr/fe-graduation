@@ -52,7 +52,7 @@ export default function LoginPage() {
                 </div>
                 <button
                     type="submit"
-                    className="text-black"
+                    className="text-white bg-red-600 hover:bg-red-700 w-full py-3 rounded-md "
                 >
                     Đăng nhập
                 </button>

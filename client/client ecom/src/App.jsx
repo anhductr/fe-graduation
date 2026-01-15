@@ -18,6 +18,9 @@ import { CartProvider } from "./context/CartContext";
 import AddressManager from "./pages/AddressPage";
 import Chatbot from "./components/Chatbot/Chatbot";
 
+import "react-toastify/dist/ReactToastify.css";
+import { ToastContainer } from "react-toastify";
+
 function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const navigate = useNavigate();
@@ -79,6 +82,7 @@ function App() {
       />
 
       <Chatbot />
+      <ToastContainer position="top-right" autoClose={3000} />
     </CartProvider>
   );
 }

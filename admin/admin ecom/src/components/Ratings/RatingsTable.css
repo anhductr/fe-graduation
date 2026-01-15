@@ -1,0 +1,150 @@
+.ratings-table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.loading, .no-data {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-size: 16px;
+}
+
+.ratings-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.ratings-table thead {
+  background: #f5f5f5;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.ratings-table th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+}
+
+.ratings-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e0e0e0;
+  vertical-align: middle;
+}
+
+.ratings-table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.stars {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.star {
+  font-size: 18px;
+  color: #ddd;
+}
+
+.star.filled {
+  color: inherit;
+}
+
+.star.half {
+  position: relative;
+}
+
+.score-text {
+  font-size: 12px;
+  color: #666;
+  margin-left: 4px;
+}
+
+.content-cell {
+  max-width: 300px;
+}
+
+.content-preview {
+  display: block;
+  color: #666;
+}
+
+.expand-btn {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  padding: 0;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.expand-btn:hover {
+  text-decoration: underline;
+}
+
+.content-full {
+  margin-top: 8px;
+  padding: 8px;
+  background: #f9f9f9;
+  border-left: 3px solid #007bff;
+  font-size: 13px;
+  color: #333;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.badge.verified {
+  background: #d4edda;
+  color: #155724;
+}
+
+.badge.unverified {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-edit, .btn-delete {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.btn-edit:hover {
+  background: #e7f3ff;
+}
+
+.btn-delete:hover {
+  background: #ffe7e7;
+}

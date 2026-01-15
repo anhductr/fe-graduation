@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import Pagination from "@mui/material/Pagination";
+import Pagination from "../../components/common/Pagination";
 import Boxes from "../../components/common/Boxes";
 import axios from "axios";
 import {
@@ -15,6 +15,7 @@ import {
   DialogActions,
   DialogTitle,
   Button,
+  Switch,
 } from "@mui/material";
 import { Link } from "react-router";
 import { MdDelete } from "react-icons/md";
@@ -31,12 +32,18 @@ export default function UserList() {
   const inputSearchRef = useRef(null);
   const token = localStorage.getItem("token"); // lấy token nếu cần
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   //api
   const fetchUsers = async () => {
     const res = await axios.get("/api/v1/user-service/users/admin/get-all", {
       headers: {
         Authorization: token ? `Bearer ${token}` : "",
+      },
+      params: {
+        page: page, // API likely 1-indexed based on "Page index must not be less than zero" when sending 0
+        size: pageSize,
       },
     });
 
@@ -54,6 +61,22 @@ export default function UserList() {
     return res.data;
   };
 
+  const updateUserStatus = async ({ userId, isActive }) => {
+    const res = await axios.put(
+      `/api/v1/user-service/users/admin/${userId}/status`,
+      null,
+      {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+        params: {
+          isActive: isActive,
+        },
+      }
+    );
+    return res.data;
+  };
+
   //user querry
   const {
     data,
@@ -61,15 +84,19 @@ export default function UserList() {
     isError: isErrorUsers,
     error: errorUsers,
   } = useQuery({
-    queryKey: ["users"],
+    queryKey: ["users", page],
     queryFn: fetchUsers,
+    keepPreviousData: true,
     refetchOnMount: "always",
   });
 
   // Khi có dữ liệu:
   const users = data?.data || [];
-  const totalUsers = data?.totalElements || 0;
-  const totalPage = data?.totalPage || 1;
+  const totalPage = data?.totalPage || (data?.totalElements ? Math.ceil(data.totalElements / pageSize) : 1);
+
+  const handlePageChange = (event, value) => {
+    setPage(value);
+  };
 
   const deleteMutation = useMutation({
     mutationFn: deleteUser,
@@ -98,6 +125,50 @@ export default function UserList() {
       }));
     },
   });
+
+  const statusMutation = useMutation({
+    mutationFn: updateUserStatus,
+    onSuccess: (res) => {
+      queryClient.invalidateQueries(["users"]);
+      setPopup((prep) => ({
+        ...prep,
+        open: true,
+        message: "Cập nhật trạng thái thành công!",
+        severity: "success",
+      }));
+    },
+    onError: (err) => {
+      console.error("Lỗi cập nhật trạng thái:", err);
+      setPopup((prev) => ({
+        ...prev,
+        open: true,
+        message: "Cập nhật trạng thái thất bại!",
+        severity: "error",
+      }));
+    },
+  });
+
+  // Modal đổi trạng thái
+  const [openConfirmStatus, setOpenConfirmStatus] = useState(false);
+  const [selectedUserStatus, setSelectedUserStatus] = useState(null);
+
+  const handleToggleStatus = (userId, currentStatus) => {
+    setSelectedUserStatus({ userId, isActive: !currentStatus });
+    setOpenConfirmStatus(true);
+  };
+
+  const handleConfirmStatus = () => {
+    if (selectedUserStatus) {
+      statusMutation.mutate(selectedUserStatus);
+    }
+    setOpenConfirmStatus(false);
+    setSelectedUserStatus(null);
+  };
+
+  const handleCancelStatus = () => {
+    setOpenConfirmStatus(false);
+    setSelectedUserStatus(null);
+  };
 
   //modal xóa
   const [openConfirm, setOpenConfirm] = useState(false);
@@ -241,23 +312,37 @@ export default function UserList() {
                   <TableRow>
                     <TableCell>Tên người dùng</TableCell>
                     <TableCell>Email</TableCell>
+                    <TableCell align="center">Trạng thái</TableCell>
                     <TableCell align="center">Thao tác</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {users.map((user) => (
-                    <TableRow>
+                    <TableRow
+                      key={user.id}
+                      sx={{
+                        backgroundColor: user.isActive ? "inherit" : "#ffebee", // Light red for locked users
+                        opacity: user.isActive ? 1 : 0.7,
+                      }}
+                    >
                       <TableCell>{user.username}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell align="center">
+                        <Switch
+                          checked={user.isActive}
+                          onChange={() => handleToggleStatus(user.id, user.isActive)}
+                          color="primary"
+                        />
+                      </TableCell>
+                      <TableCell align="center">
                         <Link
-                          to={`/users/users-list/users-view/${user.username}`}
+                          to={`/users/users-view/${user.id}`}
                         >
                           <IconButton size="small">
                             <IoEye />
                           </IconButton>
                         </Link>
-                        <IconButton size="small">
+                        <IconButton size="small" onClick={() => handleDeleteClick(user.id)}>
                           <MdDelete />
                         </IconButton>
                       </TableCell>
@@ -267,17 +352,13 @@ export default function UserList() {
               </Table>
             </TableContainer>
 
-            <div className="flex justify-center pb-[20px] pt-[30px]">
-              <Pagination
-                count={10}
-                sx={{
-                  "& .MuiPaginationItem-root.Mui-selected": {
-                    background: "linear-gradient(to right, #4a2fcf, #6440F5)",
-                    color: "#fff",
-                  },
-                }}
-              />
-            </div>
+            <Pagination
+              currentPage={page}
+              totalPage={totalPage}
+              totalElements={data?.totalElements}
+              pageSize={pageSize}
+              onPageChange={(newPage) => setPage(newPage)}
+            />
           </div>
         </div>
       </div>
@@ -290,6 +371,25 @@ export default function UserList() {
           <Button
             onClick={handleConfirmDelete}
             color="error"
+            variant="contained"
+          >
+            Có
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={openConfirmStatus} onClose={handleCancelStatus}>
+        <DialogTitle>
+          {selectedUserStatus?.isActive
+            ? "Bạn có chắc muốn mở khóa tài khoản này không?"
+            : "Bạn có chắc muốn khóa tài khoản này không?"}
+        </DialogTitle>
+        <DialogActions>
+          <Button onClick={handleCancelStatus} color="inherit">
+            Không
+          </Button>
+          <Button
+            onClick={handleConfirmStatus}
+            color="primary"
             variant="contained"
           >
             Có

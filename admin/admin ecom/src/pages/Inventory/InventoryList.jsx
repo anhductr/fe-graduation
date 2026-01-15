@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import Pagination from "@mui/material/Pagination";
+import Pagination from "../../components/common/Pagination";
 import Boxes from "../../components/Inventory/Boxes";
 import InventoryService from "../../services/InventoryService";
 import {
@@ -450,13 +450,11 @@ export default function InventoryList() {
 
             <div className="flex justify-center pb-[20px] pt-[30px]">
               <Pagination
-                count={10}
-                sx={{
-                  "& .MuiPaginationItem-root.Mui-selected": {
-                    background: "linear-gradient(to right, #4a2fcf, #6440F5)",
-                    color: "#fff",
-                  },
-                }}
+                currentPage={page}
+                totalPage={inventoryData?.totalPage || 1}
+                totalElements={inventoryData?.totalElements || 0}
+                pageSize={size}
+                onPageChange={(newPage) => setPage(newPage)}
               />
             </div>
           </div>
@@ -466,10 +464,12 @@ export default function InventoryList() {
           ref={historyRef}
           className="shadow border-0 p-5 my-[20px] mx-[0px] bg-white rounded-[10px]"
         >
+          {/* ... (rest of history section header) */}
           <div className="w-screen pt-2 pb-4 font-semibold text-gray-900 text-[20px]">
             Lịch sử nhập hàng
           </div>
 
+          {/* ... (search bar and filters) */}
           <div
             className="relative flex gap-5 mb-8"
             onClick={(e) => {
@@ -477,12 +477,12 @@ export default function InventoryList() {
                 inputSearchRef.current &&
                 e.target !== inputSearchRef.current
               ) {
-                inputSearchRef.current.blur(); // click ngoài -> blur input
+                inputSearchRef.current.blur();
               }
             }}
           >
             <SearchBarNormal />
-
+            {/* ... */}
             <LocalizationProvider
               dateAdapter={AdapterDayjs}
               adapterLocale="vi"
@@ -490,7 +490,6 @@ export default function InventoryList() {
                 viVN.components.MuiLocalizationProvider.defaultProps.localeText
               }
             >
-              {/* Từ ngày giờ */}
               <div className="flex items-center gap-3">
                 <DateTimePicker
                   label="Từ ngày"
@@ -505,15 +504,12 @@ export default function InventoryList() {
                     actionBar: { actions: ["clear", "cancel", "accept"] },
                   }}
                 />
-
                 <IoChevronForwardOutline size={20} color="#666" />
-
-                {/* Đến ngày giờ */}
                 <DateTimePicker
                   label="Đến ngày"
                   value={endDate}
                   onChange={(newValue) => setEndDate(newValue)}
-                  minDateTime={startDate} // không cho chọn nhỏ hơn ngày bắt đầu
+                  minDateTime={startDate}
                   format="DD/MM/YYYY HH:mm"
                   slotProps={{
                     textField: {
@@ -525,7 +521,6 @@ export default function InventoryList() {
                 />
               </div>
             </LocalizationProvider>
-
             <Button
               variant="contained"
               className="!ml-auto !normal-case !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow"
@@ -536,10 +531,10 @@ export default function InventoryList() {
             </Button>
           </div>
 
-          {/* table */}
           <div className="mt-3">
             <TableContainer
               component={Paper}
+              // ...
               sx={{
                 width: "100%",
                 borderTop: "1px solid #e0e0e0",
@@ -547,142 +542,50 @@ export default function InventoryList() {
                 borderLeft: "1px solid #e0e0e0",
               }}
             >
-              <Table
-                sx={{
-                  "& .MuiTableCell-root": {
-                    fontSize: "13px",
-                  },
-                }}
-              >
+              {/* ... Table content ... */}
+              <Table sx={{ width: "100%" }}>
                 <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
+                  {/* ... TableHeader ... */}
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, width: "14%" }}>
-                      Mã phiếu
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: "16%" }}>
-                      Nhà cung cấp
-                    </TableCell>
-                    <TableCell
-                      sx={{ fontWeight: 600, width: "14%" }}
-                      align="center"
-                    >
-                      Số mặt hàng
-                    </TableCell>
-                    <TableCell
-                      sx={{ fontWeight: 600, width: "14%" }}
-                      align="right"
-                    >
-                      Tổng tiền
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: "14%" }}>
-                      Ngày nhập
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: "14%" }}>
-                      Ghi chú
-                    </TableCell>
-                    <TableCell
-                      sx={{ fontWeight: 600, width: "14%" }}
-                      align="center"
-                    >
-                      Thao tác
-                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: "14%" }}>Mã phiếu</TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: "16%" }}>Nhà cung cấp</TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: "14%" }} align="center">Số mặt hàng</TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: "14%" }} align="right">Tổng tiền</TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: "14%" }}>Ngày nhập</TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: "14%" }}>Ghi chú</TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: "14%" }} align="center">Thao tác</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {stockInHistory?.map((row) => (
                     <TableRow key={row.referenceCode} hover>
+                      {/* ... Rows ... */}
                       <TableCell>
-                        <Chip
-                          label={row.referenceCode}
-                          color="primary"
-                          variant="outlined"
-                          sx={{
-                            height: 20,
-                            fontSize: "0.68rem",
-                            "& .MuiChip-label": { px: 0.75 },
-                          }}
-                        />
+                        <Chip label={row.referenceCode} color="primary" variant="outlined" sx={{ height: 20, fontSize: "0.68rem", "& .MuiChip-label": { px: 0.75 } }} />
                       </TableCell>
                       <TableCell>
-                        <Typography
-                          fontWeight={400}
-                          color="primary"
-                          fontSize="13px"
-                        >
-                          {row.supplierName}
-                        </Typography>
+                        <Typography fontWeight={400} color="primary" fontSize="13px">{row.supplierName}</Typography>
                       </TableCell>
                       <TableCell align="center">
-                        <Chip
-                          label={`${row.items.length} sản phẩm`}
-                          color="info"
-                          sx={{
-                            height: 20,
-                            fontSize: "0.68rem",
-                            "& .MuiChip-label": { px: 0.75 },
-                          }}
-                        />
+                        <Chip label={`${row.items.length} sản phẩm`} color="info" sx={{ height: 20, fontSize: "0.68rem", "& .MuiChip-label": { px: 0.75 } }} />
                       </TableCell>
                       <TableCell align="right">
-                        <Typography
-                          fontWeight={700}
-                          color="error"
-                          fontSize="13px"
-                        >
-                          {formatCurrency(row.totalAmount)}
-                        </Typography>
+                        <Typography fontWeight={700} color="error" fontSize="13px">{formatCurrency(row.totalAmount)}</Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography fontSize={"13px"}>
-                          {formatDate(row.createAt)}
-                        </Typography>
+                        <Typography fontSize={"13px"}>{formatDate(row.createAt)}</Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography
-                          variant="body2"
-                          color={row.note ? "text.primary" : "text.secondary"}
-                          fontSize={"13px"}
-                          sx={{
-                            fontStyle: row.note ? "normal" : "italic",
-                            maxWidth: 150,
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                          title={row.note || "Không có ghi chú"}
-                        >
+                        <Typography variant="body2" color={row.note ? "text.primary" : "text.secondary"} fontSize={"13px"} sx={{ fontStyle: row.note ? "normal" : "italic", maxWidth: 150, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={row.note || "Không có ghi chú"}>
                           {row.note || "—"}
                         </Typography>
                       </TableCell>
-
-                      {/* Thao tác */}
                       <TableCell align="center">
                         <Tooltip title="Xem chi tiết" disableInteractive>
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => handleOpenEditStockIn(row)}
-                          >
-                            <FaEye />
-                          </IconButton>
+                          <IconButton size="small" color="primary" onClick={() => handleOpenEditStockIn(row)}><FaEye /></IconButton>
                         </Tooltip>
-
                         <Tooltip title="Xóa" disableInteractive>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  `Bạn có chắc chắn muốn xóa phiếu nhập ${row.referenceCode}?`
-                                )
-                              ) {
-                                handleDeleteStockIn(row.referenceCode);
-                              }
-                            }}
-                          >
-                            <MdDelete />
-                          </IconButton>
+                          <IconButton size="small" color="error" onClick={() => { if (window.confirm(`Bạn có chắc chắn muốn xóa phiếu nhập ${row.referenceCode}?`)) { handleDeleteStockIn(row.referenceCode); } }}><MdDelete /></IconButton>
                         </Tooltip>
                       </TableCell>
                     </TableRow>
@@ -693,13 +596,11 @@ export default function InventoryList() {
 
             <div className="flex justify-center pb-[20px] pt-[30px]">
               <Pagination
-                count={10}
-                sx={{
-                  "& .MuiPaginationItem-root.Mui-selected": {
-                    background: "linear-gradient(to right, #4a2fcf, #6440F5)",
-                    color: "#fff",
-                  },
-                }}
+                currentPage={page}
+                totalPage={stockInHistoryData?.totalPage || 10}
+                totalElements={stockInHistoryData?.totalElements || 0}
+                pageSize={size}
+                onPageChange={(newPage) => setPage(newPage)}
               />
             </div>
           </div>
