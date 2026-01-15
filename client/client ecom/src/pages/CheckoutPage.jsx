@@ -12,7 +12,7 @@ import Footer from "../layouts/Footer";
 export default function CheckoutPage() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { cart, items: cartItems, totalPrice: cartTotalPrice } = useCart();
+    const { cart, items, totalPrice } = useCart();
     const { user, isLoggedIn } = useAuth();
     const {
         source,
@@ -416,7 +416,6 @@ export default function CheckoutPage() {
                                                 (item.sellPrice || item.price) * item.quantity
                                             )}
                                         </span>
-                                        <span>{formatPrice(item.sellPrice * item.quantity)}</span>
                                     </div>
                                 ))}
                             </div>
