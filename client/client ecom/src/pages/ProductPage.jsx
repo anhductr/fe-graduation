@@ -25,7 +25,7 @@ import { IoMdAdd } from "react-icons/io";
 import { IoMdRemove } from "react-icons/io";
 import { MdCheck } from "react-icons/md";
 
-
+import { BsFillCartCheckFill } from "react-icons/bs";
 import { IoStar } from "react-icons/io5";
 import Button from '@mui/material/Button';
 
@@ -460,7 +460,7 @@ const ProductPage = () => {
         maxWidth="xs"
         PaperProps={{
           style: {
-            backgroundColor: '#383e42', // Dark background color from image
+            backgroundColor: 'rgba(56, 62, 66, 0.7)',
             color: 'white',
             borderRadius: '12px',
             padding: '20px',
@@ -472,20 +472,17 @@ const ProductPage = () => {
         <DialogContent className="flex flex-col items-center justify-center p-0 overflow-hidden">
           <div className="mb-4">
             {/* Green shopping cart icon */}
-            <FaShoppingCart className="text-[#00c853] text-[50px]" />
-            <div className="text-[#00c853] absolute ml-6 mt-[-15px] bg-white rounded-full border border-[#383e42]">
-              <FaCheck className="text-[12px] m-1" strokeWidth="2" />
-            </div>
+            <BsFillCartCheckFill className="text-[#00c853] text-[50px]" />
           </div>
 
-          <h2 className="text-xl font-bold text-white mb-6">
+          <h2 className="text-[15px] font-bold text-white mb-6">
             Sản phẩm đã được thêm vào giỏ hàng
           </h2>
 
           <Button
             onClick={handleViewCart}
             variant="contained"
-            className="!bg-white !text-gray-800 !px-8 !py-2 !rounded-full !font-medium !normal-case hover:!bg-gray-100"
+            className="!bg-white !text-gray-800 !px-4 !py-2 !rounded-full !font-medium !normal-case hover:!bg-gray-100"
           >
             Xem giỏ hàng
           </Button>

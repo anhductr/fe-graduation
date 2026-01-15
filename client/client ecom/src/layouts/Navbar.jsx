@@ -459,7 +459,7 @@ function Navbar() {
           <>
             {/* Backdrop */}
             <div
-              className="fixed inset-0 z-20 backdrop-blur-md bg-white/20 transition-all duration-300"
+              className="fixed inset-0 z-20 backdrop-blur-sm bg-white/20 transition-all duration-300"
             ></div>
           </>
         )

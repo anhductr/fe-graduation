@@ -31,7 +31,7 @@ const Banner = () => {
 
   return (
     <div
-      className="w-full relative overflow-hidden shadow"
+      className="w-full relative overflow-hidden shadow pb-8"
       style={{
         backgroundImage:
           "linear-gradient(90deg, #ee7752, #e73c7e, #23a6d5, #23d5ab)",

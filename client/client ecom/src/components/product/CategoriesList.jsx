@@ -40,7 +40,7 @@ export default function CategoriesList() {
   return (
     <>
       <div
-        className="w-full bg-white relative px-15 my-15"
+        className="w-full bg-white relative px-15 my-5"
       >
         <div className="flex items-center justify-between">
           {categories.map((category, i) => (

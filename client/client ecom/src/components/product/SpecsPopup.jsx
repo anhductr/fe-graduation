@@ -152,7 +152,7 @@ export default function SpecsPopup({ openSpecsPopup, setOpenSpecsPopup, specific
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.4 }}
-                            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+                            className="absolute inset-0 bg-black/30 bg-black/20"
                             onClick={() => setOpenSpecsPopup(false)}
                         />
 
@@ -199,7 +199,7 @@ export default function SpecsPopup({ openSpecsPopup, setOpenSpecsPopup, specific
                                         aria-label="scrollable tabs"
                                         TabIndicatorProps={{
                                             style: {
-                                                backgroundColor: '#ef4444', // đỏ như Shopee
+                                                backgroundColor: '#0096FF', // đỏ như Shopee
                                                 height: '3px',
                                                 borderRadius: '2px',
                                             }
@@ -216,7 +216,7 @@ export default function SpecsPopup({ openSpecsPopup, setOpenSpecsPopup, specific
                                                 padding: '12px 20px',
                                             },
                                             '& .Mui-selected': {
-                                                color: '#ef4444 !important',
+                                                color: '#0096FF !important',
                                                 fontWeight: 'bold',
                                             },
                                         }}

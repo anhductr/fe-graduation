@@ -168,24 +168,38 @@ export default function CartPage() {
                     />
 
                     <div className="flex-1">
-                      <p className="font-semibold">{item.variantName}</p>
-                      <p className="text-xs text-gray-500">SKU: {item.sku}</p>
+                      <h3 className="text-black font-semibold text-sm leading-tight">
+                        {item.variantName}
+                      </h3>
+                      {/* <p className="text-xs text-gray-500 mt-1">SKU: {item.sku}</p> */}
+
                     </div>
 
                     <div className="text-red-600 font-semibold">
                       {formatPrice(item.sellPrice)}
                     </div>
 
-                    <div className="flex items-center border rounded">
+
+                    <div className="flex flex-shrink-0 items-center space-x-2 border border-gray-400 rounded-[5px] overflow-hidden">
                       <button
                         onClick={() => decreaseQty(item)}
+                        className="px-3 py-1 bg-white hover:bg-gray-100 border-r border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={item.quantity <= 1}
                         className="px-3"
                       >
                         -
                       </button>
-                      <span className="px-3">{item.quantity}</span>
-                      <button onClick={() => increaseQty(item)} className="px-3">
+
+                      <div className="w-12 h-full flex items-center justify-center">
+                        <span className="text-sm font-medium leading-none">
+                          {item.quantity}
+                        </span>
+                      </div>
+                      <button
+                        aria-label="Tăng số lượng"
+                        onClick={() => increaseQty(item)}
+                        className="px-3 py-1 bg-white hover:bg-gray-100 border-l border-gray-300"
+                      >
                         +
                       </button>
                     </div>
@@ -286,32 +300,30 @@ export default function CartPage() {
         </DialogActions>
       </Dialog>
 
-            {/* Right content */}
-            <div className="w-full max-w-sm bg-white rounded-lg p-6 sticky top-20 h-fit">
-              <div>
-                <h2 className="font-semibold text-lg mb-4">Thông tin đơn hàng</h2>
+      {/* Right content */}
+      <div className="w-full max-w-sm bg-white rounded-lg p-6 sticky top-20 h-fit">
+        <div>
+          <h2 className="font-semibold text-lg mb-4">Thông tin đơn hàng</h2>
 
-                <dl className="space-y-3">
-                  <div className="flex justify-between border-b border-dashed border-gray-300 pb-1 font-semibold text-red-600 text-lg">
-                    <dt>Tổng tiền</dt>
-                    <dd>{formatPrice(selectedTotal)}</dd>
-                  </div>
-                </dl>
+          <dl className="space-y-3">
+            <div className="flex justify-between border-b border-dashed border-gray-300 pb-1 font-semibold text-lg">
+              <dt>Tổng tiền</dt>
+              <dd>{formatPrice(selectedTotal)}</dd>
 
-                <button
-                  type="button"
-                  className="mt-6 w-full bg-[#0096FF] text-white font-bold py-3 rounded hover:bg-[#0096FF] transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={handleCheckout}
-                  disabled={selectedItems.length === 0}
-                >
-                  Thanh toán ({selectedItems.length})
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-      <Footer />
-    </div>
-  );
-}
+            </div >
+          </dl >
+
+          <button
+            type="button"
+            className="mt-6 w-full bg-[#0096FF] text-white font-bold py-3 rounded hover:bg-[#0096FF] transition disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleCheckout}
+            disabled={selectedItems.length === 0}
+          >
+            Thanh toán({selectedItems.length})
+          </button >
+        </div >
+      </div >
+    </div >
+  )
+};
+     
