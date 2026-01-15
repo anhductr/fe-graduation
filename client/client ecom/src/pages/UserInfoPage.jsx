@@ -4,7 +4,11 @@ import { FaLeaf } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import { authApi } from "../services/authApi";
 import { api } from "../libs/axios";
+<<<<<<< HEAD
 import { useQueryClient } from "@tanstack/react-query";
+=======
+import { toast } from 'react-toastify';
+>>>>>>> 332e1d45265e7b17963f7d4d8c6d53e993f5b701
 
 export default function UserInfoPage() {
     const { user, isUserLoading } = useAuth();
@@ -24,14 +28,17 @@ export default function UserInfoPage() {
     const [uploading, setUploading] = useState(false);
 
     const [updateInfo, setUpdateInfo] = useState(false);
-    const [day, setDay] = useState('1');
-    const [month, setMonth] = useState('1');
-    const [year, setYear] = useState('1990');
+    const [day, setDay] = useState('');
+    const [month, setMonth] = useState('');
+    const [year, setYear] = useState('');
     const [days, setDays] = useState([]);
 
     // Tạo danh sách năm từ 1900 đến năm hiện tại
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: currentYear - 1900 + 1 }, (_, i) => currentYear - i);
+    const paddedMonth = String(month).padStart(2, '0');
+    const paddedDay = String(day).padStart(2, '0');
+
 
     // Tạo danh sách tháng
     const months = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -49,13 +56,18 @@ export default function UserInfoPage() {
 
     // Cập nhật danh sách ngày khi tháng/năm thay đổi
     useEffect(() => {
+        if (!month || !year) {
+            setDays([]);
+            return;
+        }
         const maxDays = getDaysInMonth(parseInt(month), parseInt(year));
         const dayList = Array.from({ length: maxDays }, (_, i) => i + 1);
         setDays(dayList);
 
         // Nếu ngày hiện tại > số ngày trong tháng mới → đặt lại về 1
-        if (parseInt(day) > maxDays) {
-            setDay('1');
+        // Nếu chưa chọn ngày (day === '') thì giữ nguyên
+        if (day && parseInt(day) > maxDays) {
+            setDay('');
         }
     }, [month, year]);
 
@@ -78,7 +90,7 @@ export default function UserInfoPage() {
         if (!file) return;
 
         if (!file.type.startsWith("image/")) {
-            alert("Vui lòng chọn file ảnh");
+            toast.error("Vui lòng chọn file ảnh");
             return;
         }
 
@@ -96,15 +108,27 @@ export default function UserInfoPage() {
                 formData
             );
 
-            console.log("Upload avatar response:", res.data.result?.url);
-            setAvatarUrl(res.data.result?.url);
+            const newAvatarUrl = res.data.result.url; // Extract URL from response
+            setAvatarUrl(newAvatarUrl);
+
+            // Auto update profile with new avatar
+            const payload = {
+                username,
+                email,
+                firstName,
+                lastName,
+                phone,
+                sex,
+                dob: (day && month && year) ? `${year}-${paddedMonth}-${paddedDay}` : null,
+                avatarUrl: newAvatarUrl
+            };
+
+            await api.put("/profile-service/profile", payload);
+            toast.success("Cập nhật ảnh đại diện thành công");
 
         } catch (err) {
-            console.error(
-                "Upload avatar error:",
-                err.response?.data || err
-            );
-            alert("Upload ảnh thất bại");
+            console.error(err);
+            toast.error("Upload ảnh thất bại");
         } finally {
             setUploading(false);
         }
@@ -113,25 +137,33 @@ export default function UserInfoPage() {
     const queryClient = useQueryClient();
 
     async function handleUpdateProfile() {
-        const pad = (n) => String(n).padStart(2, "0");
-        const dob =
-            year && month && day
-                ? `${year}-${pad(month)}-${pad(day)}`
-                : null;
-        const payload = {
-            username,
-            email,
-            firstName,
-            lastName,
-            phone,
-            sex,
-            dob,
-            avatarUrl: avatarUrl || user.avatarUrl
-        };
-        console.log("payload: ", payload)
-        await api.put("/profile-service/profile", payload);
-        queryClient.invalidateQueries({ queryKey: ["user"] });
-        setUpdateInfo(false);
+        try {
+            const hasPartialDate = (day || month || year) && (!day || !month || !year);
+            if (hasPartialDate) {
+                toast.error("Vui lòng chọn đầy đủ ngày tháng năm sinh");
+                return;
+            }
+
+            const dobValue = (day && month && year) ? `${year}-${paddedMonth}-${paddedDay}` : null;
+
+            const payload = {
+                username,
+                email,
+                firstName,
+                lastName,
+                phone,
+                sex,
+                dob: dobValue,
+                avatarUrl: avatarUrl || user.avatarUrl
+            };
+            console.log("payload: ", payload)
+            await api.put("/profile-service/profile", payload);
+            toast.success("Cập nhật thông tin thành công");
+            setUpdateInfo(false);
+        } catch (error) {
+            console.error(error);
+            toast.error("Cập nhật thông tin thất bại");
+        }
     }
 
     useEffect(() => {
@@ -215,7 +247,7 @@ export default function UserInfoPage() {
 
                                 <div className="flex justify-between w-[40%] text-[16px] border-b border-gray-300 p-2">
                                     <span className="text-gray-500">Giới tính</span>
-                                    <span>{sex}</span>
+                                    <span>{user.sex}</span>
                                 </div>
 
                                 <div className="flex justify-between w-[40%] text-[16px] border-b border-gray-300 p-2">
@@ -357,7 +389,7 @@ export default function UserInfoPage() {
                                             <select
                                                 value={year}
                                                 onChange={(e) => setYear(e.target.value)}
-                                                className="w-full appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 text-red-600 font-medium focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                                className="w-full appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 font-medium focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                             >
                                                 <option value="" disabled>Năm</option>
                                                 {years.map((y) => (

@@ -34,7 +34,7 @@ const ProductSection = ({ title, keyword, sortType = "DEFAULT", icon }) => {
     const swiperRef = useRef(null);
 
     return (
-        <div className="w-full bg-white relative px-15 rounded-xl my-4">
+        <div className="w-full bg-white relative px-15 rounded-xl my-4 cursor-pointer">
             <div className="flex items-center justify-between py-4 border-b border-gray-100 mb-2">
                 <h2 className="font-bold text-[22px] text-gray-800 uppercase flex items-center gap-2">
                     {icon && <span className="text-red-600">{icon}</span>}

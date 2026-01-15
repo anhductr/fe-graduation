@@ -20,7 +20,27 @@ export const commentApi = {
                 size
             }
         });
-    }
+    },
+
+    // Delete a comment
+    deleteComment: (id) => {
+        return api.delete('rating-service/comment/delete', {
+            params: { id }
+        });
+    },
+
+    // Delete all comments for a product
+    deleteCommentsByProduct: (productId) => {
+        return api.delete('rating-service/comment/delete/product', {
+            params: { ProductId: productId }
+        });
+    },
+
+    //Push image comment 
+    pushImageComment: (data) => {
+        return api.put('rating-service/comment/image?id=' + data.commentId + '&imageUrl=' + data.imageUrl);
+    },
+
 };
 
 export default commentApi;

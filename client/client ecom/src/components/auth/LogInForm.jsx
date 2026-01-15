@@ -133,20 +133,20 @@ const LoginForm = ({ isOpen, onClose, onSwitchToRegister, isModal = true }) => {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <button
+          {/* <button
             type="button"
             className="flex items-center justify-center gap-2 bg-[#dd4b39] hover:bg-[#c43d2f] text-white font-semibold text-sm py-3 rounded-md"
           >
             <i className="fab fa-google text-lg"></i>
             <span>Google</span>
-          </button>
-          <button
+          </button> */}
+          {/* <button
             type="button"
             className="flex items-center justify-center gap-2 bg-[#3b5998] hover:bg-[#2d4373] text-white font-semibold text-sm py-3 rounded-md"
           >
             <i className="fab fa-facebook-f text-lg"></i>
             <span>Facebook</span>
-          </button>
+          </button> */}
         </div>
 
         <p className="mt-6 text-center text-gray-700 text-sm">
