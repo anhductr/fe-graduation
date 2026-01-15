@@ -15,6 +15,7 @@ import {
   DialogActions,
   DialogTitle,
   Button,
+  Switch,
 } from "@mui/material";
 import { Link } from "react-router";
 import { MdDelete } from "react-icons/md";
@@ -57,6 +58,22 @@ export default function UserList() {
       },
     });
     console.log("Xóa thành công:", res.data);
+    return res.data;
+  };
+
+  const updateUserStatus = async ({ userId, isActive }) => {
+    const res = await axios.put(
+      `/api/v1/user-service/users/admin/${userId}/status`,
+      null,
+      {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+        params: {
+          isActive: isActive,
+        },
+      }
+    );
     return res.data;
   };
 
@@ -108,6 +125,50 @@ export default function UserList() {
       }));
     },
   });
+
+  const statusMutation = useMutation({
+    mutationFn: updateUserStatus,
+    onSuccess: (res) => {
+      queryClient.invalidateQueries(["users"]);
+      setPopup((prep) => ({
+        ...prep,
+        open: true,
+        message: "Cập nhật trạng thái thành công!",
+        severity: "success",
+      }));
+    },
+    onError: (err) => {
+      console.error("Lỗi cập nhật trạng thái:", err);
+      setPopup((prev) => ({
+        ...prev,
+        open: true,
+        message: "Cập nhật trạng thái thất bại!",
+        severity: "error",
+      }));
+    },
+  });
+
+  // Modal đổi trạng thái
+  const [openConfirmStatus, setOpenConfirmStatus] = useState(false);
+  const [selectedUserStatus, setSelectedUserStatus] = useState(null);
+
+  const handleToggleStatus = (userId, currentStatus) => {
+    setSelectedUserStatus({ userId, isActive: !currentStatus });
+    setOpenConfirmStatus(true);
+  };
+
+  const handleConfirmStatus = () => {
+    if (selectedUserStatus) {
+      statusMutation.mutate(selectedUserStatus);
+    }
+    setOpenConfirmStatus(false);
+    setSelectedUserStatus(null);
+  };
+
+  const handleCancelStatus = () => {
+    setOpenConfirmStatus(false);
+    setSelectedUserStatus(null);
+  };
 
   //modal xóa
   const [openConfirm, setOpenConfirm] = useState(false);
@@ -251,14 +312,28 @@ export default function UserList() {
                   <TableRow>
                     <TableCell>Tên người dùng</TableCell>
                     <TableCell>Email</TableCell>
+                    <TableCell align="center">Trạng thái</TableCell>
                     <TableCell align="center">Thao tác</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {users.map((user) => (
-                    <TableRow key={user.id}>
+                    <TableRow
+                      key={user.id}
+                      sx={{
+                        backgroundColor: user.isActive ? "inherit" : "#ffebee", // Light red for locked users
+                        opacity: user.isActive ? 1 : 0.7,
+                      }}
+                    >
                       <TableCell>{user.username}</TableCell>
                       <TableCell>{user.email}</TableCell>
+                      <TableCell align="center">
+                        <Switch
+                          checked={user.isActive}
+                          onChange={() => handleToggleStatus(user.id, user.isActive)}
+                          color="primary"
+                        />
+                      </TableCell>
                       <TableCell align="center">
                         <Link
                           to={`/users/users-view/${user.id}`}
@@ -296,6 +371,25 @@ export default function UserList() {
           <Button
             onClick={handleConfirmDelete}
             color="error"
+            variant="contained"
+          >
+            Có
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={openConfirmStatus} onClose={handleCancelStatus}>
+        <DialogTitle>
+          {selectedUserStatus?.isActive
+            ? "Bạn có chắc muốn mở khóa tài khoản này không?"
+            : "Bạn có chắc muốn khóa tài khoản này không?"}
+        </DialogTitle>
+        <DialogActions>
+          <Button onClick={handleCancelStatus} color="inherit">
+            Không
+          </Button>
+          <Button
+            onClick={handleConfirmStatus}
+            color="primary"
             variant="contained"
           >
             Có
