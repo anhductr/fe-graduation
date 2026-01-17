@@ -40,9 +40,7 @@ export default function CheckoutPage() {
     const [showVoucherModal, setShowVoucherModal] = useState(false);
     const [discountAmount, setDiscountAmount] = useState(0);
 
-    // Use selected items from state if available, otherwise fallback to all cart items
     const items = location.state?.selectedItems || cartItems;
-    // Calculate total price based on the actual items being purchased
     const totalPrice = items.reduce((sum, item) => sum + (item.sellPrice * item.quantity), 0);
 
     const [addressId, setAddressId] = useState("");
@@ -195,7 +193,7 @@ export default function CheckoutPage() {
             orderDesc,
             orderFee,
             addressId,
-            totalPrice: checkoutSubtotal,
+            totalPrice: checkoutSubtotal - orderFee,
             paymentMethod: "VNPAY",
             items: checkoutItems.map(item => ({
                 sku: item.sku,

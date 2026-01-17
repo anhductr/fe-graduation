@@ -155,7 +155,7 @@ export default function CartPage() {
                 {items.map((item) => (
                   <div
                     key={item.cartItemId}
-                    className="flex items-center gap-4 border rounded-lg p-4"
+                    className="flex items-center gap-4 border border-gray-200 rounded-lg p-4"
                   >
                     <Checkbox
                       checked={selected[item.cartItemId] || false}
@@ -174,7 +174,6 @@ export default function CartPage() {
                       <h3 className="text-black font-semibold text-sm leading-tight">
                         {item.variantName}
                       </h3>
-                      {/* <p className="text-xs text-gray-500 mt-1">SKU: {item.sku}</p> */}
 
                     </div>
 

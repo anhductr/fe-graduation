@@ -23,6 +23,11 @@ export const orderApi = {
 
     // Update order status (internal)
     updateOrderStatus: (orderId, status) => api.post(`${API_URL}/order/status`, null, { params: { orderId, status } }),
+
+    cancelOrder: (orderId) =>
+        api.put(`${API_URL}/order/cancel`, null, {
+            params: { orderId },
+        }),
 };
 
 export default orderApi;
