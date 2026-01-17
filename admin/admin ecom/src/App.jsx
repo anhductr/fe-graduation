@@ -24,6 +24,7 @@ import BrandEdit from './pages/Brands/BrandEdit.jsx'
 import ContentList from './pages/Content/ContentList.jsx'
 import ContentUpload from './pages/Content/ContentUpload.jsx'
 import ReviewsIndex from './pages/Reviews/ReviewsIndex.jsx'
+import BannerPage from './pages/BannerPage.jsx'
 import ProtectedRoute from './components/common/ProtectedRoute.jsx'
 
 function App() {
@@ -372,6 +373,23 @@ function App() {
                 transition={{ duration: 0.3 }}
               >
                 <ReviewsIndex />
+              </motion.div>
+            }
+          />
+        </Route>
+
+        {/* Banners */}
+        <Route path="/banners" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+          <Route
+            index
+            element={
+              <motion.div
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                transition={{ duration: 0.3 }}
+              >
+                <BannerPage />
               </motion.div>
             }
           />

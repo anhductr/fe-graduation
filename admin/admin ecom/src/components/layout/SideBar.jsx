@@ -27,6 +27,7 @@ export default function SideBar({ location }) {
         if (path.startsWith("/promotion")) return 7;
         if (path.startsWith("/reviews")) return 9; // Changed from 9 and 10
         if (path.startsWith("/contents")) return 8;
+        if (path.startsWith("/banners")) return 12;
         if (path.startsWith("/settings")) return 11;
         return 1; // fallback
     };
@@ -218,6 +219,25 @@ export default function SideBar({ location }) {
                                     <div className='flex flex-col items-start'>
                                         <span className="!font-semibold !text-[14px]">Content</span>
                                         <span className="!text-[10px]">Quản lý Chatbot</span>
+                                    </div>
+                                </Button>
+                            </div>
+                        </Link>
+                    </li>
+
+                    {/* banners */}
+                    <li className="">
+                        <Link to="/banners">
+                            <div
+                                className="w-full text-white !text-left !flex !justify-between items-center !py-[12px] !px-[15px] gap-2 !h-[80px]"
+                            >
+                                <Button variant="text" className={`${active === 12 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
+                                    <span aria-label='icon'>
+                                        <BsBoxSeam className={`!text-[37px] !mr-[10px]`} />
+                                    </span>
+                                    <div className='flex flex-col items-start'>
+                                        <span className="!font-semibold !text-[14px]">Banner</span>
+                                        <span className="!text-[10px]">Quản lý Banner</span>
                                     </div>
                                 </Button>
                             </div>

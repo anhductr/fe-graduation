@@ -1,14 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaComments, FaTimes, FaPaperPlane, FaRobot, FaUser } from 'react-icons/fa';
+import ReactMarkdown from 'react-markdown';
+
+import { chatbotApi } from '../../services/chatbotApi';
+import { useAuth } from '../../context/AuthContext';
 
 const Chatbot = () => {
+    const { user } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([
         { id: 1, text: "Hello! How can I help you today?", role: 'bot' }
     ]);
     const [inputValue, setInputValue] = useState("");
+    const [sessionId, setSessionId] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [capabilities, setCapabilities] = useState(null);
     const messagesEndRef = useRef(null);
+
+    useEffect(() => {
+        let sid = sessionStorage.getItem('chat_session_id');
+        if (!sid) {
+            sid = crypto.randomUUID();
+            sessionStorage.setItem('chat_session_id', sid);
+        }
+        setSessionId(sid);
+    }, []);
 
     const toggleChat = () => {
         setIsOpen(!isOpen);
@@ -20,30 +37,59 @@ const Chatbot = () => {
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages, isOpen]);
+    }, [messages, isOpen, isLoading]);
 
-    const handleSendMessage = (e) => {
-        e.preventDefault();
-        if (!inputValue.trim()) return;
+    const handleSendMessage = async (e, textOverride = null) => {
+        if (e) e.preventDefault();
+        const textToSend = textOverride || inputValue;
 
+        if (!textToSend.trim() || isLoading) return;
+
+        const userMessageText = textToSend;
         const newUserMessage = {
             id: Date.now(),
-            text: inputValue,
+            text: userMessageText,
             role: 'user'
         };
 
         setMessages(prev => [...prev, newUserMessage]);
         setInputValue("");
+        setIsLoading(true);
+        setCapabilities(null);
 
-        // Simulate bot response
-        setTimeout(() => {
+        try {
+            const response = await chatbotApi.chat({
+                user_id: user?._id || "guest",
+                query: userMessageText,
+                session_id: sessionId,
+                top_k: 5
+            });
+
             const botResponse = {
                 id: Date.now() + 1,
-                text: "Thanks for your message! This is a demo response.",
+                text: response.answer,
                 role: 'bot'
             };
             setMessages(prev => [...prev, botResponse]);
-        }, 1000);
+
+            if (response.capabilities) {
+                setCapabilities(response.capabilities);
+            }
+        } catch (error) {
+            console.error("Chatbot error:", error);
+            const errorResponse = {
+                id: Date.now() + 1,
+                text: "Sorry, I'm having trouble connecting right now. Please try again later.",
+                role: 'bot'
+            };
+            setMessages(prev => [...prev, errorResponse]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleCapabilityClick = (key, label) => {
+        handleSendMessage(null, label);
     };
 
     return (
@@ -93,13 +139,54 @@ const Chatbot = () => {
                                         {message.role === 'user' ? <FaUser size={14} /> : <FaRobot size={14} />}
                                     </div>
                                     <div className={`p-3 rounded-2xl text-sm leading-relaxed ${message.role === 'user'
-                                            ? 'bg-indigo-600 text-white rounded-tr-none'
-                                            : 'bg-white text-gray-700 shadow-sm border border-gray-100 rounded-tl-none'
+                                        ? 'bg-indigo-600 text-white rounded-tr-none'
+                                        : 'bg-white text-gray-700 shadow-sm border border-gray-100 rounded-tl-none'
                                         }`}>
-                                        {message.text}
+                                        {message.role === 'user' ? (
+                                            message.text
+                                        ) : (
+                                            <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0">
+                                                <ReactMarkdown
+                                                    components={{
+                                                        strong: ({ node, ...props }) => <span className="font-bold text-indigo-600" {...props} />
+                                                    }}
+                                                >
+                                                    {message.text}
+                                                </ReactMarkdown>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))}
+                            {/* Capabilities Chips */}
+                            {capabilities && (
+                                <div className="flex flex-wrap gap-2 mt-2 ml-10 mb-2">
+                                    {Object.entries(capabilities).map(([key, label]) => (
+                                        <button
+                                            key={key}
+                                            onClick={() => handleCapabilityClick(key, label)}
+                                            className="px-3 py-1.5 bg-white border border-indigo-200 text-indigo-600 text-xs rounded-full hover:bg-indigo-50 transition-colors shadow-sm whitespace-nowrap"
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {isLoading && (
+                                <div className="flex items-start gap-2 mr-auto mb-2">
+                                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
+                                        <FaRobot size={14} />
+                                    </div>
+                                    <div className="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm border border-gray-100">
+                                        <div className="flex gap-1">
+                                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                             <div ref={messagesEndRef} />
                         </div>
 
@@ -117,8 +204,8 @@ const Chatbot = () => {
                                     type="submit"
                                     disabled={!inputValue.trim()}
                                     className={`p-2 rounded-full transition-all ${inputValue.trim()
-                                            ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md transform hover:scale-105 active:scale-95'
-                                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                        ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md transform hover:scale-105 active:scale-95'
+                                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                         }`}
                                 >
                                     <FaPaperPlane size={14} />

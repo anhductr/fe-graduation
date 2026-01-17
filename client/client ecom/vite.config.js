@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_API_URL,
           changeOrigin: true,
         },
-        [`${env.CONTENT_API_URL}/content`]: {
+        [`${env.CONTENT_API_URL}/`]: {
           target: env.VITE_API_ENDPOINT || "",
           changeOrigin: true,
         },
