@@ -1,20 +1,13 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import ReactECharts from "echarts-for-react";
 import { Button, Select, MenuItem } from "@mui/material";
 import dayjs from "dayjs";
-// import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
-
-/* =======================
-   CONSTANTS
-======================= */
 const YEAR_OPTIONS = [2023, 2024, 2025];
 
-/* =======================
-   FAKE RAW DATA
-======================= */
 function generateRawData(year) {
   return [
     { time: `${year}-01`, sales: 8, import: 5 },
@@ -32,56 +25,44 @@ function generateRawData(year) {
   ];
 }
 
-/* =======================
-   COMPONENT
-======================= */
 export default function SalesChart() {
+  const [year, setYear] = useState(dayjs().year());
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [viewType, setViewType] = useState("month");
   const [customRange, setCustomRange] = useState(null);
 
-  function generateRawData(year, viewType) {
-    const today = dayjs();
+  function generateRawData(year, startDate, endDate) {
+    if (startDate && endDate) {
+      const days = endDate.diff(startDate, "day") + 1;
 
-    if (viewType === "week") {
-      return Array.from({ length: 7 }, (_, i) => {
-        const date = today.subtract(6 - i, "day");
+      return Array.from({ length: days }, (_, i) => {
+        const d = startDate.add(i, "day");
         return {
-          time: date.format("YYYY-MM-DD"),
-          sales: Math.random() * 10 + 8,
-          import: Math.random() * 8 + 5,
+          time: d.format("YYYY-MM-DD"),
+          sales: Math.random() * 10 + 10,
+          import: Math.random() * 8 + 6,
         };
       });
     }
 
-    if (viewType === "month") {
-      return Array.from({ length: 30 }, (_, i) => {
-        const date = today.subtract(29 - i, "day");
-        return {
-          time: date.format("YYYY-MM-DD"),
-          sales: Math.random() * 10 + 8,
-          import: Math.random() * 8 + 5,
-        };
-      });
-    }
-
-    // year
     return Array.from({ length: 12 }, (_, i) => ({
       time: `${year}-${String(i + 1).padStart(2, "0")}`,
-      sales: Math.random() * 10 + 8,
-      import: Math.random() * 8 + 5,
+      sales: Math.random() * 10 + 20,
+      import: Math.random() * 8 + 12,
     }));
   }
 
-
-  const [year, setYear] = useState(dayjs().year());
-
   const rawData = useMemo(
-    () => generateRawData(year, viewType),
-    [year, viewType]
+    () => generateRawData(year, startDate, endDate),
+    [year, startDate, endDate]
   );
 
+  useEffect(() => {
+    if (startDate && endDate) {
+      setViewType("custom");
+    }
+  }, [startDate, endDate]);
 
   const option = useMemo(() => {
     const times = rawData.map((d) => d.time);
@@ -123,22 +104,20 @@ export default function SalesChart() {
         type: "category",
         data: times,
         axisLabel: {
-          interval: viewType === "month" ? 2 : 0,
           formatter: (value) => {
-            if (viewType === "year") {
-              return `Tháng ${Number(value.split("-")[1])}`;
+            if (startDate && endDate) {
+              return dayjs(value).format("DD/MM");
             }
-            return dayjs(value).format("DD/MM");
+
+            return `Tháng ${Number(value.split("-")[1])}`;
           },
         },
-        splitLine: { show: false }, // (tuỳ chọn) tắt grid dọc
       },
 
       yAxis: {
         type: "value",
-        splitLine: { show: false }, // tắt grid ngang
       },
-
+      
       series: [
         {
           name: "Doanh số",
@@ -161,7 +140,6 @@ export default function SalesChart() {
           itemStyle: { color: "#ff4d4f" },
         },
 
-        // PROFIT AREA
         {
           type: "line",
           data: sales,
@@ -191,7 +169,6 @@ export default function SalesChart() {
           areaStyle: { color: "transparent" },
         },
 
-        // LOSS AREA
         {
           type: "line",
           data: imports,
@@ -224,17 +201,15 @@ export default function SalesChart() {
     };
   }, [rawData, viewType]);
 
-
   return (
     <div className="shadow border-0 p-5 my-[20px] bg-white rounded-[10px]">
-      {/* HEADER */}
       <div className="flex justify-between items-center mb-4">
         <div className="font-semibold text-gray-900 text-[20px]">
           Doanh số & tiền nhập hàng
         </div>
 
         <div className="flex items-center gap-3">
-          <Select
+          {/* <Select
             size="small"
             value={viewType}
             onChange={(e) => setViewType(e.target.value)}
@@ -243,13 +218,14 @@ export default function SalesChart() {
             <MenuItem value="week">Theo tuần</MenuItem>
             <MenuItem value="month">Theo tháng</MenuItem>
             <MenuItem value="year">Theo năm</MenuItem>
-          </Select>
+          </Select> */}
 
-          {/* <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
             <DatePicker
               label="Từ ngày"
               value={startDate}
               onChange={setStartDate}
+              maxDate={dayjs()}
               format="DD/MM/YYYY"
               slotProps={{ textField: { size: "small" } }}
             />
@@ -258,38 +234,37 @@ export default function SalesChart() {
               value={endDate}
               onChange={setEndDate}
               minDate={startDate}
+              maxDate={dayjs()}
               format="DD/MM/YYYY"
               slotProps={{ textField: { size: "small" } }}
             />
-          </LocalizationProvider> */}
+          </LocalizationProvider>
 
-          {viewType !== "week" && (
-            <Select
-              size="small"
-              value={year}
-              sx={{
-                minWidth: 90,
-                cursor: "pointer",
-                "& .MuiSelect-select": {
-                  cursor: "pointer",
-                },
-              }}
-              MenuProps={{
-                PaperProps: {
-                  sx: {
-                    cursor: "pointer",
-                  },
-                },
-              }}
-              onChange={(e) => setYear(Number(e.target.value))}
-            >
-              {YEAR_OPTIONS.map((y) => (
-                <MenuItem key={y} value={y}>
-                  {y}
-                </MenuItem>
-              ))}
-            </Select>
-          )}
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => {
+              setStartDate(null);
+              setEndDate(null);
+              setViewType("month");
+            }}
+          >
+            Xóa lọc ngày
+          </Button>
+
+          <Select
+            size="small"
+            value={year}
+            disabled={!!startDate && !!endDate}
+            onChange={(e) => setYear(Number(e.target.value))}
+            sx={{ minWidth: 90 }}
+          >
+            {YEAR_OPTIONS.map((y) => (
+              <MenuItem key={y} value={y}>
+                {y}
+              </MenuItem>
+            ))}
+          </Select>
 
           <Button
             variant="contained"
@@ -300,7 +275,6 @@ export default function SalesChart() {
         </div>
       </div>
 
-      {/* CHART */}
       <ReactECharts option={option} style={{ height: 360 }} />
     </div>
   );

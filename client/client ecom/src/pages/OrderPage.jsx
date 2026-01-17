@@ -19,7 +19,7 @@ export default function OrderPage() {
         { label: "Đang giao hàng", status: "DELIVERED" },
         { label: "Hoàn tất", status: "COMPLETED" },
         { label: "Đã hủy", status: "CANCELLED" },
-        { label: "Hoàn tiền", status: "REFUNDED" },
+        // { label: "Hoàn tiền", status: "REFUNDED" },
         // { label: "Trả hàng", status: "RETURNED" },
     ];
 
