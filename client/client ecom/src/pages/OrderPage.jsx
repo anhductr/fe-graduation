@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext";
 import { orderApi } from "../services/orderApi";
@@ -9,28 +9,26 @@ export default function OrderPage() {
     const { user } = useAuth();
     const [active, setActive] = useState("Tất cả");
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
+    const [page, setPage] = useState(1);
+    const [size, setSize] = useState(5);
+    const [hasPendingOrder, setHasPendingOrder] = useState(false);
 
     const tabs = [
-        { label: "Tất cả", status: undefined },
+        { label: "Tất cả", status: "ALL" },
         { label: "Chờ thanh toán", status: "PENDING" },
         { label: "Đang xử lý", status: "PROCESSING" },
         { label: "Hoàn tất", status: "COMPLETED" },
         { label: "Đã giao", status: "DELIVERED" },
         { label: "Đã hủy", status: "CANCELLED" },
-        { label: "Hoàn tiền", status: "REFUNDED" },
-        { label: "Trả hàng", status: "RETURNED" },
     ];
 
     const currentTab = tabs.find(t => t.label === active);
 
     const { data: ordersData, isLoading, error } = useQuery({
-        queryKey: ["orders", currentTab?.status],
+        queryKey: ["orders", currentTab?.status, page, size],
         queryFn: async () => {
-            const params = {
-                page: 1,
-                size: 20,
-            };
-
+            const params = { page, size, };
             if (currentTab?.status) {
                 params.status = currentTab.status;
             }
@@ -40,10 +38,17 @@ export default function OrderPage() {
             const res = await orderApi.getMyOrders(params);
 
             console.log("API response:", res.data);
+            const hasPending =
+                res.data.result?.data?.some(
+                    (order) => order.Status === "PENDING"
+                ) || false;
 
+            setHasPendingOrder(hasPending);
             return res.data.result;
         },
+        keepPreviousData: true,
     });
+
 
     const handlePayOrder = (order) => {
         navigate("/checkout", {
@@ -58,7 +63,29 @@ export default function OrderPage() {
         });
     };
 
+    const handleCancelOrder = async (orderId) => {
+        const confirmCancel = window.confirm(
+            "Bạn có chắc chắn muốn hủy đơn hàng này?"
+        );
+        if (!confirmCancel) return;
+
+        try {
+            await orderApi.cancelOrder(orderId);
+
+            alert("Hủy đơn hàng thành công");
+
+            queryClient.invalidateQueries(["orders"]);
+        } catch (err) {
+            console.error("Cancel order error:", err);
+            alert(
+                err.response?.data?.message ||
+                "Không thể hủy đơn hàng"
+            );
+        }
+    };
+
     const orders = ordersData?.data || [];
+    const totalPage = ordersData?.totalPage || 1;
 
     const formatPrice = (price) => {
         return new Intl.NumberFormat("vi-VN", {
@@ -68,6 +95,7 @@ export default function OrderPage() {
     };
 
     const getStatusColor = (status) => ({
+        ALL: "bg-yellow-100 text-yellow-800",
         PENDING: "bg-yellow-100 text-yellow-800",
         PROCESSING: "bg-blue-100 text-blue-800",
         COMPLETED: "bg-green-100 text-green-800",
@@ -87,6 +115,10 @@ export default function OrderPage() {
         REFUNDED: "Hoàn tiền",
         RETURNED: "Trả hàng",
     }[status] || status);
+
+    useEffect(() => {
+        setPage(1);
+    }, [active]);
 
     return (
         <>
@@ -116,21 +148,48 @@ export default function OrderPage() {
                 </div>
 
                 <div className="flex items-center justify-between bg-white rounded-t-lg shadow pt-3">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab.label}
-                            onClick={() => setActive(tab.label)}
-                            className={`pb-3 flex-1 font-medium transition ${active === tab.label
-                                ? "text-[#03A9F4] border-b-2 border-[#03A9F4]"
-                                : "text-gray-500 hover:text-gray-700"
-                                }`}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
+                    {tabs.map((tab) => {
+                        const isPendingTab = tab.status === "PENDING";
+
+                        return (
+                            <div key={tab.label} className="relative group flex-1">
+                                <button
+                                    onClick={() => setActive(tab.label)}
+                                    className={`
+          pb-3 w-full font-medium transition
+          ${active === tab.label
+                                            ? "text-[#03A9F4] border-b-2 border-[#03A9F4]"
+                                            : "text-gray-500 hover:text-gray-700"}
+          ${isPendingTab && hasPendingOrder
+                                            ? "text-red-600 font-semibold animate-pulse"
+                                            : ""}
+        `}
+                                >
+                                    {tab.label}
+
+                                    {isPendingTab && hasPendingOrder && (
+                                        <span className="ml-1 inline-block w-2 h-2 bg-red-500 rounded-full" />
+                                    )}
+                                </button>
+
+                                {isPendingTab && hasPendingOrder && (
+                                    <div
+                                        className="
+            absolute left-1/2 -translate-x-1/2 top-full mt-2
+            hidden group-hover:block
+            bg-black text-white text-xs px-3 py-1 rounded
+            whitespace-nowrap z-50
+          "
+                                    >
+                                        Đơn hàng sẽ tự động hết hạn sau 24h
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
 
-                <div className="bg-white rounded-[10px] shadow w-full flex flex-col p-5 gap-4">
+                <div className="bg-white rounded-[10px] shadow w-full flex flex-col p-5 gap-4 pb-24">
                     {isLoading ? (
                         <div className="flex justify-center py-10">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -167,8 +226,11 @@ export default function OrderPage() {
                                 <div className="space-y-2 mb-3">
                                     {order.items?.slice(0, 2).map((item, idx) => (
                                         <div key={idx} className="flex items-center gap-3">
-                                            <div className="w-12 h-12 bg-gray-100 rounded flex-shrink-0"></div>
-                                            <div className="flex-1 min-w-0">
+                                            <img
+                                                src={item.thumbnailUrl || "/no-image.png"}
+                                                alt={item.productName}
+                                                className="w-12 h-12 object-cover rounded flex-shrink-0"
+                                            />                                            <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-medium truncate">{item.productName || item.sku}</p>
                                                 <p className="text-xs text-gray-500">x{item.quantity}</p>
                                             </div>
@@ -185,7 +247,7 @@ export default function OrderPage() {
                                         Tổng: <span className="font-bold text-red-600">{formatPrice(order.totalPrice || order.totalAmount)}</span>
                                     </p>
                                     <div className="flex gap-2">
-                                        {active === "Chờ thanh toán" && (
+                                        {order.Status === "PENDING" && (
                                             <button
                                                 onClick={() => handlePayOrder(order)}
                                                 className="px-4 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition"
@@ -193,7 +255,7 @@ export default function OrderPage() {
                                                 Thanh toán
                                             </button>
                                         )}
-                                        {active === "Đang xử lý" && (
+                                        {order.Status === "PROCESSING" && (
                                             <button
                                                 onClick={() => handleCancelOrder(order.orderId)}
                                                 className="px-4 py-1.5 border border-red-500 text-red-600 text-sm rounded
@@ -211,6 +273,48 @@ export default function OrderPage() {
                         ))
                     )}
                 </div>
+
+                <div className="flex justify-between items-center mb-4">
+                    <select
+                        value={size}
+                        onChange={(e) => {
+                            setSize(Number(e.target.value));
+                            setPage(1);
+                        }}
+                        className="border rounded px-2 py-1 text-sm"
+                    >
+                        <option value={5}>5 / trang</option>
+                        <option value={10}>10 / trang</option>
+                        <option value={20}>20 / trang</option>
+                        <option value={50}>50 / trang</option>
+                    </select>
+                </div>
+                <div className="flex justify-center items-center gap-4 mt-8">
+                    <button
+                        disabled={page === 1}
+                        onClick={() => setPage((p) => p - 1)}
+                        className="px-4 py-2 border rounded-md text-sm font-medium
+               hover:bg-gray-100 transition
+               disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        ← Trang trước
+                    </button>
+
+                    <span className="px-4 py-2 rounded-md bg-gray-100 text-sm font-semibold text-gray-700">
+                        Trang {page} / {totalPage}
+                    </span>
+
+                    <button
+                        disabled={page >= totalPage}
+                        onClick={() => setPage((p) => p + 1)}
+                        className="px-4 py-2 border rounded-md text-sm font-medium
+               hover:bg-gray-100 transition
+               disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        Trang sau →
+                    </button>
+                </div>
+
             </div>
         </>
     );
