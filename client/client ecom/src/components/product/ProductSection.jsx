@@ -14,7 +14,9 @@ const ProductSection = ({ tabs, sortType = "DEFAULT" }) => {
     const [activeTabIndex, setActiveTabIndex] = useState(0);
     const activeTab = tabs[activeTabIndex];
     const navigate = useNavigate();
-
+    useEffect(() => {
+        console.log(activeTab.keyword)
+    }, [activeTab])
     // 1. Fetch category ID using autocomplete based on keyword
     const { data: suggestionData } = useQuery({
         queryKey: ["categorySearch", activeTab.keyword],
@@ -97,19 +99,25 @@ const ProductSection = ({ tabs, sortType = "DEFAULT" }) => {
                         {/* Brand List - Now Dynamic */}
                         <div className="flex flex-wrap gap-2">
                             {filteredBrands.map((brand, idx) => (
-                                <span
+                                <button
                                     key={brand.id || idx}
-                                    className="px-4 py-1 rounded-full text-sm text-gray-700 border border-gray-300"
+                                    onClick={() => navigate("/search", {
+                                        state: {
+                                            type: "brand",
+                                            brand: brand.name.toLowerCase()
+                                        }
+                                    })}
+                                    className="px-4 py-1 rounded-full text-sm text-gray-700 border border-gray-300 hover:bg-gray-100 hover:text-blue-600 transition-colors"
                                 >
                                     {brand.name}
-                                </span>
+                                </button>
                             ))}
                         </div>
 
                         {/* See All */}
                         <Link
                             to="/search"
-                            state={{ keyword: activeTab.keyword }}
+                            state={{ type: "category", categoryId: categoryId }}
                             className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium whitespace-nowrap ml-4"
                         >
                             Xem tất cả <IoIosArrowForward />

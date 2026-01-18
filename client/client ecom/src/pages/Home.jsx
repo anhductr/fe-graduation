@@ -36,7 +36,7 @@ function Home() {
               },
               {
                 title: "MÁY TÍNH BẢNG",
-                keyword: "Tablet",
+                keyword: "Máy tính bảng",
               }
             ]}
           />
@@ -48,8 +48,8 @@ function Home() {
                 keyword: "Laptop",
               },
               {
-                title: "MÀN HÌNH MÁY TÍNH",
-                keyword: "Màn hình",
+                title: "MÀN HÌNH RỜI",
+                keyword: "Màn hình rời",
               },
               {
                 title: "PC",
@@ -61,19 +61,19 @@ function Home() {
           <ProductSection
             tabs={[
               {
-                title: "Loa",
+                title: "LOA",
                 keyword: "Loa",
               },
               {
-                title: "Tai nghe",
+                title: "TAI NGHE",
                 keyword: "Tai nghe",
               },
               {
-                title: "Chuột",
+                title: "CHUỘT",
                 keyword: "Chuột",
               },
               {
-                title: "Bàn phím",
+                title: "BÀN PHÍM",
                 keyword: "Bàn phím",
               },
             ]}
