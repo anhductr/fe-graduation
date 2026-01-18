@@ -2,25 +2,28 @@ import React, { useRef } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import { IoIosArrowForward, IoIosArrowBack } from "react-icons/io";
-import { FaBolt } from "react-icons/fa"; // Lightning icon
+import { FaBolt } from "react-icons/fa";
 import ProductCard from "./ProductCard";
-
-// Mock Data
-const MOCK_PRODUCTS = Array(10).fill(null).map((_, index) => ({
-    id: `flash-${index}`,
-    name: `iPhone 17 Pro Max ${index + 1}TB | Flash Sale`,
-    price: 35000000 + (index * 1000000), // Slightly cheaper for mock flash sale
-    listPrice: 42000000 + (index * 1000000),
-    thumbnailUrl: "https://cdn2.cellphones.com.vn/insecure/rs:fill:358:358/q:90/plain/https://cellphones.com.vn/media/catalog/product/i/p/iphone-16-pro-max.png",
-    avgRating: 5,
-}));
+import { useQuery } from "@tanstack/react-query";
+import { getProductFlashSale } from "../../services/searchApi";
 
 export default function FlashSaleProduct() {
     const swiperRef = useRef(null);
     const uniqueId = "flash-sale-product";
 
-    // Use mock data
-    const products = MOCK_PRODUCTS;
+    // Fetch products from Flash Sale API
+    const { data: apiResponse, isLoading } = useQuery({
+        queryKey: ["flashSaleProducts"],
+        queryFn: () => getProductFlashSale({ page: 1, size: 20 }),
+        keepPreviousData: true,
+    });
+
+    const products = apiResponse?.result?.data || [];
+
+    // Don't render if loading or no products
+    if (isLoading || !products || products.length === 0) {
+        return null;
+    }
 
     return (
         <div className="w-full relative px-15 my-8">
@@ -43,7 +46,7 @@ export default function FlashSaleProduct() {
                     <div className="relative group/swiper px-4">
                         <Swiper
                             key={uniqueId}
-                            loop={true}
+                            loop={products.length > 4} // Loop only if enough items
                             spaceBetween={12}
                             slidesPerView={2}
                             ref={swiperRef}
@@ -58,43 +61,47 @@ export default function FlashSaleProduct() {
                             }}
                             className="!py-2"
                         >
-                            {products.map((product, index) => (
-                                <SwiperSlide key={index}>
+                            {products.map((product) => (
+                                <SwiperSlide key={product.id}>
                                     <ProductCard product={product} />
                                 </SwiperSlide>
                             ))}
                         </Swiper>
 
-                        {/* Navigation Buttons */}
-                        <button
-                            id={`prev-${uniqueId}`}
-                            onClick={() => swiperRef.current?.swiper?.slidePrev()}
-                            className="
-                                absolute left-[-10px] top-1/2 -translate-y-1/2 z-20
-                                w-10 h-10 rounded-full bg-white/80 shadow-md text-gray-700
-                                flex items-center justify-center
-                                opacity-0 group-hover/swiper:opacity-100 
-                                transition-all duration-300
-                                hover:bg-white hover:text-red-600
-                            "
-                        >
-                            <IoIosArrowBack size={24} />
-                        </button>
+                        {products.length > 4 && (
+                            <>
+                                {/* Navigation Buttons */}
+                                <button
+                                    id={`prev-${uniqueId}`}
+                                    onClick={() => swiperRef.current?.swiper?.slidePrev()}
+                                    className="
+                                        absolute left-[-10px] top-1/2 -translate-y-1/2 z-20
+                                        w-10 h-10 rounded-full bg-white/80 shadow-md text-gray-700
+                                        flex items-center justify-center
+                                        opacity-0 group-hover/swiper:opacity-100 
+                                        transition-all duration-300
+                                        hover:bg-white hover:text-red-600
+                                    "
+                                >
+                                    <IoIosArrowBack size={24} />
+                                </button>
 
-                        <button
-                            id={`next-${uniqueId}`}
-                            onClick={() => swiperRef.current?.swiper?.slideNext()}
-                            className="
-                                absolute right-[-10px] top-1/2 -translate-y-1/2 z-20
-                                w-10 h-10 rounded-full bg-white/80 shadow-md text-gray-700
-                                flex items-center justify-center
-                                opacity-0 group-hover/swiper:opacity-100 
-                                transition-all duration-300
-                                hover:bg-white hover:text-red-600
-                            "
-                        >
-                            <IoIosArrowForward size={24} />
-                        </button>
+                                <button
+                                    id={`next-${uniqueId}`}
+                                    onClick={() => swiperRef.current?.swiper?.slideNext()}
+                                    className="
+                                        absolute right-[-10px] top-1/2 -translate-y-1/2 z-20
+                                        w-10 h-10 rounded-full bg-white/80 shadow-md text-gray-700
+                                        flex items-center justify-center
+                                        opacity-0 group-hover/swiper:opacity-100 
+                                        transition-all duration-300
+                                        hover:bg-white hover:text-red-600
+                                    "
+                                >
+                                    <IoIosArrowForward size={24} />
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

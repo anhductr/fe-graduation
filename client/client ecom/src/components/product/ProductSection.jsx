@@ -8,6 +8,8 @@ import { getSearchSuggestionsFull, searchProducts } from "../../services/searchA
 import { IoIosArrowForward } from "react-icons/io";
 import { IoIosArrowBack } from "react-icons/io";
 
+import { getAllBrands } from "../../services/catalogueApi";
+
 const ProductSection = ({ tabs, sortType = "DEFAULT" }) => {
     const [activeTabIndex, setActiveTabIndex] = useState(0);
     const activeTab = tabs[activeTabIndex];
@@ -25,7 +27,22 @@ const ProductSection = ({ tabs, sortType = "DEFAULT" }) => {
         (item) => item.autoCompletedType === "CATEGORY"
     )?.id;
 
-    // 2. Fetch products using the resolved category ID
+    // 2. Fetch all brands
+    const { data: brandsData } = useQuery({
+        queryKey: ["allBrands"],
+        queryFn: async () => {
+            const response = await getAllBrands();
+            return response?.result || [];
+        },
+        staleTime: 10 * 60 * 1000, // cache for 10 mins
+    });
+
+    // Filter brands that belong to the current category
+    const filteredBrands = brandsData?.filter(brand =>
+        categoryId && Array.isArray(brand.categoryId) && brand.categoryId.includes(categoryId)
+    ) || [];
+
+    // 3. Fetch products using the resolved category ID
     const { data: apiResponse, isLoading, error } = useQuery({
         queryKey: ["products", categoryId, sortType],
         queryFn: () => searchProducts({
@@ -77,14 +94,14 @@ const ProductSection = ({ tabs, sortType = "DEFAULT" }) => {
 
                     {/* Second Row: Brands (Display Only) & See All Link */}
                     <div className="flex items-center justify-between py-2">
-                        {/* Brand List */}
+                        {/* Brand List - Now Dynamic */}
                         <div className="flex flex-wrap gap-2">
-                            {activeTab.brands && activeTab.brands.map((brand, idx) => (
+                            {filteredBrands.map((brand, idx) => (
                                 <span
-                                    key={idx}
+                                    key={brand.id || idx}
                                     className="px-4 py-1 rounded-full text-sm text-gray-700 border border-gray-300"
                                 >
-                                    {brand}
+                                    {brand.name}
                                 </span>
                             ))}
                         </div>
