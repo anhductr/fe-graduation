@@ -46,7 +46,7 @@ function Navbar() {
   };
 
   const goToAddress = () => {
-    navigate("/account/adress");
+    navigate("/account/address");
   };
 
 
