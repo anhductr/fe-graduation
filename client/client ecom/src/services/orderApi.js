@@ -6,6 +6,9 @@ export const orderApi = {
     // Create a new order
     createOrder: (data) => api.post(`${API_URL}/order/create`, data),
 
+    rePayment: (data) =>
+        api.post(`${API_URL}/order/rePayment`, data),
+
     // Get order by ID
     getOrder: (orderId) => api.get(`${API_URL}/order`, { params: { orderId } }),
 
@@ -20,6 +23,11 @@ export const orderApi = {
 
     // Update order status (internal)
     updateOrderStatus: (orderId, status) => api.post(`${API_URL}/order/status`, null, { params: { orderId, status } }),
+
+    cancelOrder: (orderId) =>
+        api.put(`${API_URL}/order/cancel`, null, {
+            params: { orderId },
+        }),
 };
 
 export default orderApi;

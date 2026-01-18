@@ -91,8 +91,13 @@ export default function CartPage() {
   );
 
   const handleCheckout = () => {
-    if (selectedItems.length === 0) return;
-    navigate('/checkout', { state: { selectedItems } });
+    navigate("/checkout", {
+      state: {
+        source: "cart",
+        selectedItems,
+        subtotal: selectedTotal,
+      },
+    });
   };
 
 
@@ -105,227 +110,198 @@ export default function CartPage() {
   }
 
   return (
-    <>
-      <div className="component-container">
-        <Navbar />
+    <div className="component-container">
+      <Navbar />
+      <div className="min-h-screen bg-gray-100 px-15">
+        <Breadcrumbs pagename="Giỏ Hàng" product={null} />
+        {items.length === 0 ? (
+          <div className="text-center py-20 bg-white rounded-lg shadow mt-4">
+            <p className="text-xl text-gray-500 mb-4">Giỏ hàng của bạn đang trống</p>
+            <button
+              onClick={() => navigate("/")}
+              className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+            >
+              Tiếp tục mua sắm
+            </button>
+          </div>
+        ) : (
+          <div className="mx-auto flex gap-10">
+            <div className="flex-1 bg-white rounded-lg p-6">
+              <label className="flex items-center mb-4 space-x-3">
+                <Checkbox
+                  checked={
+                    items.length > 0 &&
+                    items.every((i) => selected[i.cartItemId])
+                  }
+                  indeterminate={
+                    items.some((i) => selected[i.cartItemId]) &&
+                    !items.every((i) => selected[i.cartItemId])
+                  }
+                  onChange={handleChangeCheckedAll}
+                />
+                <span className="font-medium">
+                  Chọn tất cả ({items.length})
+                </span>
 
-        <div className="min-h-screen bg-gray-100 px-15">
-          <Breadcrumbs pagename="Giỏ Hàng" product={null} />
+                <button
+                  onClick={handleDeleteSelected}
+                  className="ml-auto text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </label>
 
-          {items.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-lg shadow mt-4">
-              <p className="text-xl text-gray-500 mb-4">Giỏ hàng của bạn đang trống</p>
-              <button
-                onClick={() => navigate("/")}
-                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-              >
-                Tiếp tục mua sắm
-              </button>
-            </div>
-          ) : (
-            <div className="mx-auto flex gap-10">
-              <div className="flex-1 bg-white rounded-lg p-6">
-                <label className="flex items-center mb-4 space-x-3">
-                  <Checkbox
-                    checked={
-                      items.length > 0 &&
-                      items.every((i) => selected[i.cartItemId])
-                    }
-                    indeterminate={
-                      items.some((i) => selected[i.cartItemId]) &&
-                      !items.every((i) => selected[i.cartItemId])
-                    }
-                    onChange={handleChangeCheckedAll}
-                  />
-                  <span className="font-medium">
-                    Chọn tất cả ({items.length})
-                  </span>
-
-                  <button
-                    onClick={handleDeleteSelected}
-                    className="ml-auto text-gray-400 hover:text-gray-600"
+              <div className="space-y-4">
+                {items.map((item) => (
+                  <div
+                    key={item.cartItemId}
+                    className="flex items-center gap-4 border border-gray-200 rounded-lg p-4"
                   >
-                    ✕
-                  </button>
-                </label>
+                    <Checkbox
+                      checked={selected[item.cartItemId] || false}
+                      onChange={(e) =>
+                        handleChangeChecked(item.cartItemId, e.target.checked)
+                      }
+                    />
 
-                <div className="space-y-4">
-                  {items.map((item) => (
+                    <img
+                      src={item.thumbnail}
+                      alt={item.variantName}
+                      className="w-20 h-20 object-cover rounded"
+                    />
+
+                    <div className="flex-1">
+                      <h3 className="text-black font-semibold text-sm leading-tight">
+                        {item.variantName}
+                      </h3>
+
+                    </div>
+
+                    <div className="text-red-600 font-semibold">
+                      {formatPrice(item.sellPrice)}
+                    </div>
+
+
+                    <div className="flex flex-shrink-0 items-center space-x-2 border border-gray-400 rounded-[5px] overflow-hidden">
+                      <button
+                        onClick={() => decreaseQty(item)}
+                        className="px-3 py-1 bg-white hover:bg-gray-100 border-r border-gray-300 disabled:cursor-not-allowed"
+                        disabled={item.quantity <= 1}
+                      >
+                        -
+                      </button>
+
+                      <div className="w-12 h-full flex items-center justify-center">
+                        <span className="text-sm font-medium leading-none">
+                          {item.quantity}
+                        </span>
+                      </div>
+                      <button
+                        aria-label="Tăng số lượng"
+                        onClick={() => increaseQty(item)}
+                        className="px-3 py-1 bg-white hover:bg-gray-100 border-l border-gray-300"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setDeleteTargetId(item.cartItemId);
+                        setDeleteModalOpen(true);
+                      }}
+                      className="text-gray-400 hover:text-red-600"
+                    >
+                      <IoTrashOutline size={20} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="w-full max-w-sm bg-white rounded-lg p-6 sticky top-20 h-fit">
+              <h2 className="text-lg font-semibold mb-4">
+                Thông tin đơn hàng
+                {selectedItems.length > 0 && (
+                  <span className="ml-2 text-sm text-gray-500">
+                    ({selectedItems.length} sản phẩm)
+                  </span>
+                )}
+              </h2>
+
+              {selectedItems.length > 0 && (
+                <div className="mb-4 max-h-60 overflow-y-auto space-y-3">
+                  {selectedItems.map((item) => (
                     <div
                       key={item.cartItemId}
-                      className="flex items-center gap-4 border rounded-lg p-4"
+                      className="flex gap-3 border-b pb-2"
                     >
-                      <Checkbox
-                        checked={selected[item.cartItemId] || false}
-                        onChange={(e) =>
-                          handleChangeChecked(item.cartItemId, e.target.checked)
-                        }
-                      />
-
                       <img
                         src={item.thumbnail}
                         alt={item.variantName}
-                        className="w-20 h-20 object-cover rounded"
+                        className="w-12 h-12 rounded"
                       />
-
                       <div className="flex-1">
-                        <h3 className="text-black font-semibold text-sm leading-tight">
+                        <p className="text-sm font-medium line-clamp-2">
                           {item.variantName}
-                        </h3>
-
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          SL: {item.quantity}
+                        </p>
                       </div>
-
-                      <div className="text-red-600 font-semibold">
-                        {formatPrice(item.sellPrice)}
+                      <div className="text-red-600 text-sm font-semibold">
+                        {formatPrice(item.sellPrice * item.quantity)}
                       </div>
-
-
-                      <div className="flex flex-shrink-0 items-center space-x-2 border border-gray-400 rounded-[5px] overflow-hidden">
-                        <button
-                          onClick={() => decreaseQty(item)}
-                          className="px-3 py-1 bg-white hover:bg-gray-100 border-r border-gray-300 disabled:cursor-not-allowed"
-                          disabled={item.quantity <= 1}
-                        >
-                          -
-                        </button>
-
-                        <div className="w-12 h-full flex items-center justify-center">
-                          <span className="text-sm font-medium leading-none">
-                            {item.quantity}
-                          </span>
-                        </div>
-                        <button
-                          aria-label="Tăng số lượng"
-                          onClick={() => increaseQty(item)}
-                          className="px-3 py-1 bg-white hover:bg-gray-100 border-l border-gray-300"
-                        >
-                          +
-                        </button>
-                      </div>
-
-                      <button
-                        onClick={() => {
-                          setDeleteTargetId(item.cartItemId);
-                          setDeleteModalOpen(true);
-                        }}
-                        className="text-gray-400 hover:text-red-600"
-                      >
-                        <IoTrashOutline size={20} />
-                      </button>
                     </div>
                   ))}
                 </div>
+              )}
+
+              <div className="border-t pt-3 flex justify-between text-lg font-semibold text-red-600">
+                <span>Tổng tiền</span>
+                <span>
+                  {selectedItems.length > 0
+                    ? formatPrice(selectedTotal)
+                    : formatPrice(cartTotalPrice)}
+                </span>
               </div>
 
-              <div className="w-full max-w-sm bg-white rounded-lg p-6 sticky top-20 h-fit">
-                <h2 className="text-lg font-semibold mb-4">
-                  Thông tin đơn hàng
-                  {selectedItems.length > 0 && (
-                    <span className="ml-2 text-sm text-gray-500">
-                      ({selectedItems.length} sản phẩm)
-                    </span>
-                  )}
-                </h2>
-
-                {selectedItems.length > 0 && (
-                  <div className="mb-4 max-h-60 overflow-y-auto space-y-3">
-                    {selectedItems.map((item) => (
-                      <div
-                        key={item.cartItemId}
-                        className="flex gap-3 border-b pb-2"
-                      >
-                        <img
-                          src={item.thumbnail}
-                          alt={item.variantName}
-                          className="w-12 h-12 rounded"
-                        />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium line-clamp-2">
-                            {item.variantName}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            SL: {item.quantity}
-                          </p>
-                        </div>
-                        <div className="text-red-600 text-sm font-semibold">
-                          {formatPrice(item.sellPrice * item.quantity)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="border-t pt-3 flex justify-between text-lg font-semibold text-red-600">
-                  <span>Tổng tiền</span>
-                  <span>
-                    {selectedItems.length > 0
-                      ? formatPrice(selectedTotal)
-                      : formatPrice(cartTotalPrice)}
-                  </span>
-                </div>
-
-                <button
-                  disabled={selectedItems.length === 0}
-                  onClick={handleCheckout}
-                  className="mt-6 w-full bg-[#0096FF] text-white py-3 rounded font-bold disabled:opacity-50"
-                >
-                  Thanh toán
-                </button>
-              </div>
+              <button
+                disabled={selectedItems.length === 0}
+                onClick={handleCheckout}
+                className="mt-6 w-full bg-[#0096FF] text-white py-3 rounded font-bold disabled:opacity-50"
+              >
+                Thanh toán
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
 
-        <Dialog open={deleteModalOpen} onClose={() => setDeleteModalOpen(false)}>
-          <DialogContent>Bạn muốn xoá sản phẩm này khỏi giỏ hàng?</DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeleteModalOpen(false)}>Hủy</Button>
-            <Button onClick={handleConfirmDelete} color="error">
-              Xóa
-            </Button>
-          </DialogActions>
-        </Dialog>
+      <Dialog open={deleteModalOpen} onClose={() => setDeleteModalOpen(false)}>
+        <DialogContent>Bạn muốn xoá sản phẩm này khỏi giỏ hàng?</DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteModalOpen(false)}>Hủy</Button>
+          <Button onClick={handleConfirmDelete} color="error">
+            Xóa
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-        <Dialog
-          open={bulkDeleteModalOpen}
-          onClose={() => setBulkDeleteModalOpen(false)}
-        >
-          <DialogContent>Bạn muốn xoá các sản phẩm đã chọn khỏi giỏ hàng?</DialogContent>
-          <DialogActions>
-            <Button onClick={() => setBulkDeleteModalOpen(false)}>Hủy</Button>
-            <Button onClick={handleConfirmBulkDelete} color="error">
-              Xóa
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Right content */}
-        <div className="w-full max-w-sm bg-white rounded-lg p-6 sticky top-20 h-fit">
-          <div>
-            <h2 className="font-semibold text-lg mb-4">Thông tin đơn hàng</h2>
-
-            <dl className="space-y-3">
-              <div className="flex justify-between border-b border-dashed border-gray-300 pb-1 font-semibold text-lg">
-                <dt>Tổng tiền</dt>
-                <dd>{formatPrice(selectedTotal)}</dd>
-
-              </div >
-            </dl >
-
-            <button
-              type="button"
-              className="mt-6 w-full bg-[#0096FF] text-white font-bold py-3 rounded hover:bg-[#0096FF] transition disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={handleCheckout}
-              disabled={selectedItems.length === 0}
-            >
-              Thanh toán({selectedItems.length})
-            </button >
-          </div >
-        </div >
-      </div >
-
-      <Footer></Footer>
-    </>
-  )
+      <Dialog
+        open={bulkDeleteModalOpen}
+        onClose={() => setBulkDeleteModalOpen(false)}
+      >
+        <DialogContent>Bạn muốn xoá các sản phẩm đã chọn khỏi giỏ hàng?</DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBulkDeleteModalOpen(false)}>Hủy</Button>
+          <Button onClick={handleConfirmBulkDelete} color="error">
+            Xóa
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Footer />
+    </div>
+  );
 };
 

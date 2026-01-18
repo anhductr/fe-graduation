@@ -3,40 +3,87 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext";
 import { orderApi } from "../services/orderApi";
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function OrderPage() {
     const { user } = useAuth();
     const [active, setActive] = useState("Tất cả");
+    const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
     const tabs = [
         { label: "Tất cả", status: undefined },
-        { label: "Đang xử lý", status: "PENDING" },
-        { label: "Đã xác nhận", status: "CONFIRMED" },
-        { label: "Đang giao", status: "SHIPPED" },
-        { label: "Hoàn tất", status: "DELIVERED" },
+        { label: "Chờ thanh toán", status: "PENDING" },
+        { label: "Đang xử lý", status: "PROCESSING" },
+        { label: "Đang giao hàng", status: "DELIVERED" },
+        { label: "Hoàn tất", status: "COMPLETED" },
         { label: "Đã hủy", status: "CANCELLED" },
+        // { label: "Hoàn tiền", status: "REFUNDED" },
+        // { label: "Trả hàng", status: "RETURNED" },
     ];
 
     const currentTab = tabs.find(t => t.label === active);
 
     const { data: ordersData, isLoading, error } = useQuery({
-        queryKey: ["orders", user?.id, currentTab?.status],
+        queryKey: ["orders", currentTab?.status],
         queryFn: async () => {
             const params = {
-                userId: user?.id,
                 page: 1,
                 size: 20,
             };
             if (currentTab?.status) {
                 params.status = currentTab.status;
             }
-            const response = await orderApi.getMyOrders(params);
-            return response.data.result;
+            console.log("Call get-my-order with params:", params);
+            const res = await orderApi.getMyOrders(params);
+            console.log("API response:", res.data);
+            return res.data.result;
         },
-        enabled: !!user?.id,
     });
 
-    const orders = ordersData?.content || [];
+    const handlePayOrder = (order) => {
+        const itemSubtotal = order.items.reduce(
+            (sum, item) => sum + item.sellPrice * item.quantity,
+            0
+        );
+
+        console.log("CLICK PAY ORDER:", order, itemSubtotal);
+        navigate("/checkout", {
+            state: {
+                source: "order",
+                orderId: order.orderId,
+                items: order.items,
+                subtotal: itemSubtotal,
+                orderDesc: order.orderDesc || "",
+                orderFee: order.orderFee || 0,
+            },
+        });
+    };
+
+    const handleCancelOrder = async (orderId) => {
+        const confirmCancel = window.confirm(
+            "Bạn có chắc chắn muốn hủy đơn hàng này?"
+        );
+        if (!confirmCancel) return;
+
+        try {
+            await orderApi.cancelOrder(orderId);
+
+            alert("Hủy đơn hàng thành công");
+
+            queryClient.invalidateQueries(["orders"]);
+        } catch (err) {
+            console.error("Cancel order error:", err);
+            alert(
+                err.response?.data?.message ||
+                "Không thể hủy đơn hàng"
+            );
+        }
+    };
+
+
+    const orders = ordersData?.data || [];
 
     const formatPrice = (price) => {
         return new Intl.NumberFormat("vi-VN", {
@@ -45,29 +92,25 @@ export default function OrderPage() {
         }).format(price);
     };
 
-    const getStatusColor = (status) => {
-        const colors = {
-            PENDING: "bg-yellow-100 text-yellow-800",
-            CONFIRMED: "bg-blue-100 text-blue-800",
-            SHIPPED: "bg-purple-100 text-purple-800",
-            DELIVERED: "bg-green-100 text-green-800",
-            CANCELLED: "bg-red-100 text-red-800",
-            REFUNDED: "bg-gray-100 text-gray-800",
-        };
-        return colors[status] || "bg-gray-100 text-gray-800";
-    };
+    const getStatusColor = (status) => ({
+        PENDING: "bg-yellow-100 text-yellow-800",
+        PROCESSING: "bg-blue-100 text-blue-800",
+        COMPLETED: "bg-green-100 text-green-800",
+        DELIVERED: "bg-emerald-100 text-emerald-800",
+        CANCELLED: "bg-red-100 text-red-800",
+        REFUNDED: "bg-gray-100 text-gray-800",
+        RETURNED: "bg-orange-100 text-orange-800",
+    }[status] || "bg-gray-100 text-gray-800");
 
-    const getStatusLabel = (status) => {
-        const labels = {
-            PENDING: "Chờ thanh toán",
-            CONFIRMED: "Đã xác nhận",
-            SHIPPED: "Đang giao",
-            DELIVERED: "Đã giao",
-            CANCELLED: "Đã hủy",
-            REFUNDED: "Đã hoàn tiền",
-        };
-        return labels[status] || status;
-    };
+    const getStatusLabel = (status) => ({
+        PENDING: "Chờ thanh toán",
+        PROCESSING: "Đang xử lý",
+        DELIVERED: "Đang giao hàng",
+        COMPLETED: "Hoàn tất",
+        CANCELLED: "Đã hủy",
+        REFUNDED: "Hoàn tiền",
+        RETURNED: "Trả hàng",
+    }[status] || status);
 
     return (
         <>
@@ -132,20 +175,19 @@ export default function OrderPage() {
                         </div>
                     ) : (
                         orders.map((order) => (
-                            <div key={order.id} className="border rounded-lg p-4 hover:shadow-md transition">
+                            <div key={order.orderId} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
                                 <div className="flex justify-between items-start mb-3">
                                     <div>
-                                        <p className="text-sm text-gray-500">Mã đơn: <span className="font-medium text-gray-800">{order.id}</span></p>
+                                        <p className="text-sm text-gray-500">Mã đơn: <span className="font-medium text-gray-800">{order.orderId}</span></p>
                                         <p className="text-xs text-gray-400">
-                                            {new Date(order.createdAt).toLocaleDateString("vi-VN")}
+                                            {new Date(order.orderDate).toLocaleDateString("vi-VN")}
                                         </p>
                                     </div>
-                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                                        {getStatusLabel(order.status)}
+                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.orderStatus)}`}>
+                                        {getStatusLabel(order.orderStatus)}
                                     </span>
                                 </div>
 
-                                {/* Items preview */}
                                 <div className="space-y-2 mb-3">
                                     {order.items?.slice(0, 2).map((item, idx) => (
                                         <div key={idx} className="flex items-center gap-3">
@@ -154,7 +196,7 @@ export default function OrderPage() {
                                                 <p className="text-sm font-medium truncate">{item.productName || item.sku}</p>
                                                 <p className="text-xs text-gray-500">x{item.quantity}</p>
                                             </div>
-                                            <p className="text-sm font-medium">{formatPrice(item.subTotal || item.price * item.quantity)}</p>
+                                            <p className="text-sm font-medium">{formatPrice(item.subTotal || item.sellPrice * item.quantity)}</p>
                                         </div>
                                     ))}
                                     {order.items?.length > 2 && (
@@ -164,12 +206,24 @@ export default function OrderPage() {
 
                                 <div className="flex justify-between items-center pt-3 border-t">
                                     <p className="text-sm">
-                                        Tổng: <span className="font-bold text-red-600">{formatPrice(order.finalAmount || order.totalAmount)}</span>
+                                        Tổng: <span className="font-bold text-red-600">{formatPrice(order.totalPrice || order.totalAmount)}</span>
                                     </p>
                                     <div className="flex gap-2">
-                                        {order.status === "PENDING" && (
-                                            <button className="px-4 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition">
+                                        {active === "Chờ thanh toán" && (
+                                            <button
+                                                onClick={() => handlePayOrder(order)}
+                                                className="px-4 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition"
+                                            >
                                                 Thanh toán
+                                            </button>
+                                        )}
+                                        {active === "Đang xử lý" && (
+                                            <button
+                                                onClick={() => handleCancelOrder(order.orderId)}
+                                                className="px-4 py-1.5 border border-red-500 text-red-600 text-sm rounded
+                 hover:bg-red-50 transition"
+                                            >
+                                                Hủy đơn
                                             </button>
                                         )}
                                         <button className="px-4 py-1.5 border border-gray-300 text-sm rounded hover:bg-gray-50 transition">
