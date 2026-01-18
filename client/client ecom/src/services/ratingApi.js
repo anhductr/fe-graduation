@@ -46,12 +46,17 @@ export const deleteRating = async (id) => {
     return response.data;
 };
 
+export const pushImageRating = async (data) => {
+    return api.put('rating-service/rating/image?id=' + data.ratingId + '&imageUrl=' + data.imageUrl);
+};
+
 export const ratingApi = {
     createRating,
     updateRating,
     getRatingsByFilter,
     getRatingSummary,
-    deleteRating
+    deleteRating,
+    pushImageRating
 };
 
 export default ratingApi;

@@ -49,26 +49,18 @@ const ReviewsIndex = () => {
                 </div>
             </div>
 
-            {productId && (
-                <div className="bg-white rounded shadow">
-                    <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                        <Tabs value={tabIndex} onChange={handleTabChange}>
-                            <Tab label="Đánh giá (Ratings)" />
-                            <Tab label="Bình luận (Comments)" />
-                        </Tabs>
-                    </Box>
-                    <div className="p-4">
-                        {tabIndex === 0 && <RatingsList productId={productId} />}
-                        {tabIndex === 1 && <CommentsList productId={productId} />}
-                    </div>
+            <div className="bg-white rounded shadow">
+                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                    <Tabs value={tabIndex} onChange={handleTabChange}>
+                        <Tab label="Đánh giá (Ratings)" />
+                        <Tab label="Bình luận (Comments)" />
+                    </Tabs>
+                </Box>
+                <div className="p-4">
+                    {tabIndex === 0 && <RatingsList productId={productId} />}
+                    {tabIndex === 1 && <CommentsList productId={productId} />}
                 </div>
-            )}
-
-            {!productId && (
-                <div className="text-center text-gray-500 mt-10">
-                    <p>Vui lòng nhập ID sản phẩm để xem đánh giá và bình luận.</p>
-                </div>
-            )}
+            </div>
         </div>
     );
 };

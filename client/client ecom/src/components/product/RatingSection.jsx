@@ -90,11 +90,27 @@ const RatingSection = ({ productId, productName }) => {
                 });
                 toast.success("Cập nhật đánh giá thành công!");
             } else {
-                await ratingApi.createRating({
+
+                const res = await ratingApi.createRating({
                     productId: productId,
                     ratingScore: userRating,
                     content: content
                 });
+
+                if (user?.avatarUrl) {
+                    const newRatingId = res?.result?.id;
+                    if (newRatingId) {
+                        try {
+                            await ratingApi.pushImageRating({
+                                ratingId: newRatingId,
+                                imageUrl: user.avatarUrl
+                            });
+                        } catch (imgErr) {
+                            console.error("Failed to push rating image:", imgErr);
+                        }
+                    }
+                }
+
                 toast.success("Đánh giá thành công!");
             }
 
@@ -103,7 +119,13 @@ const RatingSection = ({ productId, productName }) => {
             fetchReviews();
         } catch (error) {
             console.error("Rating error:", error);
-            const msg = error.response?.data?.message || "Lỗi không xác định";
+            let msg = error.response?.data?.message || "Lỗi không xác định";
+
+            // Translate specific error messages
+            if (error.response?.data?.code === 4020 || msg === "You have rated of product") {
+                msg = "Bạn đã đánh giá sản phẩm này rồi";
+            }
+
             toast.error(editingRating ? `Cập nhật thất bại: ${msg}` : `Gửi đánh giá thất bại: ${msg}`);
         }
     };
@@ -143,8 +165,6 @@ const RatingSection = ({ productId, productName }) => {
             {label}
         </button>
     );
-    console.log("user", user);
-
     // Mock features for demonstration
     const getRandomFeatures = () => {
         return [
@@ -258,11 +278,11 @@ const RatingSection = ({ productId, productName }) => {
                                 {/* Avatar Column */}
                                 <div className="flex-shrink-0">
                                     <Avatar
-                                        src={review.userAvatar}
+                                        src={review.imageUrl}
                                         className="!w-12 !h-12 !text-lg !font-bold"
-                                        style={{ backgroundColor: titleToColor(review.firstName) }}
+                                        style={{ backgroundColor: !review.imageUrl ? titleToColor(review.firstName) : undefined }}
                                     >
-                                        {review.firstName ? review.firstName.charAt(0).toUpperCase() : "U"}
+                                        {!review.imageUrl ? review.firstName.charAt(0).toUpperCase() : ""}
                                     </Avatar>
                                 </div>
 
@@ -313,8 +333,8 @@ const RatingSection = ({ productId, productName }) => {
                                         )}
                                         {user?.userId && review?.userId && user.userId === review.userId && (
                                             <div className="flex gap-2 ml-auto">
-                                                <span onClick={() => handleEdit(review)} className="cursor-pointer hover:text-blue-600 font-medium">Sửa</span>
-                                                <span onClick={() => handleDelete(review.id)} className="cursor-pointer hover:text-red-600 font-medium">Xóa</span>
+                                                <span onClick={() => handleEdit(review)} className="cursor-pointer hover:text-blue-600 font-medium text-[17px]"><FaEdit /></span>
+                                                {/* <span onClick={() => handleDelete(review.id)} className="cursor-pointer hover:text-red-600 font-medium">Xóa</span> */}
                                             </div>
                                         )}
                                     </div>

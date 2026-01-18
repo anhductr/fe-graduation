@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import './CommentModal.css';
 
-const CommentModal = ({ comment, productId, userId, onClose, onSave, isLoading }) => {
+const CommentModal = ({ comment, replyingTo, productId, userId, onClose, onSave, isLoading }) => {
   const [formData, setFormData] = useState(
-    comment || { 
+    comment || {
       id: '',
-      content: '', 
-      productId: productId || '',
+      content: '',
+      productId: productId || (replyingTo ? replyingTo.productId : '') || '',
       userId: userId || '',
-      parentId: ''
+      parentId: replyingTo ? replyingTo.id : ''
     }
   );
 
@@ -29,11 +29,18 @@ const CommentModal = ({ comment, productId, userId, onClose, onSave, isLoading }
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>{comment ? 'Edit Comment' : 'Add Comment'}</h2>
+          <h2>{comment ? 'Edit Comment' : replyingTo ? 'Reply to Comment' : 'Add Comment'}</h2>
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
 
         <form onSubmit={handleSubmit} className="comment-form">
+          {replyingTo && (
+            <div className="reply-context p-3 bg-gray-100 rounded mb-4 text-sm border-l-4 border-blue-500">
+              <p className="font-semibold text-gray-700">Replying to {replyingTo.firstName} {replyingTo.lastName}:</p>
+              <p className="italic text-gray-600 truncate">"{replyingTo.content}"</p>
+            </div>
+          )}
+
           {comment && (
             <div className="form-group">
               <label>Comment ID (Read-only)</label>
@@ -46,7 +53,8 @@ const CommentModal = ({ comment, productId, userId, onClose, onSave, isLoading }
             </div>
           )}
 
-          <div className="form-group">
+          <div className="form-group hidden">
+            {/* Hidden but required for submission logic usually */}
             <label>Product ID *</label>
             <input
               type="text"
@@ -54,35 +62,23 @@ const CommentModal = ({ comment, productId, userId, onClose, onSave, isLoading }
               value={formData.productId}
               onChange={handleChange}
               required
-              disabled={!!comment}
+              disabled={!!comment || !!replyingTo}
               className="form-control"
               placeholder="Enter product ID"
             />
           </div>
 
-          <div className="form-group">
+          <div className="form-group hidden">
+            {/* Admin User ID usually comes from auth context, but here we can let them input or hide it */}
             <label>User ID *</label>
             <input
               type="text"
               name="userId"
               value={formData.userId}
               onChange={handleChange}
-              required
-              disabled={!!comment}
+              // required // making it not required in UI if backend handles it, but typically explicit for this admin tool
               className="form-control"
               placeholder="Enter user ID"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Parent Comment ID (Optional - for replies)</label>
-            <input
-              type="text"
-              name="parentId"
-              value={formData.parentId}
-              onChange={handleChange}
-              className="form-control"
-              placeholder="Leave empty if not a reply"
             />
           </div>
 
@@ -95,7 +91,7 @@ const CommentModal = ({ comment, productId, userId, onClose, onSave, isLoading }
               rows="6"
               required
               className="form-control"
-              placeholder="Enter comment content..."
+              placeholder="Enter your reply..."
             />
             <div className="char-count">
               {formData.content.length} characters
@@ -107,7 +103,7 @@ const CommentModal = ({ comment, productId, userId, onClose, onSave, isLoading }
               Cancel
             </button>
             <button type="submit" className="btn-save" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Save'}
+              {isLoading ? 'Sending...' : 'Send'}
             </button>
           </div>
         </form>

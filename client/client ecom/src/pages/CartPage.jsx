@@ -329,8 +329,8 @@ export default function CartPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
       <Footer />
     </div>
   );
-};
-
+}

@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import Pagination from "@mui/material/Pagination";
+import Pagination from "../../components/common/Pagination";
 import Boxes from "../../components/common/Boxes";
 import {
   Table,
@@ -477,36 +477,113 @@ export default function PromotionList() {
               "& .MuiTabs-indicator": { backgroundColor: "#4a2fcf" },
             }}
           >
-            <Tab
-              label="Danh sách Chiến dịch"
-              sx={{ textTransform: "none", fontWeight: 600, fontSize: "18px", "&.Mui-selected": { color: "#4a2fcf" } }}
-            />
-            <Tab
-              label="Voucher"
-              sx={{ textTransform: "none", fontWeight: 600, fontSize: "18px", "&.Mui-selected": { color: "#4a2fcf" } }}
-            />
-            <Tab
-              label="Khuyến mãi tự động"
-              sx={{ textTransform: "none", fontWeight: 600, fontSize: "18px", "&.Mui-selected": { color: "#4a2fcf" } }}
-            />
-            <Tab
-              label="Flash Sale"
-              sx={{ textTransform: "none", fontWeight: 600, fontSize: "18px", "&.Mui-selected": { color: "#4a2fcf" } }}
-            />
-          </Tabs>
+            {/* <SearchBar
+              ref={inputSearchRef}
+              // onChange={(e) => setSearchTerm(e.target.value)}
+            /> */}
+            <Button
+              size="medium"
+              className={`${isToggleFilter
+                ? "!border-2 !border-gray-500"
+                : "!border !border-[#ccc]"
+                } !text-[#403e57] !ml-4 !px-3 !rounded-[10px] !hover:bg-gray-100 !normal-case`}
+              variant="outlined"
+              onClick={isOpenFilter}
+            >
+              <VscFilter className="" />
+              <span className="ml-1">Bộ lọc</span>
+              <IoIosArrowUp
+                className={`ml-1 transition-transform duration-200 ${isToggleFilter ? "rotate-180" : "rotate-0"
+                  }`}
+              />
+            </Button>
+            <Button
+              variant="contained"
+              className="!ml-auto !normal-case !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow"
+              component={Link}
+              to="/promotion/promotion-upload"
+            >
+              <FaPlus className="mr-1" />
+              <span className="ml-1">Thêm chương trình giảm giá mới</span>
+            </Button>
+          </div>
+          {/* filter */}
+          <div
+            aria-label="submenu"
+            className={`${isToggleFilter === true
+              ? "pointer-events-auto"
+              : "h-[0px] opacity-0 pointer-events-none"
+              } !text-[rgba(0,0,0,0.7)] overflow-hidden transition-all duration-300 flex flex-col items-center gap-5`}
+          >
+            {/* Trạng thái */}
+            <div className="flex mt-[20px] w-full">
+              <Box
+                sx={{
+                  fontSize: "15px",
+                  "& *": { fontSize: "inherit" },
+                  "& .MuiInputLabel-root": { fontSize: "15px" },
+                  "& .MuiOutlinedInput-input": { fontSize: "15px", py: 0.75 },
+                  "& .MuiFormControlLabel-label": { fontSize: "15px" },
+                  display: "flex",
+                  gap: 2,
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  width: "100%",
+                }}
+              >
+                {/* Trạng thái */}
+                <FormControl size="small" sx={{ minWidth: 150 }}>
+                  <InputLabel>Trạng thái</InputLabel>
+                  <Select
+                    value={status}
+                    label="Trạng thái"
+                    onChange={(e) => setStatus(e.target.value)}
+                  >
+                    <MenuItem value="all">Tất cả trạng thái</MenuItem>
+                    <MenuItem value="active">Đang hoạt động</MenuItem>
+                    <MenuItem value="upcoming">Sắp diễn ra</MenuItem>
+                    <MenuItem value="expired">Đã hết hạn</MenuItem>
+                    <MenuItem value="inactive">Đã tắt</MenuItem>
+                  </Select>
+                </FormControl>
 
-          {/* === TAB 0: CAMPAIGNS === */}
-          {tabValue === 0 && (
-            <>
-              {/* Search Bar + Add Button */}
-              <div className="py-5 relative flex" onClick={(e) => {
-                if (inputSearchRef.current && e.target !== inputSearchRef.current) inputSearchRef.current.blur();
-              }}>
-                <div className="flex gap-2 w-full">
-                  <LocalSearchBar
-                    ref={inputSearchRef}
-                    onChange={(e) => setCampaignSearch(e.target.value)}
-                    value={campaignSearch}
+                {/* Loại khuyến mãi */}
+                <FormControl size="small" sx={{ minWidth: 130 }}>
+                  <InputLabel>Loại</InputLabel>
+                  <Select
+                    value={type}
+                    label="Loại"
+                    onChange={(e) => setType(e.target.value)}
+                  >
+                    <MenuItem value="all">Tất cả loại</MenuItem>
+                    <MenuItem value="percent">Giảm theo %</MenuItem>
+                    <MenuItem value="fixed">Giảm cố định</MenuItem>
+                    <MenuItem value="freeship">Freeship</MenuItem>
+                  </Select>
+                </FormControl>
+
+                {/* Date range */}
+                <div className="flex items-center gap-3">
+                  <TextField
+                    label="Từ ngày"
+                    type="date"
+                    size="small"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ width: 145 }}
+                  />
+
+                  <IoChevronForwardOutline size={20} color="#666" />
+
+                  <TextField
+                    label="Đến ngày"
+                    type="date"
+                    size="small"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ width: 145 }}
                   />
                   <Button
                     variant="contained"
@@ -553,252 +630,22 @@ export default function PromotionList() {
                           </Box>
                         </TableCell>
                       </TableRow>
-                    ))}
-                    {campaigns.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={4} align="center" sx={{ py: 3, color: 'gray', fontStyle: 'italic' }}>Không có dữ liệu</TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </>
-          )}
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
 
-          {/* === TABS 1, 2, 3: VOUCHER, AUTO, FLASH SALE === */}
-          {(tabValue === 1 || tabValue === 2 || tabValue === 3) && (
-            <>
-              {/* Search + Filter + Add Button */}
-              <div
-                className="relative flex mb-5"
-                onClick={(e) => {
-                  if (inputSearchRef.current && e.target !== inputSearchRef.current) {
-                    inputSearchRef.current.blur();
-                  }
-                }}
-              >
-                {/* <SearchBar /> */}
-                <Button
-                  size="medium"
-                  className={`${isToggleFilter ? "!border-2 !border-gray-500" : "!border !border-[#ccc]"
-                    } !text-[#403e57] !mr-4 !px-3 !rounded-[10px] !hover:bg-gray-100 !normal-case`}
-                  variant="outlined"
-                  onClick={isOpenFilter}
-                >
-                  <VscFilter className="" />
-                  <span className="ml-1">Bộ lọc</span>
-                  <IoIosArrowUp
-                    className={`ml-1 transition-transform duration-200 ${isToggleFilter ? "rotate-180" : "rotate-0"}`}
-                  />
-                </Button>
-
-                <Button
-                  variant="contained"
-                  className="!ml-auto !normal-case !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow"
-                  onClick={() => {
-                    if (campaigns.length === 0) {
-                      setPopup({
-                        open: true,
-                        vertical: "top",
-                        horizontal: "center",
-                        severity: "error",
-                        message: "Bạn chưa tạo campaign! Vui lòng tạo campaign trước.",
-                      });
-                      return;
-                    }
-                    navigate("/promotion/promotion-upload");
-                  }}
-                >
-                  <FaPlus className="mr-1" />
-                  <span className="ml-1">Thêm khuyến mãi mới</span>
-                </Button>
-              </div>
-
-              {/* Filter Box */}
-              <div
-                className={`${isToggleFilter === true ? "pointer-events-auto h-auto mb-5" : "h-[0px] opacity-0 pointer-events-none"
-                  } !text-[rgba(0,0,0,0.7)] overflow-hidden transition-all duration-300 flex flex-col items-center gap-5`}
-              >
-                {/* ... (Existing Filter Logic) ... */}
-                <div className="flex mt-[10px] w-full">
-                  <Box
-                    sx={{
-                      fontSize: "15px",
-                      "& *": { fontSize: "inherit" },
-                      "& .MuiInputLabel-root": { fontSize: "15px" },
-                      "& .MuiOutlinedInput-input": { fontSize: "15px", py: 0.75 },
-                      display: "flex",
-                      gap: 2,
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      width: "100%",
-                    }}
-                  >
-                    <FormControl size="small" sx={{ minWidth: 150 }}>
-                      <InputLabel>Trạng thái</InputLabel>
-                      <Select value={status} label="Trạng thái" onChange={(e) => setStatus(e.target.value)}>
-                        <MenuItem value="all">Tất cả trạng thái</MenuItem>
-                        <MenuItem value="active">Đang hoạt động</MenuItem>
-                        <MenuItem value="upcoming">Sắp diễn ra</MenuItem>
-                        <MenuItem value="expired">Đã hết hạn</MenuItem>
-                        <MenuItem value="inactive">Đã tắt</MenuItem>
-                      </Select>
-                    </FormControl>
-
-                    <FormControl size="small" sx={{ minWidth: 130 }}>
-                      <InputLabel>Loại</InputLabel>
-                      <Select value={type} label="Loại" onChange={(e) => setType(e.target.value)}>
-                        <MenuItem value="all">Tất cả loại</MenuItem>
-                        <MenuItem value="percent">Giảm theo %</MenuItem>
-                        <MenuItem value="fixed">Giảm cố định</MenuItem>
-                        <MenuItem value="freeship">Freeship</MenuItem>
-                      </Select>
-                    </FormControl>
-
-                    <div className="flex items-center gap-3">
-                      <TextField
-                        label="Từ ngày"
-                        type="date"
-                        size="small"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        InputLabelProps={{ shrink: true }}
-                        sx={{ width: 145 }}
-                      />
-                      <IoChevronForwardOutline size={20} color="#666" />
-                      <TextField
-                        label="Đến ngày"
-                        type="date"
-                        size="small"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        InputLabelProps={{ shrink: true }}
-                        sx={{ width: 145 }}
-                      />
-                    </div>
-
-                    <FormControlLabel
-                      control={<Checkbox checked={onlyActive} onChange={(e) => setOnlyActive(e.target.checked)} size="small" />}
-                      label="Chỉ hiển thị đang hoạt động"
-                    />
-                  </Box>
-                </div>
-                {hasFilter && (
-                  <Button variant="outlined" color="error" size="small" startIcon={<IoCloseCircleOutline size={18} />} onClick={handleClear} className="w-fit">
-                    Xóa bộ lọc
-                  </Button>
-                )}
-              </div>
-
-              {/* Promotion Table */}
-              <div className="mt-3">
-                <TableContainer
-                  component={Paper}
-                  sx={{
-                    borderTop: "1px solid #e0e0e0",
-                    borderRight: "1px solid #e0e0e0",
-                    borderLeft: "1px solid #e0e0e0",
-                    borderRadius: 2,
-                    overflow: "hidden",
-                    boxShadow: 1,
-                  }}
-                >
-                  <Table stickyHeader sx={{ "& .MuiTableCell-root": { fontSize: "12px" } }}>
-                    <TableHead>
-                      <TableRow sx={{ backgroundColor: "#f8f9fa" }}>
-                        <TableCell sx={{ fontWeight: 600 }}>Tên khuyến mãi</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Đối tượng áp dụng</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="center">Loại khuyến mãi</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>Mã giảm giá</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="center">Giá trị giảm</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="center">Hiệu lực</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="center">Sử dụng</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="center">Trạng thái</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }} align="center">Thao tác</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {promotions?.map((promo) => {
-                        const isPercent = promo.discountType === "DISCOUNT_PERCENT";
-                        const discountText = isPercent ? `${promo.discountPercent}%` : formatVND(promo.fixedAmount);
-                        return (
-                          <TableRow key={promo.id} hover sx={{ "&:last-child td": { border: 0 } }}>
-                            <TableCell>
-                              <Box>
-                                <Typography variant="subtitle2" fontWeight={400} fontSize={12} sx={{ fontStyle: "normal", maxWidth: 100, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                  {promo.name}
-                                </Typography>
-                              </Box>
-                            </TableCell>
-                            <TableCell align="center">
-                              {promo.applyTo === "Category" ? (
-                                <Chip label={"Danh mục"} size="small" variant="outlined" sx={{ height: 20, fontSize: "0.68rem", "& .MuiChip-label": { px: 0.75 }, color: "#14B8A6", borderColor: "#14B8A6" }} />
-                              ) : promo.applyTo === "Product" ? (
-                                <Chip label={"Sản phẩm"} size="small" variant="outlined" sx={{ height: 20, fontSize: "0.68rem", "& .MuiChip-label": { px: 0.75 }, color: "#3B82F6", borderColor: "#3B82F6" }} />
-                              ) : (
-                                <Chip label={"Tất cả"} size="small" variant="outlined" sx={{ height: 20, fontSize: "0.68rem", "& .MuiChip-label": { px: 0.75 }, color: "#6366F1", borderColor: "#6366F1" }} />
-                              )}
-                            </TableCell>
-                            <TableCell align="center">{isPercent ? "Giảm theo %" : "Giảm cố định"}</TableCell>
-                            <TableCell>
-                              {promo.voucherCode ? (
-                                <Chip label={promo.voucherCode} size="small" color="primary" variant="outlined" sx={{ height: 20, fontSize: "0.68rem", "& .MuiChip-label": { px: 0.75 } }} />
-                              ) : (
-                                <Chip label="Tự động" size="small" color="default" sx={{ height: 20, fontSize: "0.68rem", "& .MuiChip-label": { px: 0.75 } }} />
-                              )}
-                            </TableCell>
-                            <TableCell align="center" sx={{ fontWeight: 600, color: "#d32f2f" }}>{discountText}</TableCell>
-                            <TableCell align="center">
-                              <Box>
-                                <div>{new Date(promo.startDate).toLocaleDateString("vi-VN")}</div>
-                                <div>→</div>
-                                <div>{new Date(promo.endDate).toLocaleDateString("vi-VN")}</div>
-                              </Box>
-                            </TableCell>
-                            <TableCell align="center">
-                              {promo.usageType === "UNLIMITED" ? (
-                                <Chip label="Không giới hạn" size="small" color="info" sx={{ height: 20, fontSize: "0.68rem", "& .MuiChip-label": { px: 0.75 } }} />
-                              ) : (
-                                <Box>
-                                  <Typography variant="body2" fontWeight={600} sx={{ fontSize: "0.75rem" }}>
-                                    {/* Usage count not available in response, showing limit only */}
-                                    {promo.usageLimited.toLocaleString()}
-                                  </Typography>
-                                </Box>
-                              )}
-                            </TableCell>
-                            <TableCell align="center">{getStatusChip(promo)}</TableCell>
-                            <TableCell align="center">
-                              <Tooltip title="Chỉnh sửa">
-                                <IconButton size="small" component={Link} to={`/promotion/promotion-edit/${promo.id}`} color="primary">
-                                  <MdEdit />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Xóa">
-                                <IconButton size="small" color="error" onClick={() => handleDeleteClick(promo.id)}>
-                                  <MdDelete />
-                                </IconButton>
-                              </Tooltip>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-
-                <div className="flex justify-center pb-[20px] pt-[30px]">
-                  <Pagination
-                    count={totalPage}
-                    page={page}
-                    onChange={(event, value) => setPage(value)}
-                    sx={{ "& .MuiPaginationItem-root.Mui-selected": { background: "linear-gradient(to right, #4a2fcf, #6440F5)", color: "#fff" } }}
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
+            <div className="flex justify-center pb-[20px] pt-[30px]">
+              <Pagination
+                currentPage={page}
+                totalPage={totalPage}
+                totalElements={totalPromotions}
+                pageSize={pageSize}
+                onPageChange={(newPage) => setPage(newPage)}
+              />
+            </div>
+          </div>
         </div>
       </div>
       <Dialog open={openConfirm} onClose={handleCancelDelete}>
