@@ -23,8 +23,8 @@ const ReviewsIndex = () => {
     };
 
     return (
-        <div className="p-6">
-            <div className="mb-6">
+        <div className="py-[10px] px-[100px]">
+            <div className="mb-6 my-4">
                 <h1 className="text-2xl font-bold mb-2">Quản lý Đánh giá & Bình luận</h1>
                 <p className="text-gray-600">Quản lý các đánh giá và bình luận của người dùng theo sản phẩm.</p>
             </div>

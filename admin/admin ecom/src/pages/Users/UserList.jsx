@@ -216,11 +216,11 @@ export default function UserList() {
             header={"Tổng khách hàng"}
             icon={<FaRegUser />}
           ></Boxes>
-          <Boxes
+          {/* <Boxes
             color={"#e8806bff"}
             header={"Tổng thành viên"}
             icon={<MdCardMembership />}
-          ></Boxes>
+          ></Boxes> */}
         </div>
 
         {/* search bar + filter */}
