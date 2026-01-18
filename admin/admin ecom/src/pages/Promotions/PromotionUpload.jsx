@@ -18,8 +18,9 @@ import {
 import { CircularProgress } from "@mui/material";
 import axios from "axios";
 import debounce from "lodash.debounce";
+import PromotionService from "../../services/PromotionService";
 
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import Chip from "@mui/material/Chip";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
@@ -31,12 +32,12 @@ import { viVN } from "@mui/x-date-pickers/locales";
 dayjs.locale("vi");
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
+import { useQuery } from "@tanstack/react-query";
 
 export default function PromotionUpload() {
   const token = localStorage.getItem("token");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [active, setActive] = useState(true);
   const [discountType, setDiscountType] = useState("DISCOUNT_PERCENT"); // percent | fixed
   const [discountPercent, setDiscountPercent] = useState("");
   const [fixedAmount, setFixedAmount] = useState("");
@@ -52,8 +53,51 @@ export default function PromotionUpload() {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [promotionKind, setPromotionKind] = useState("VOUCHER");
+  const [selectedCampaign, setSelectedCampaign] = useState(null); // New state for selected campaign
 
   const [tabValue, setTabValue] = useState(0);
+
+  // Flash Sale State
+  const [flashSaleItems, setFlashSaleItems] = useState([]);
+  const [tempProduct, setTempProduct] = useState(null); // Single product selection for Flash Sale
+  const [tempDiscountType, setTempDiscountType] = useState("DISCOUNT_PERCENT");
+  const [tempDiscountValue, setTempDiscountValue] = useState("");
+
+  const handleAddToFlashSale = () => {
+    if (!tempProduct) {
+      alert("Vui lòng chọn sản phẩm!");
+      return;
+    }
+    if (!tempDiscountValue || Number(tempDiscountValue) <= 0) {
+      alert("Vui lòng nhập giá trị giảm giá hợp lệ!");
+      return;
+    }
+
+    // Check duplicate
+    const exists = flashSaleItems.find(item => item.productId === tempProduct.id);
+    if (exists) {
+      alert("Sản phẩm này đã có trong danh sách Flash Sale!");
+      return;
+    }
+
+    const newItem = {
+      productId: tempProduct.id,
+      productName: tempProduct.name,
+      discountType: tempDiscountType,
+      discountValue: Number(tempDiscountValue),
+    };
+
+    setFlashSaleItems([...flashSaleItems, newItem]);
+
+    // Reset temp inputs
+    setTempProduct(null);
+    setTempDiscountValue("");
+    setInputValueProduct(""); // clear search input
+  };
+
+  const handleRemoveFromFlashSale = (id) => {
+    setFlashSaleItems(flashSaleItems.filter(item => item.productId !== id));
+  };
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -68,7 +112,7 @@ export default function PromotionUpload() {
     } else if (newValue === 2) {
       // Flash Sale
       setPromotionKind("FLASH_SALE");
-      setApplyTo("Product");
+      setApplyTo("Product"); // Flash sale implicity uses product but list is managed separately
       setUsageLimitPerUser(1);
       setUsageType("LIMITED");
       setUsageLimited(1);
@@ -85,7 +129,7 @@ export default function PromotionUpload() {
     }
   }, [startDate, promotionKind]);
 
-  //product
+  //product generic search (reused)
   const [productOptions, setProductOptions] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [inputValueProduct, setInputValueProduct] = useState("");
@@ -104,6 +148,15 @@ export default function PromotionUpload() {
       return [];
     }
   };
+
+  // Fetch campaigns
+  const { data: campaignData, isLoading: isLoadingCampaigns } = useQuery({
+    queryKey: ["campaigns"],
+    queryFn: async () => {
+      const res = await PromotionService.getAllCampaigns();
+      return res.data?.result || [];
+    }
+  });
 
   // Debounce search
   const debouncedSearch = useMemo(
@@ -128,16 +181,15 @@ export default function PromotionUpload() {
     if (inputValueProduct && inputValueProduct.trim().length >= 2) {
       debouncedSearch(inputValueProduct);
     } else {
-      // Khi xóa hoặc < 2 ký tự → vẫn giữ lại các sản phẩm đã chọn trong dropdown
-      setProductOptions(
-        selectedProducts.map((p) => ({
-          id: p.id,
-          name: p.name,
-          price: p.price,
-        }))
-      );
+      // Logic dropdown: Nếu ở tab flash sale, có thể cần logic hiển thị khác nếu muốn
+      // Hiện tại giữ logic search chung. 
+      // Nhưng nếu đang chọn sản phẩm temp cho Flash Sale, option list có thể khác.
+      // Tuy nhiên để đơn giản, giữ nguyên logic search.
+
+      setProductOptions([]); // Clear options if empty input to hide dropdown unless necessary
+
     }
-  }, [inputValueProduct, selectedProducts]);
+  }, [inputValueProduct, debouncedSearch]); // Reduced dependencies to avoid loops
 
   //category
   const [categoryOptions, setCategoryOptions] = useState([]);
@@ -159,43 +211,9 @@ export default function PromotionUpload() {
         }
       );
       console.log("search category res: ", res.data.result);
-      // Giả sử CategoryGetListVM có field 'data' chứa mảng category
-      // Nếu cấu trúc khác (ví dụ result trực tiếp là list), bạn có thể điều chỉnh
       return res.data.result || [];
     } catch (err) {
-      // Nếu là lỗi từ Axios (có response từ server)
-      if (err.response) {
-        // Server trả về lỗi (4xx, 5xx)
-        console.error("Lỗi tìm kiếm category - Server response:", {
-          status: err.response.status,
-          statusText: err.response.statusText,
-          data: err.response.data, // Thường chứa message chi tiết từ backend
-          headers: err.response.headers,
-        });
-
-        // Ví dụ: nếu backend dùng ApiResponse với code != 200
-        if (err.response.data?.message) {
-          console.error("Message từ server:", err.response.data.message);
-        }
-      }
-      // Lỗi request không gửi được (mạng, CORS, timeout,...)
-      else if (err.request) {
-        console.error(
-          "Lỗi tìm kiếm category - Không nhận được response:",
-          err.request
-        );
-      }
-      // Lỗi khác (cấu hình axios sai, v.v.)
-      else {
-        console.error(
-          "Lỗi tìm kiếm category - Setup request lỗi:",
-          err.message
-        );
-      }
-
-      // Bạn vẫn có thể log full error object để debug sâu hơn nếu cần
-      console.error("Full error object:", err);
-
+      console.error("Lỗi tìm kiếm category:", err);
       return [];
     }
   };
@@ -209,21 +227,19 @@ export default function PromotionUpload() {
         const formatted = results.map((item) => ({
           id: item.id,
           name: item.value,
-          // có thể thêm image, sku, v.v.
         }));
 
         setCategoryOptions(formatted);
         setLoadingCategories(false);
       }, 500),
-    [token] // nếu token thay đổi thì tạo lại
+    [token]
   );
 
-  // Khi người dùng gõ
+  // Khi người dùng gõ category
   useEffect(() => {
     if (inputValueCategory && inputValueCategory.trim().length >= 2) {
       debouncedCateSearch(inputValueCategory);
     } else {
-      // Khi xóa hoặc < 2 ký tự → vẫn giữ lại các danh mục đã chọn trong dropdown
       setCategoryOptions(
         selectedCategories.map((c) => ({
           id: c.id,
@@ -237,18 +253,20 @@ export default function PromotionUpload() {
   const queryClient = useQueryClient();
 
   const createPromotionMutation = useMutation({
-    mutationFn: (payload) =>
-      axios.post("/api/v1/promotion-service/promotion/create", payload, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }),
+    mutationFn: (payload) => {
+      if (payload.promotionKind === "FLASH_SALE") {
+        return PromotionService.createFlashSale(payload);
+      } else {
+        // Use Service or keep axios (service preferred but keeping axios for standard is ok if consistent, lets use service if possible but I dont want to break existing if createPromotion signature differs).
+        // The user updated PromotionService.createPromotion to take data.
+        // payload here matches what createPromotion expects.
+        return PromotionService.createPromotion(payload);
+      }
+    },
 
     onSuccess: (response) => {
-      console.log("Tạo khuyễn mãi kho thành công:", response.data);
+      console.log("Tạo khuyến mãi thành công:", response.data);
 
-      // Tự động refetch danh sách lịch sử + tồn kho
       queryClient.invalidateQueries({ queryKey: ["promotions"] });
       navigate("/promotion", {
         state: {
@@ -294,23 +312,31 @@ export default function PromotionUpload() {
       alert("Vui lòng chọn loại giảm giá!");
       return;
     }
-    if (
-      discountType === "DISCOUNT_PERCENT" &&
-      (!discountPercent || Number(discountPercent) <= 0)
-    ) {
-      alert("Vui lòng nhập phần trăm giảm giá hợp lệ!");
-      return;
+
+    if (tabValue !== 2) {
+      if (
+        discountType === "DISCOUNT_PERCENT" &&
+        (!discountPercent || Number(discountPercent) <= 0)
+      ) {
+        alert("Vui lòng nhập phần trăm giảm giá hợp lệ!");
+        return;
+      }
+
+      if (
+        discountType === "FIXED_AMOUNT" &&
+        (!fixedAmount || Number(fixedAmount) <= 0)
+      ) {
+        alert("Vui lòng nhập số tiền giảm giá hợp lệ!");
+        return;
+      }
+    } else {
+      // Flash Sale Validation
+      if (flashSaleItems.length === 0) {
+        alert("Vui lòng thêm ít nhất 1 sản phẩm cho Flash Sale!");
+        return;
+      }
     }
 
-
-
-    if (
-      discountType === "FIXED_AMOUNT" &&
-      (!fixedAmount || Number(fixedAmount) <= 0)
-    ) {
-      alert("Vui lòng nhập số tiền giảm giá hợp lệ!");
-      return;
-    }
     if (!usageType) {
       alert("Vui lòng chọn loại sử dụng!");
       return;
@@ -328,100 +354,61 @@ export default function PromotionUpload() {
     if (applyTo === "Product") applyToValue = "Product";
     else if (applyTo === "Category") applyToValue = "Category";
 
-    // Xác định promotionKind
-    let promotionKindValue = "AUTO";
-    if (promotionKind === "VOUCHER") {
-      promotionKindValue = "VOUCHER";
-    }
-
-    const payload = {
+    // Common fields
+    const basePayload = {
       name: name.trim(),
       descriptions: description.trim(),
-      discountType: discountType,
       usageType: usageType,
-      applyTo: applyToValue,
-      active: active,
-      promotionKind: promotionKind,
-      // voucherCode removed as it is backend generated
-
-      // Dates - convert to ISO string if exists
+      applyTo: applyToValue, // Enum string
+      promotionKind: promotionKind, // Enum string
       startDate: startDate ? startDate.toISOString() : null,
       endDate: endDate ? endDate.toISOString() : null,
-
-      // Discount values - send 0 if not applicable (backend requires primitive types)
-      discountPercent:
-        discountType === "DISCOUNT_PERCENT" ? Number(discountPercent) : 0,
-      maxDiscountAmount: discountType === "DISCOUNT_PERCENT" && maxDiscountAmount ? Number(maxDiscountAmount) : 0,
-      fixedAmount: discountType === "FIXED_AMOUNT" ? Number(fixedAmount) : 0,
-
-      // Usage limits
+      // Usage limits (backend common fields)
       usageLimited: usageType === "LIMITED" ? Number(usageLimited) : 0,
       usageLimitPerUser: Number(usageLimitPerUser),
-
       // Minimum order
       minimumOrderPurchaseAmount: (promotionKind === "VOUCHER" && minimumOrderAmount)
         ? Number(minimumOrderAmount)
         : null,
-
-      // Products/Categories - only send if applicable
-      productId: applyTo === "Product" ? selectedProducts.map((p) => p.id) : [],
-      categoryId:
-        applyTo === "Category" ? selectedCategories.map((c) => c.id) : [],
+      campaignId: selectedCampaign ? selectedCampaign.id : null,
     };
 
+    let finalPayload = {};
+
+    if (tabValue === 2) {
+      // FLASH SALE
+      const flashSaleItemsRequest = flashSaleItems.map(item => ({
+        productId: item.productId,
+        discountPercent: item.discountType === "DISCOUNT_PERCENT" ? item.discountValue : 0,
+        fixedAmount: item.discountType === "FIXED_AMOUNT" ? item.discountValue : 0
+      }));
+
+      finalPayload = {
+        ...basePayload,
+        applyTo: "Product",
+        // Flash Sale specific DTO structure
+        flashSaleItemRequests: flashSaleItemsRequest,
+        campaignId: selectedCampaign ? selectedCampaign.id : null
+      };
+
+    } else {
+      // VOUCHER & DISCOUNT (AUTO)
+      finalPayload = {
+        ...basePayload,
+        discountType: discountType,
+        discountPercent: discountType === "DISCOUNT_PERCENT" ? Number(discountPercent) : 0,
+        maxDiscountAmount: discountType === "DISCOUNT_PERCENT" && maxDiscountAmount ? Number(maxDiscountAmount) : 0,
+        fixedAmount: discountType === "FIXED_AMOUNT" ? Number(fixedAmount) : 0,
+
+        // Products/Categories - only send if applicable (Flash Sale sends items separately)
+        productId: applyTo === "Product" ? selectedProducts.map((p) => p.id) : [],
+        categoryId: applyTo === "Category" ? selectedCategories.map((c) => c.id) : [],
+      };
+    }
+
     // Gửi dữ liệu qua mutation
-    createPromotionMutation.mutate(payload);
+    createPromotionMutation.mutate(finalPayload);
   };
-
-  // //thumbnail
-  // const [thumbnail, setThumbnail] = useState({ file: null, preview: "" });
-
-  // //thumbnail function
-  // const handleThumbnailFileChange = (e) => {
-  //   const file = e.target.files[0];
-  //   if (file) {
-  //     // thu hồi URL cũ nếu có
-  //     if (thumbnail.preview) URL.revokeObjectURL(thumbnail.preview);
-
-  //     const preview = URL.createObjectURL(file);
-  //     setThumbnail({ file, preview });
-
-  //     // 👇 reset giá trị input để lần sau chọn lại cùng file vẫn chạy
-  //     e.target.value = "";
-  //   }
-  // };
-
-  // const handleThumbnailFileRemove = (e) => {
-  //   e.stopPropagation();
-
-  //   // thu hồi URL blob trước khi xóa
-  //   if (thumbnail.preview) URL.revokeObjectURL(thumbnail.preview);
-
-  //   // reset lại state và input
-  //   setThumbnail({ file: null, preview: "" });
-  //   document.getElementById("thumbnail-input").value = "";
-  // };
-
-  // const openThumbnailFilePicker = () => {
-  //   document.getElementById("thumbnail-input").click();
-  // };
-
-  // // dọn dẹp blob khi unmount
-  // useEffect(() => {
-  //   return () => {
-  //     if (thumbnail.preview) URL.revokeObjectURL(thumbnail.preview);
-  //   };
-  // }, [thumbnail]);
-
-  // const previewsRef = useRef(new Set()); // để track và revoke sau
-
-  // // cleanup on unmount: revoke tất cả preview còn lại
-  // useEffect(() => {
-  //   return () => {
-  //     previewsRef.current.forEach((url) => URL.revokeObjectURL(url));
-  //     previewsRef.current.clear();
-  //   };
-  // }, []);
 
   return (
     <>
@@ -430,6 +417,18 @@ export default function PromotionUpload() {
           <h3 className="text-[30px] font-bold mb-4 text-[#403e57]">
             Thêm chương trình khuyến mãi
           </h3>
+        </div>
+
+        {/* Global Info Alert */}
+        <div className="w-full bg-blue-50 border border-blue-200 rounded-lg p-4 mb-5 flex gap-3 items-center">
+          <div className="text-blue-500">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+            </svg>
+          </div>
+          <Typography variant="body1" className="text-blue-800">
+            Lưu ý: Chương trình khuyến mãi sẽ được kích hoạt sau <span className="font-bold">1 ngày</span> kể từ thời điểm tạo.
+          </Typography>
         </div>
 
         {/* Tabs moved to top */}
@@ -465,75 +464,83 @@ export default function PromotionUpload() {
               </Typography>
             </div>
           )}
-          {tabValue === 2 && (
-            <div className="w-full px-4 mb-4">
-              <Typography color="error" fontWeight="bold">Flash Sale: Đang phát triển tính năng tạo nhiều deal.</Typography>
-            </div>
-          )}
         </div>
 
-        {tabValue !== 2 ? (
-          <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
-            <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] px-[5px] mx-[0px] bg-white rounded-[10px] gap-10">
-              <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
-                Thông tin cơ bản
-              </div>
-
-              <div className="w-full flex gap-7 mx-2">
-                <div className="w-[200px] flex justify-end">
-                  <h6 className="text-[18px]">Tên khuyến mãi</h6>
-                </div>
-
-                <div className="w-full pr-[53px]">
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    type="text"
-                    className="bg-[#fafafa] pl-[15px] rounded-[5px] text-[15px] w-full h-[40px] border-[rgba(0,0,0,0.1)] border border-solid"
-                  ></input>
-                </div>
-              </div>
-
-              <div className="w-full flex gap-7 mx-2">
-                <div className="w-[200px] flex justify-end">
-                  <h6 className="text-[18px]">Mô tả khuyến mãi</h6>
-                </div>
-
-                <div className="w-full pr-[53px]">
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="bg-[#fafafa] pt-[15px] pl-[15px] rounded-[5px] text-[15px] w-full h-[118px] border-[rgba(0,0,0,0.1)] border border-solid"
-                    rows={5}
-                    cols={10}
-                  ></textarea>
-                </div>
-              </div>
-
-              {/* banner logic if needed */}
-
-              <div className="w-full flex gap-7 mx-2">
-                <div className="w-[200px] flex justify-end">
-                  <h6 className="text-[18px]">Trạng thái</h6>
-                </div>
-
-                <div className="w-full pr-[53px]">
-                  <Switch
-                    checked={active}
-                    onChange={(e) => setActive(e.target.checked)}
-                    color="primary"
+        <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
+          
+          {/* === Campaign Selection === */}
+          <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] bg-white rounded-[10px] gap-10">
+            <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
+              Chiến dịch (Tùy chọn)
+            </div>
+            <div className="w-full px-4 mb-4">
+              <Autocomplete
+                options={campaignData || []}
+                getOptionLabel={(option) => option.name || ""}
+                value={selectedCampaign}
+                onChange={(event, newValue) => setSelectedCampaign(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Tìm kiếm và chọn chiến dịch..."
+                    fullWidth
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: "5px",
+                        backgroundColor: "#fafafa",
+                      },
+                    }}
                   />
-                  <span
-                    className={
-                      active ? "text-green-600 font-medium" : "text-gray-500"
-                    }
-                  >
-                    {active ? "Kích hoạt ngay" : "Chưa kích hoạt"}
-                  </span>
-                </div>
+                )}
+                renderOption={(props, option) => (
+                  <li {...props} key={option.id}>
+                    {option.name}
+                  </li>
+                )}
+              />
+            </div>
+          </div>
+
+          {/* 1. Basic Info - VISIBLE FOR ALL */}
+          <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] px-[5px] mx-[0px] bg-white rounded-[10px] gap-10">
+            <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
+              Thông tin cơ bản
+            </div>
+
+            <div className="w-full flex gap-7 mx-2">
+              <div className="w-[200px] flex justify-end">
+                <h6 className="text-[18px]">Tên khuyến mãi</h6>
+              </div>
+
+              <div className="w-full pr-[53px]">
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  type="text"
+                  className="bg-[#fafafa] pl-[15px] rounded-[5px] text-[15px] w-full h-[40px] border-[rgba(0,0,0,0.1)] border border-solid"
+                ></input>
               </div>
             </div>
 
+            <div className="w-full flex gap-7 mx-2">
+              <div className="w-[200px] flex justify-end">
+                <h6 className="text-[18px]">Mô tả khuyến mãi</h6>
+              </div>
+
+              <div className="w-full pr-[53px]">
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="bg-[#fafafa] pt-[15px] pl-[15px] rounded-[5px] text-[15px] w-full h-[118px] border-[rgba(0,0,0,0.1)] border border-solid"
+                  rows={5}
+                  cols={10}
+                ></textarea>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Global Discount - HIDDEN FOR FLASH SALE (Tab 2) */}
+          {tabValue !== 2 && (
             <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] px-[5px] mx-[0px] bg-white rounded-[10px] gap-5">
               <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
                 Loại giảm giá & Giá trị
@@ -551,7 +558,9 @@ export default function PromotionUpload() {
                     },
                   }}
                 >
+
                   <RadioGroup
+                    row
                     value={discountType}
                     onChange={(e) => setDiscountType(e.target.value)}
                   >
@@ -571,7 +580,7 @@ export default function PromotionUpload() {
 
               <div className="flex mx-[30px] w-full">
                 {discountType === "DISCOUNT_PERCENT" ? (
-                  <div className="flex w-[80%] gap-7">
+                  <div className="flex w-full gap-7">
                     {/* Giảm theo % */}
                     <div className="w-1/2">
                       <label className="block text-[18px] font-medium text-gray-800 mb-3">
@@ -582,7 +591,7 @@ export default function PromotionUpload() {
                         value={discountPercent}
                         onChange={(e) => setDiscountPercent(e.target.value)}
                         fullWidth
-                        required
+                        required={tabValue !== 2}
                         inputProps={{ min: 0, max: 100 }}
                         sx={{
                           "& .MuiInputBase-input": {
@@ -627,7 +636,7 @@ export default function PromotionUpload() {
                   </div>
                 ) : (
                   /* Giảm cố định */
-                  <div className="flex w-[50%] justify-center">
+                  <div className="flex w-full justify-start">
                     <div className="max-w-md w-full">
                       <label className="block text-[18px] font-medium text-gray-800 mb-3">
                         Số tiền giảm (đ) *
@@ -637,7 +646,7 @@ export default function PromotionUpload() {
                         value={fixedAmount}
                         onChange={(e) => setFixedAmount(e.target.value)}
                         fullWidth
-                        required
+                        required={tabValue !== 2}
                         inputProps={{ min: 0 }}
                         sx={{
                           "& .MuiInputBase-input": {
@@ -653,7 +662,118 @@ export default function PromotionUpload() {
                 )}
               </div>
             </div>
+          )}
 
+          {/* 3. NEW FLASH SALE ITEMS SECTION - VISIBLE ONLY FOR TAB 2 */}
+          {tabValue === 2 && (
+            <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] px-[5px] mx-[0px] bg-white rounded-[10px] gap-5">
+              <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
+                Danh sách sản phẩm Flash Sale
+              </div>
+
+              <div className="w-full px-5 flex flex-col gap-4">
+                {/* Selector Area */}
+                <div className="flex gap-4 items-end bg-gray-50 p-4 rounded-xl border border-dashed border-gray-300">
+                  <div className="flex-1">
+                    <Typography variant="subtitle2" className="mb-2 font-bold text-gray-700">1. Chọn sản phẩm</Typography>
+                    <Autocomplete
+                      options={productOptions}
+                      getOptionLabel={(option) => option.name}
+                      loading={loadingProducts}
+                      inputValue={inputValueProduct}
+                      onInputChange={(e, v) => setInputValueProduct(v)}
+                      value={tempProduct}
+                      onChange={(e, v) => setTempProduct(v)}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Tìm sản phẩm"
+                          size="small"
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (<>{loadingProducts && <CircularProgress size={20} />}{params.InputProps.endAdornment}</>)
+                          }}
+                        />
+                      )}
+                    />
+                  </div>
+
+                  <div className="flex-1">
+                    <Typography variant="subtitle2" className="mb-2 font-bold text-gray-700">2. Loại giảm giá</Typography>
+                    <RadioGroup
+                      row
+                      value={tempDiscountType}
+                      onChange={(e) => setTempDiscountType(e.target.value)}
+                    >
+                      <FormControlLabel value="DISCOUNT_PERCENT" control={<Radio size="small" />} label="Theo %" />
+                      <FormControlLabel value="FIXED_AMOUNT" control={<Radio size="small" />} label="Số tiền" />
+                    </RadioGroup>
+                  </div>
+
+                  <div className="flex-1">
+                    <Typography variant="subtitle2" className="mb-2 font-bold text-gray-700">3. Giá trị giảm</Typography>
+                    <TextField
+                      size="small"
+                      type="number"
+                      fullWidth
+                      label={tempDiscountType === "DISCOUNT_PERCENT" ? "Phần trăm (%)" : "Số tiền (đ)"}
+                      value={tempDiscountValue}
+                      onChange={(e) => setTempDiscountValue(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <Button variant="contained" color="primary" onClick={handleAddToFlashSale} sx={{ height: 40, px: 3 }}>
+                      Thêm
+                    </Button>
+                  </div>
+                </div>
+
+                {/* List Area */}
+                {flashSaleItems.length > 0 ? (
+                  <div className="w-full overflow-hidden border rounded-lg">
+                    <table className="w-full text-sm text-left text-gray-500">
+                      <thead className="text-xs text-gray-700 uppercase bg-gray-100">
+                        <tr>
+                          <th className="px-6 py-3">Sản phẩm</th>
+                          <th className="px-6 py-3">Loại giảm</th>
+                          <th className="px-6 py-3">Giá trị</th>
+                          <th className="px-6 py-3 text-right">Hành động</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {flashSaleItems.map((item, index) => (
+                          <tr key={index} className="bg-white border-b hover:bg-gray-50">
+                            <td className="px-6 py-4 font-medium text-gray-900">{item.productName}</td>
+                            <td className="px-6 py-4">
+                              {item.discountType === "DISCOUNT_PERCENT" ? "Phần trăm (%)" : "Cố định (đ)"}
+                            </td>
+                            <td className="px-6 py-4 font-bold text-[#4a2fcf]">
+                              {item.discountValue} {item.discountType === "DISCOUNT_PERCENT" ? "%" : "đ"}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <Button
+                                size="small"
+                                color="error"
+                                onClick={() => handleRemoveFromFlashSale(item.productId)}
+                              >
+                                Xóa
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-400 italic py-4">Chưa có sản phẩm nào trong danh sách.</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 4. Scope (Apply To) - HIDDEN FOR FLASH SALE (Tab 2) */}
+          {tabValue !== 2 && (
             <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] px-[5px] mx-[0px] bg-white rounded-[10px] gap-5">
               <div className="w-full ">
                 <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px] mb-4">
@@ -773,66 +893,69 @@ export default function PromotionUpload() {
                 </div>
               </div>
             </div>
+          )}
 
-            <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] px-[5px] mx-[0px] bg-white rounded-[10px] gap-5">
-              <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
-                Giới hạn, thời gian & mã giảm giá
-              </div>
-              <div className="w-full flex flex-col gap-5 mx-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <LocalizationProvider
-                    dateAdapter={AdapterDayjs}
-                    adapterLocale="vi"
-                    localeText={
-                      viVN.components.MuiLocalizationProvider.defaultProps
-                        .localeText
-                    }
-                  >
-                    {/* Từ ngày giờ */}
-                    <DateTimePicker
-                      label="Từ ngày"
-                      value={startDate}
-                      onChange={(newValue) => setStartDate(newValue)}
-                      format="DD/MM/YYYY HH:mm"
-                      slotProps={{
-                        textField: {
-                          sx: { width: "100%" },
-                        },
-                        actionBar: { actions: ["clear", "cancel", "accept"] },
-                      }}
-                    />
-
-                    {/* Đến ngày giờ */}
-                    <DateTimePicker
-                      label="Đến ngày"
-                      value={endDate}
-                      onChange={(newValue) => setEndDate(newValue)}
-                      minDateTime={startDate} // không cho chọn nhỏ hơn ngày bắt đầu
-                      format="DD/MM/YYYY HH:mm"
-                      slotProps={{
-                        textField: {
-                          sx: { width: "100%" },
-                        },
-                        actionBar: { actions: ["clear", "cancel", "accept"] },
-                      }}
-                    />
-                  </LocalizationProvider>
-                </div>
-
-                {/* Đơn tối thiểu - ONLY FOR VOUCHER (Tab 0) */}
-                {tabValue === 0 && (
-                  <TextField
-                    label="Giá trị đơn hàng tối thiểu (đ)"
-                    type="number"
-                    value={minimumOrderAmount}
-                    onChange={(e) => setMinimumOrderAmount(e.target.value)}
-                    fullWidth
-                    required
+          {/* 5. Limits & Time - VISIBLE FOR ALL */}
+          <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] px-[5px] mx-[0px] bg-white rounded-[10px] gap-5">
+            <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
+              Giới hạn, thời gian & mã giảm giá
+            </div>
+            <div className="w-full flex flex-col gap-5 mx-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <LocalizationProvider
+                  dateAdapter={AdapterDayjs}
+                  adapterLocale="vi"
+                  localeText={
+                    viVN.components.MuiLocalizationProvider.defaultProps
+                      .localeText
+                  }
+                >
+                  {/* Từ ngày giờ */}
+                  <DateTimePicker
+                    label="Từ ngày"
+                    value={startDate}
+                    onChange={(newValue) => setStartDate(newValue)}
+                    format="DD/MM/YYYY HH:mm"
+                    slotProps={{
+                      textField: {
+                        sx: { width: "100%" },
+                      },
+                      actionBar: { actions: ["clear", "cancel", "accept"] },
+                    }}
                   />
-                )}
 
-                {/* Giới hạn lượt dùng */}
-                <div className="">
+                  {/* Đến ngày giờ */}
+                  <DateTimePicker
+                    label="Đến ngày"
+                    value={endDate}
+                    onChange={(newValue) => setEndDate(newValue)}
+                    minDateTime={startDate} // không cho chọn nhỏ hơn ngày bắt đầu
+                    format="DD/MM/YYYY HH:mm"
+                    slotProps={{
+                      textField: {
+                        sx: { width: "100%" },
+                        helperText: promotionKind === "FLASH_SALE" ? "Tự động cộng 18 tiếng từ giờ bắt đầu" : ""
+                      },
+                      actionBar: { actions: ["clear", "cancel", "accept"] },
+                    }}
+                  />
+                </LocalizationProvider>
+              </div>
+
+              {/* Đơn tối thiểu - ONLY FOR VOUCHER (Tab 0) */}
+              {tabValue === 0 && (
+                <TextField
+                  label="Giá trị đơn hàng tối thiểu (đ)"
+                  type="number"
+                  value={minimumOrderAmount}
+                  onChange={(e) => setMinimumOrderAmount(e.target.value)}
+                  fullWidth
+                  required
+                />
+              )}
+              {/* Giới hạn lượt dùng */}
+              {tabValue !== 1 && (
+                < div className="">
                   <FormControl component="fieldset">
                     <FormLabel component="legend">Giới hạn lượt sử dụng</FormLabel>
                     <div className="flex flex-col gap-3 mt-2">
@@ -847,11 +970,13 @@ export default function PromotionUpload() {
                             value="UNLIMITED"
                             control={<Radio />}
                             label="Không giới hạn"
+                            disabled={promotionKind === "FLASH_SALE"} // Flash Sale always limited
                           />
                           <FormControlLabel
                             value="LIMITED"
                             control={<Radio />}
                             label="Có giới hạn"
+                            disabled={promotionKind === "FLASH_SALE"}
                           />
                         </RadioGroup>
                         {usageType === "LIMITED" && (
@@ -875,32 +1000,28 @@ export default function PromotionUpload() {
                           label="Số lần/khách"
                           value={usageLimitPerUser}
                           onChange={(e) => setUsageLimitPerUser(e.target.value)}
+                          disabled={promotionKind === "FLASH_SALE"} // Flash Sale cố định 1
                           sx={{ width: 150 }}
                         />
                       </div>
                     </div>
                   </FormControl>
                 </div>
-              </div>
+              )}
             </div>
-
-            <div className="!w-full px-[60px] py-[30px]">
-              <Button
-                variant="contained"
-                type="submit"
-                className="!w-full !flex !items-cnter !justify-center !gap-2 !p-[15px] !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5]"
-              >
-                <FaCloudUploadAlt className="text-[35px]" />
-                <h3 className="text-[25px]">Tải lên</h3>
-              </Button>
-            </div>
-          </form >
-        ) : (
-          <div className="h-[200px] flex items-center justify-center text-gray-500 italic">
-            Nội dung Flash Sale sẽ được cập nhật.
           </div>
-        )}
 
+          <div className="!w-full px-[60px] py-[30px]">
+            <Button
+              variant="contained"
+              type="submit"
+              className="!w-full !flex !items-cnter !justify-center !gap-2 !p-[15px] !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5]"
+            >
+              <FaCloudUploadAlt className="text-[35px]" />
+              <h3 className="text-[25px]">Tải lên</h3>
+            </Button>
+          </div>
+        </form >
       </div >
       {
         createPromotionMutation.isPending && (
