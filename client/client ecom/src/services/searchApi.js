@@ -66,3 +66,57 @@ export const getProductDetail = async (productId) => {
     });
     return response.data; // ApiResponse<ProductGetVM>
 };
+
+export const getCateUnderRoot = async () => {
+    const response = await api.get("/search-service/search/category/root");
+    return response.data;
+};
+
+export const getProductByBanner = async ({
+    page = 1,
+    size = 10,
+    ownerId,
+    ownerType,
+    minPrice,
+    maxPrice,
+    sortType
+} = {}) => {
+    if (!ownerId || !ownerType) {
+        throw new Error("ownerId và ownerType là bắt buộc");
+    }
+
+    const body = {
+        ownerId,
+        ownerType,
+        minPrice,
+        maxPrice,
+        sortType
+    };
+
+    // Remove null/undefined keys
+    Object.keys(body).forEach(key => body[key] == null && delete body[key]);
+
+    const response = await api.get("/search-service/search/banner", {
+        params: {
+            page,
+            size,
+        },
+        data: body
+    });
+
+    return response.data; // ApiResponse<ProductGetListVM>
+};
+
+export const getProductFlashSale = async ({
+    page = 1,
+    size = 10,
+} = {}) => {
+    const response = await api.get("/search-service/search/flashSale", {
+        params: {
+            page,
+            size,
+        },
+    });
+
+    return response.data; // ApiResponse<ProductGetListVM>
+};
