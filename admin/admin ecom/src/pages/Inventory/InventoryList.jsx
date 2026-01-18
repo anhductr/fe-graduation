@@ -349,12 +349,12 @@ export default function InventoryList() {
         <div className="flex flex-wrap gap-[26px] w-full">
           <Boxes
             color={"#81faf8ff"}
-            header={"Tổng khách hàng"}
+            header={"Toàn bộ tồn kho"}
             icon={<FaRegUser />}
           ></Boxes>
           <Boxes
             color={"#e8806bff"}
-            header={"Tổng thành viên"}
+            header={"Tổng số phiếu nhập"}
             icon={<MdCardMembership />}
           ></Boxes>
         </div>
