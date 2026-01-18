@@ -45,7 +45,7 @@ export default function SideBar({ location }) {
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
       `}</style>
-            <div className={`w-[18%] transition-all duration-300 ease-in-out h-screen fixed left-0 bg-[#1D1E21] py-[20px]`}>
+            <div className={`w-[18%] transition-all duration-300 ease-in-out h-screen fixed left-0 bg-[#1D1E21] py-[20px] overflow-y-auto no-scrollbar`}>
                 <ul className="list-none">
                     {/* dashboard */}
                     <li className="">
@@ -53,7 +53,7 @@ export default function SideBar({ location }) {
                             <div
                                 className="w-full text-white !text-left !flex !justify-between items-center !py-[12px] !px-[15px] gap-2 !h-[80px]"
                             >
-                                <Button variant="text" className={`${active === 1 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
+                                <Button variant="text" className={`${active === 1 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-left !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
                                     <span aria-label='icon'>
                                         <RxDashboard className={`!text-[38px] !mr-[10px]`} />
                                     </span>
@@ -72,7 +72,7 @@ export default function SideBar({ location }) {
                             <div
                                 className="w-full text-white !text-left !flex !justify-between items-center !py-[12px] !px-[15px] gap-2 !h-[80px]"
                             >
-                                <Button variant="text" className={`${active === 2 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
+                                <Button variant="text" className={`${active === 2 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-left !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
                                     <span aria-label="icon">
                                         <GoPeople className={`!text-[38px] !mr-[10px]`} />
                                     </span>
@@ -91,7 +91,7 @@ export default function SideBar({ location }) {
                             <div
                                 className="w-full text-white !text-left !flex !justify-between items-center !py-[12px] !px-[15px] gap-2 !h-[80px]"
                             >
-                                <Button variant="text" className={`${active === 3 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
+                                <Button variant="text" className={`${active === 3 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-left !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
                                     <span aria-label="icon">
                                         <BsBoxSeam
                                             className={`!text-[38px] !mr-[10px]`}
@@ -112,7 +112,7 @@ export default function SideBar({ location }) {
                             <div
                                 className="w-full text-white !text-left !flex !justify-between items-center !py-[12px] !px-[15px] gap-2 !h-[80px]"
                             >
-                                <Button variant="text" className={`${active === 4 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
+                                <Button variant="text" className={`${active === 4 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-left !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
                                     <span aria-label="icon">
                                         <LiaClipboardListSolid
                                             className={`!text-[38px] !mr-[10px]`}
@@ -133,7 +133,7 @@ export default function SideBar({ location }) {
                             <div
                                 className="w-full text-white !text-left !flex !justify-between items-center !py-[12px] !px-[15px] gap-2 !h-[80px]"
                             >
-                                <Button variant="text" className={`${active === 5 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
+                                <Button variant="text" className={`${active === 5 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-left !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
                                     <span aria-label='icon'>
                                         <IoFolderOutline className={`!text-[38px] !mr-[10px]`} />
                                     </span>
@@ -153,7 +153,7 @@ export default function SideBar({ location }) {
                             <div
                                 className="w-full text-white !text-left !flex !justify-between items-center !py-[12px] !px-[15px] gap-2 !h-[80px]"
                             >
-                                <Button variant="text" className={`${active === 6 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
+                                <Button variant="text" className={`${active === 6 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-left !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
                                     <span aria-label='icon'>
                                         <BsHandbag className={`!text-[37px] !mr-[10px]`} />
                                     </span>
@@ -173,7 +173,7 @@ export default function SideBar({ location }) {
                             <div
                                 className="w-full text-white !text-left !flex !justify-between items-center !py-[12px] !px-[15px] gap-2 !h-[80px]"
                             >
-                                <Button variant="text" className={`${active === 7 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
+                                <Button variant="text" className={`${active === 7 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-left !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
                                     <span aria-label='icon'>
                                         <TbRosetteDiscount className={`!text-[39px] !mr-[10px]`} />
                                     </span>
@@ -192,7 +192,7 @@ export default function SideBar({ location }) {
                             <div
                                 className="w-full text-white !text-left !flex !justify-between items-center !py-[12px] !px-[15px] gap-2 !h-[80px]"
                             >
-                                <Button variant="text" className={`${active === 9 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
+                                <Button variant="text" className={`${active === 9 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-left !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
                                     <span aria-label='icon'>
                                         <MdRateReview className={`!text-[37px] !mr-[10px]`} />
                                     </span>
@@ -211,7 +211,7 @@ export default function SideBar({ location }) {
                             <div
                                 className="w-full text-white !text-left !flex !justify-between items-center !py-[12px] !px-[15px] gap-2 !h-[80px]"
                             >
-                                <Button variant="text" className={`${active === 8 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
+                                <Button variant="text" className={`${active === 8 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-left !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
                                     <span aria-label='icon'>
                                         <BsChatRightQuote className={`!text-[37px] !mr-[10px]`} />
                                     </span>
@@ -229,7 +229,7 @@ export default function SideBar({ location }) {
                         <div
                             className="w-full text-white !text-left !flex !justify-between items-center !py-[12px] !px-[15px] gap-2 !h-[80px]"
                         >
-                            <Button variant="text" className={`${active === 11 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
+                            <Button variant="text" className={`${active === 11 ? "!bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow !border-0 " : ""} !justify-start !text-left !text-white !flex !w-[90%] !items-center !h-full !p-3 !py-[35px] !rounded-[10px] gap-1`}>
                                 <span aria-label='icon'>
                                     <IoSettingsOutline className={`!text-[38px] !mr-[10px]`} />
                                 </span>
