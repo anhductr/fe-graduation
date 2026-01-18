@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Button, Modal, Input, message, Pagination } from "antd";
+import { Button, Modal, Input, Pagination } from "antd";
+import { toast } from "react-toastify";
 import { api } from "../libs/axios";
 
 export default function AddressManager() {
@@ -162,6 +163,43 @@ export default function AddressManager() {
         }
     };
 
+    const handleDeleteAddress = (addressId) => {
+        Modal.confirm({
+            title: "Xác nhận xóa địa chỉ",
+            centered: true,           // ⭐ căn giữa
+            width: 420,               // gọn gàng hơn
+            content: (
+                <div className="text-gray-600">
+                    Địa chỉ này sẽ bị <b>xóa vĩnh viễn</b>.<br />
+                    Bạn có chắc chắn muốn tiếp tục?
+                </div>
+            ),
+            okText: "Xóa",
+            cancelText: "Hủy",
+            okButtonProps: { danger: true },
+            async onOk() {
+                try {
+                    await api.delete(`/profile-service/address/${addressId}`);
+                    toast.success("Xóa địa chỉ thành công");
+                    fetchAddresses();
+
+                    // nếu đang xem chi tiết thì đóng modal
+                    if (viewingAddress?.id === addressId) {
+                        setViewingAddress(null);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    toast.error(
+                        err.response?.data?.message || "Xóa địa chỉ thất bại"
+                    );
+                    // throw err để AntD biết là lỗi (giữ modal nếu cần)
+                    throw err;
+                }
+            },
+        });
+    };
+
+
     const handlePageChange = (p) => setPage(p);
 
     return (
@@ -199,6 +237,12 @@ export default function AddressManager() {
                                 </div>
                             </div>
                             <Button onClick={() => openEdit(addr)}>Chỉnh sửa</Button>
+                            <Button
+                                danger
+                                onClick={() => handleDeleteAddress(addr.id)}
+                            >
+                                Xóa
+                            </Button>
                         </div>
                     ))}
             </div>
