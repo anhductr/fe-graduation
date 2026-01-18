@@ -436,6 +436,32 @@ const ProductPage = () => {
     navigate('/cart'); // Navigate to cart page
   };
 
+  const handleBuyNow = async () => {
+    try {
+      const targetSku = selectedVariant?.sku || currentProduct?.sku;
+
+      if (!targetSku) {
+        alert("Lỗi: Không tìm thấy SKU sản phẩm!");
+        return;
+      }
+
+      const payload = {
+        sku: targetSku,
+        quantity: quantity || 1
+      };
+
+      await cartApi.addToCart(payload);
+      await refetchCart();
+
+      // Navigate to cart and pass the SKU to auto-select
+      navigate('/cart', { state: { buyNowSku: targetSku } });
+
+    } catch (error) {
+      console.error("❌ Buy Now error:", error);
+      alert("Thêm vào giỏ hàng thất bại: " + (error.response?.data?.message || error.message));
+    }
+  };
+
   // Handle loading/error (Simple fallback for now)
   if (isLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!productData) return <div className="min-h-screen flex items-center justify-center">Error loading product</div>;
@@ -880,7 +906,9 @@ const ProductPage = () => {
               {/* Buying Actions - Fixed Layout */}
               <div className="flex gap-4 box-order-button-container">
                 <div className="flex flex-col gap-2 w-[80%]">
-                  <Button variant="contained" className="order-button !normal-case !text-lg !font-bold !h-[50px] shadow-lg hover:shadow-xl transition-all">
+                  <Button variant="contained"
+                    onClick={handleBuyNow}
+                    className="order-button !normal-case !text-lg !font-bold !h-[50px] shadow-lg hover:shadow-xl transition-all">
                     <div className="flex flex-col items-center leading-tight">
                       <span>MUA NGAY</span>
                       <span className="text-[11px] font-normal">(Giao nhanh từ 2 giờ hoặc nhận tại cửa hàng)</span>
