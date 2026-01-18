@@ -1,391 +1,325 @@
-import { useEffect, useState, useRef } from 'react';
-import Pagination from '../../components/common/Pagination';
-import Boxes from '../../components/common/Boxes';
-import axios from "axios";
+import { useState, useRef } from "react";
+import Pagination from "@mui/material/Pagination";
+import Boxes from "../../components/common/Boxes";
+import { api } from "../../libs/axios";
 import {
-    Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    IconButton, Paper, Dialog, DialogActions, DialogTitle, Button, Chip
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Chip,
+  Box,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
+  Typography,
 } from "@mui/material";
-import { Link } from 'react-router';
-import { MdDelete } from "react-icons/md";
-import { IoEye } from "react-icons/io5";
 import { FaRegUser } from "react-icons/fa6";
 import { MdCardMembership } from "react-icons/md";
-// import SearchBar from '../../components/common/SearchBar';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import Snackbar from '@mui/material/Snackbar';
-import Alert from '@mui/material/Alert';
-import { useLocation } from "react-router-dom";
-import { TbCubePlus } from "react-icons/tb";
-import Modal from '@mui/material/Modal';
-import InventoryModal from '../../components/Inventory/InventoryModal';
 
 export default function OrderList() {
-    const inputSearchRef = useRef(null);
-    const token = localStorage.getItem("token");
-    const queryClient = useQueryClient();
-    const [page, setPage] = useState(1);
-    const size = 6; // số sản phẩm mỗi trang
+  const inputSearchRef = useRef(null);
+  const queryClient = useQueryClient();
 
-    //api
-    // const fetchInventory = async ({ queryKey }) => {
-    //     const [, { page, size }] = queryKey;
-    //     const token = localStorage.getItem("token");
-    //     const res = await axios.get(`/api/v1/inventory-service/inventory/get-all`, {
-    //         headers: {
-    //             Authorization: token ? `Bearer ${token}` : "",
-    //         },
-    //         params: { page: page, size },
-    //     });
-    //     console.log("res: ", res.data.result)
-    //     return res.data.result;
-    // };
+  /* ================= STATE ================= */
+  const [page, setPage] = useState(1);
+  const [size, setSize] = useState(5);
+  const [status, setStatus] = useState("ALL");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isToggleFilter, setIsToggleFilter] = useState(false);
 
-    // //inv querry
-    // const {
-    //     data: inventoryData,
-    //     isLoading: isLoadingInventory,
-    //     isError: isErrorInventory,
-    //     error: errorInventory,
-    // } = useQuery({
-    //     queryKey: ["inventory", { page, size }],
-    //     queryFn: fetchInventory,
-    //     refetchOnMount: "always",
-    //     keepPreviousData: true,
-    // });
+  /* ================= STATUS MAP ================= */
+  const statusColorMap = {
+    PENDING: "info",
+    PROCESSING: "warning",
+    DELIVERED: "success",
+    CANCELLED: "error",
+  };
 
-    // // Khi có dữ liệu:
-    // const inventory = inventoryData?.data;
+  const statusMap = {
+    PENDING: "Chờ thanh toán",
+    PROCESSING: "Đang xử lý",
+    DELIVERED: "Hoàn thành",
+    CANCELLED: "Đã hủy",
+  };
 
-    // //popup thông báo
-    // const [popup, setPopup] = useState({
-    //     open: false,
-    //     vertical: 'top',
-    //     horizontal: 'center',
-    //     severity: "info",
-    // });
-    // const { vertical, horizontal, open } = popup;
+  const statusStyleMap = {
+    PENDING: {
+      bg: "#e3f2fd",
+      color: "#1976d2",
+    },
+    PROCESSING: {
+      bg: "#fff3e0",
+      color: "#ed6c02",
+    },
+    DELIVERED: {
+      bg: "#e8f5e9",
+      color: "#2e7d32",
+    },
+    CANCELLED: {
+      bg: "#fdecea",
+      color: "#d32f2f",
+    },
+  };
 
-    // const location = useLocation();
+  const defaultStatusStyle = {
+    bg: "#eeeeee",
+    color: "#616161",
+  };
 
-    // useEffect(() => {
-    //     if (location.state?.popup) {
-    //         // Bọc trong timeout nhỏ để đảm bảo component render xong rồi mới set popup
-    //         const timer = setTimeout(() => {
-    //             setPopup({ ...location.state.popup, open: true }); // clone object mới
-    //         }, 100);
+  const filterStatusStyle = statusStyleMap[status] || defaultStatusStyle;
 
-    //         // Xóa state khỏi history để reload lại không hiện lại popup
-    //         window.history.replaceState({}, document.title);
+  /* ================= FETCH ORDERS ================= */
+  const fetchOrders = async ({ queryKey }) => {
+    const [_key, { status, page, size }] = queryKey;
 
-    //         return () => clearTimeout(timer);
-    //     }
-    // }, [location.state]);
+    const res = await api.get("/order-service/order/get/status", {
+      params: { status, page, size },
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
 
+    return res.data?.result ?? { data: [], totalElements: 0 };
+  };
 
-    // useEffect(() => {
-    //     if (isLoadingInventory) {
-    //         setPopup({
-    //             open: true,
-    //             vertical: "top",
-    //             horizontal: "center",
-    //             severity: "info",
-    //             message: "Đang tải danh sách tồn kho...",
-    //         });
-    //     } else if (isErrorInventory) {
-    //         // Lấy chi tiết lỗi từ server (nếu có)
-    //         const serverError = isErrorInventory?.response?.data?.message;
-    //         const serverDetail = isErrorInventory?.response?.data?.error; // nếu backend trả thêm field này
-    //         const fallbackMessage = isErrorInventory?.message || "Không xác định";
+  /* ================= QUERY ================= */
+  const { data, isLoading } = useQuery({
+    queryKey: ["orders", { status, page, size, searchTerm }],
+    queryFn: fetchOrders,
+    keepPreviousData: true,
+  });
 
-    //         // Log đầy đủ ra console để debug
-    //         console.error("Chi tiết lỗi từ server:", isErrorInventory);
-
-    //         setPopup({
-    //             open: true,
-    //             vertical: "top",
-    //             horizontal: "center",
-    //             severity: "error",
-    //             message: `Lỗi khi tải danh sách người dùng: ${serverError || serverDetail || fallbackMessage}`,
-    //         });
-    //     } else {
-    //         // Khi load xong thì tắt snackbar loading
-    //         setPopup((prev) => ({ ...prev, open: false }));
-    //     }
-    // }, [isLoadingInventory, isErrorInventory, errorInventory]);
-
-    // Dữ liệu mẫu để test map trong bảng đơn hàng
-    const orders = [
-        {
-            orderId: "ORD-1001",
-            userId: "USR-001",
-            fullName: "Nguyễn Văn A",
-            shippingAddress: "123 Lê Lợi, Quận 1, TP.HCM",
-            paymentMethod: "COD",
-            orderStatus: "Đang xử lý",
-            createdAt: "2025-11-20T10:25:00",
-            totalAmount: 1250000,
-            items: [
-                { productId: "P001", productName: "Điện thoại Galaxy A55", quantity: 1, price: 8500000 },
-                { productId: "P010", productName: "Ốp lưng Silicon A55", quantity: 1, price: 150000 }
-            ]
+  /* ================= MUTATION: UPDATE STATUS ================= */
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ orderId, status }) =>
+      api.post(`/order-service/order/status`, null, {
+        params: { orderId, status },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        {
-            orderId: "ORD-1002",
-            userId: "USR-002",
-            fullName: "Trần Thị B",
-            shippingAddress: "55 Nguyễn Huệ, Quận 1, TP.HCM",
-            paymentMethod: "VNPay",
-            orderStatus: "Đã thanh toán",
-            createdAt: "2025-11-19T14:10:00",
-            totalAmount: 32900000,
-            items: [
-                { productId: "P005", productName: "iPhone 15 Pro Max 256GB", quantity: 1, price: 32900000 }
-            ]
-        },
-        {
-            orderId: "ORD-1003",
-            userId: "USR-003",
-            fullName: "Lê Minh C",
-            shippingAddress: "22 Lý Thường Kiệt, Đà Nẵng",
-            paymentMethod: "Momo",
-            orderStatus: "Đang giao",
-            createdAt: "2025-11-18T08:30:00",
-            totalAmount: 4500000,
-            items: [
-                { productId: "P020", productName: "Tai nghe Sony WH-1000XM4", quantity: 1, price: 4500000 }
-            ]
-        },
-        {
-            orderId: "ORD-1004",
-            userId: "USR-001",
-            fullName: "Nguyễn Văn A",
-            shippingAddress: "123 Lê Lợi, Quận 1, TP.HCM",
-            paymentMethod: "Momo",
-            orderStatus: "Hoàn thành",
-            createdAt: "2025-11-17T12:15:00",
-            totalAmount: 780000,
-            items: [
-                { productId: "P030", productName: "Chuột Logitech G304", quantity: 1, price: 780000 }
-            ]
-        },
-        {
-            orderId: "ORD-1005",
-            userId: "USR-004",
-            fullName: "Phạm Quốc D",
-            shippingAddress: "12 Trần Phú, Hà Nội",
-            paymentMethod: "COD",
-            orderStatus: "Đã hủy",
-            createdAt: "2025-11-17T09:05:00",
-            totalAmount: 1500000,
-            items: [
-                { productId: "P045", productName: "Bàn phím cơ Akko 3068B", quantity: 1, price: 1500000 }
-            ]
-        },
-        {
-            orderId: "ORD-1006",
-            userId: "USR-005",
-            fullName: "Đinh Mỹ E",
-            shippingAddress: "48 Võ Văn Ngân, Thủ Đức",
-            paymentMethod: "VNPay",
-            orderStatus: "Đang xử lý",
-            createdAt: "2025-11-16T16:50:00",
-            totalAmount: 950000,
-            items: [
-                { productId: "P060", productName: "Loa Bluetooth JBL Flip 6", quantity: 1, price: 950000 }
-            ]
-        },
-        {
-            orderId: "ORD-1007",
-            userId: "USR-002",
-            fullName: "Trần Thị B",
-            shippingAddress: "55 Nguyễn Huệ, Quận 1, TP.HCM",
-            paymentMethod: "Momo",
-            orderStatus: "Hoàn thành",
-            createdAt: "2025-11-15T08:40:00",
-            totalAmount: 299000,
-            items: [
-                { productId: "P075", productName: "Sạc nhanh 25W Samsung", quantity: 1, price: 299000 }
-            ]
-        },
-        {
-            orderId: "ORD-1008",
-            userId: "USR-006",
-            fullName: "Huỳnh Gia F",
-            shippingAddress: "77 Hai Bà Trưng, Hà Nội",
-            paymentMethod: "COD",
-            orderStatus: "Đang giao",
-            createdAt: "2025-11-14T13:25:00",
-            totalAmount: 2390000,
-            items: [
-                { productId: "P081", productName: "Máy lọc không khí Xiaomi", quantity: 1, price: 2390000 }
-            ]
-        },
-        {
-            orderId: "ORD-1009",
-            userId: "USR-007",
-            fullName: "Võ Chí G",
-            shippingAddress: "90 Hoàng Diệu, Cần Thơ",
-            paymentMethod: "ZaloPay",
-            orderStatus: "Hoàn thành",
-            createdAt: "2025-11-13T11:05:00",
-            totalAmount: 650000,
-            items: [
-                { productId: "P090", productName: "Webcam Logitech C270", quantity: 1, price: 650000 }
-            ]
-        },
-        {
-            orderId: "ORD-1010",
-            userId: "USR-003",
-            fullName: "Lê Minh C",
-            shippingAddress: "22 Lý Thường Kiệt, Đà Nẵng",
-            paymentMethod: "VNPay",
-            orderStatus: "Đang xử lý",
-            createdAt: "2025-11-12T15:45:00",
-            totalAmount: 1890000,
-            items: [
-                { productId: "P101", productName: "Ổ cứng SSD Samsung 1TB", quantity: 1, price: 1890000 }
-            ]
-        }
-    ];
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["orders"]);
+    },
+  });
 
-    const getOrderStatusChip = (status) => {
-        let color = "default";
+  /* ================= DATA MAPPING ================= */
+  const orders =
+    data?.data?.map((order) => ({
+      orderId: order.orderId,
+      fullName: `${order.firstName} ${order.lastName}`,
+      totalAmount: order.totalPrice,
+      statusKey: order.Status,
+      statusLabel: statusMap[order.Status] || order.Status,
+      createdAt: order.orderDate,
+    })) || [];
 
-        switch (status) {
-            case "Hoàn thành":
-                color = "success";
-                break;
-            case "Đang giao":
-                color = "warning";
-                break;
-            case "Đã hủy":
-                color = "error";
-                break;
-            case "Đã thanh toán":
-                color = "info";
-                break;
-            default:
-                color = "default";
-        }
+  const filteredOrders = orders.filter((order) => {
+    if (!searchTerm) return true;
 
-        return (
-            <Chip
-                label={status}
-                color={color}
-                size="small"
-                sx={{ height: 22, fontSize: "0.7rem", "& .MuiChip-label": { px: 0.75 } }}
-            />
-        );
-    };
-
-
+    const keyword = searchTerm.toLowerCase();
 
     return (
-        <>
-            <div className="py-[10px] px-[100px]">
-                {/* <Snackbar
-                    anchorOrigin={{ vertical, horizontal }}
-                    open={open}
-                    key={vertical + horizontal}
-                    autoHideDuration={isLoadingInventory ? null : 3000}
-                    onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
+      order.orderId.toLowerCase().includes(keyword) ||
+      order.fullName.toLowerCase().includes(keyword) ||
+      order.statusLabel.toLowerCase().includes(keyword) ||
+      order.totalAmount.toString().includes(keyword) ||
+      order.createdAt?.toLowerCase().includes(keyword)
+    );
+  });
+
+  const totalPages = Math.ceil((data?.totalElements || 0) / size);
+
+  const getOrderStatusChip = (statusKey) => (
+    <Chip
+      label={statusMap[statusKey]}
+      color={statusColorMap[statusKey]}
+      size="small"
+      sx={{ fontWeight: 500 }}
+    />
+  );
+
+  /* ================= RENDER ================= */
+  return (
+    <div className="py-[10px] px-[100px]">
+      <h3 className="text-[30px] font-bold mb-4 text-[#403e57]">
+        Quản lý đơn hàng
+      </h3>
+
+      {/* SEARCH + FILTER */}
+      <div className="shadow p-5 bg-white rounded-[10px] mb-6">
+        <div className="flex gap-4 items-center">
+          <TextField
+            inputRef={inputSearchRef}
+            size="small"
+            placeholder="Tìm theo mã đơn / tên khách hàng"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPage(1);
+            }}
+            sx={{ width: 300 }}
+          />
+
+          <Button
+            variant="outlined"
+            onClick={() => setIsToggleFilter((prev) => !prev)}
+          >
+            Bộ lọc
+          </Button>
+
+          {isToggleFilter && (
+            <Box className="mt-4">
+              <FormControl size="small" sx={{ minWidth: 200 }}>
+                {/* <InputLabel>Trạng thái</InputLabel> */}
+                <Select
+                  size="small"
+                  value={status}
+                  label="Trạng thái"
+                  onChange={(e) => {
+                    setStatus(e.target.value);
+                    setPage(1);
+                  }}
+                  sx={{
+                    minWidth: 150,
+                    fontWeight: 600,
+                    borderRadius: "20px",
+                    backgroundColor: filterStatusStyle.bg,
+                    color: filterStatusStyle.color,
+
+                    "& .MuiSelect-icon": {
+                      color: filterStatusStyle.color,
+                    },
+
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      border: "none",
+                    },
+                  }}
                 >
-                    <Alert
-                        severity={popup.severity ?? "info"}   // dùng ?? để tránh lỗi undefined
-                        variant="filled"
-                        sx={{ width: "100%" }}
-                    >
-                        {popup.message || ""}
-                    </Alert>
-                </Snackbar> */}
+                  <MenuItem value="ALL">Tất cả</MenuItem>
+                  <MenuItem value="PENDING">Chờ thanh toán</MenuItem>
+                  <MenuItem value="PROCESSING">Đang xử lý</MenuItem>
+                  <MenuItem value="DELIVERED">Hoàn thành</MenuItem>
+                  <MenuItem value="CANCELLED">Đã hủy</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          )}
+        </div>
+      </div>
 
-                <div className='flex justify-between items-center my-4'>
-                    <h3 className="text-[30px] font-bold mb-4 text-[#403e57]">
-                        Quản lý đơn hàng
-                    </h3>
-                </div>
+      {/* TABLE */}
+      <div className="shadow p-5 bg-white rounded-[10px]">
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
+              <TableRow>
+                <TableCell align="center">Mã đơn</TableCell>
+                <TableCell align="center">Người dùng</TableCell>
+                <TableCell align="center">Tổng tiền</TableCell>
+                <TableCell align="center">Trạng thái</TableCell>
+                <TableCell align="center">Ngày tạo</TableCell>
+              </TableRow>
+            </TableHead>
 
-                <div className="flex flex-wrap gap-[26px] w-full">
-                    <Boxes color={"#81faf8ff"} header={"Tổng khách hàng"} icon={<FaRegUser />} ></Boxes>
-                    <Boxes color={"#e8806bff"} header={"Tổng thành viên"} icon={<MdCardMembership />} ></Boxes>
-                </div>
+            <TableBody>
+              {filteredOrders.map((order) => {
+                const statusStyle =
+                  statusStyleMap[order.statusKey] || defaultStatusStyle;
 
-                {/* search bar + filter */}
-                <div className='shadow border-0 p-5 my-[20px] bg-white rounded-[10px]'>
-                    <div
-                        className="relative flex"
-                        onClick={(e) => {
-                            if (inputSearchRef.current && e.target !== inputSearchRef.current) {
-                                inputSearchRef.current.blur(); // click ngoài -> blur input
-                            }
+                return (
+                  <TableRow key={order.orderId}>
+                    <TableCell align="center">{order.orderId}</TableCell>
+                    <TableCell align="center">{order.fullName}</TableCell>
+                    <TableCell align="center">
+                      {order.totalAmount.toLocaleString()}₫
+                    </TableCell>
+
+                    {/* TRẠNG THÁI */}
+                    <TableCell align="center">
+                      <Select
+                        size="small"
+                        value={order.statusKey}
+                        onChange={(e) =>
+                          updateStatusMutation.mutate({
+                            orderId: order.orderId,
+                            status: e.target.value,
+                          })
+                        }
+                        sx={{
+                          minWidth: 150,
+                          fontWeight: 600,
+                          borderRadius: "20px",
+                          backgroundColor: statusStyle.bg,
+                          color: statusStyle.color,
+
+                          "& .MuiSelect-icon": {
+                            color: statusStyle.color,
+                          },
+
+                          "& .MuiOutlinedInput-notchedOutline": {
+                            border: "none",
+                          },
                         }}
-                    >
-                        {/* <SearchBar
-                            ref={inputSearchRef}
-                        // onChange={(e) => setSearchTerm(e.target.value)}
-                        /> */}
+                      >
+                        <MenuItem value="PENDING">Chờ thanh toán</MenuItem>
+                        <MenuItem value="PROCESSING">Đang xử lý</MenuItem>
+                        <MenuItem value="DELIVERED">Hoàn thành</MenuItem>
+                        <MenuItem value="CANCELLED">Đã hủy</MenuItem>
+                      </Select>
+                    </TableCell>
 
-                        {/* <Button variant="contained" className='!ml-auto !normal-case !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow' onClick={handleOpenInventory}>
-                            <TbCubePlus className='mr-1 text-[18px]' />
-                            <span className='ml-1'>Nhập thêm hàng</span>
-                        </Button> */}
-                    </div>
+                    <TableCell align="center">
+                      {order.createdAt
+                        ? new Date(order.createdAt).toLocaleString("vi-VN")
+                        : "—"}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
 
-                </div>
+        {/* PAGE SIZE */}
+        <div className="flex justify-between items-center mt-6">
+          <Typography>Tổng {data?.totalElements || 0} đơn hàng</Typography>
 
-                <div className="shadow border-0 p-5 my-[20px] mx-[0px] bg-white rounded-[10px]">
-                    {/* table */}
-                    <div className='mt-3'>
-                        <TableContainer
-                            component={Paper}
-                            sx={{
-                                width: "100%",
-                                borderTop: "1px solid #e0e0e0",
-                                borderRight: "1px solid #e0e0e0",
-                                borderLeft: "1px solid #e0e0e0",
-                            }}
-                        >
-                            <Table sx={{ width: "100%" }}>
-                                <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
-                                    <TableRow>
-                                        <TableCell>Mã đơn</TableCell>
-                                        <TableCell>Người dùng</TableCell>
-                                        <TableCell>Tổng tiền</TableCell>
-                                        <TableCell>Thanh toán</TableCell>
-                                        <TableCell>Trạng thái</TableCell>
-                                        <TableCell>Ngày tạo</TableCell>
-                                    </TableRow>
-                                </TableHead>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Số dòng</InputLabel>
+            <Select
+              value={size}
+              label="Số dòng"
+              onChange={(e) => {
+                setSize(e.target.value);
+                setPage(1);
+              }}
+            >
+              <MenuItem value={5}>5 / trang</MenuItem>
+              <MenuItem value={10}>10 / trang</MenuItem>
+              <MenuItem value={20}>20 / trang</MenuItem>
+              <MenuItem value={50}>50 / trang</MenuItem>
+            </Select>
+          </FormControl>
+        </div>
 
-                                <TableBody>
-                                    {orders.map((order) => (
-                                        <TableRow key={order.orderId}>
-                                            <TableCell>{order.orderId}</TableCell>
-                                            <TableCell>{order.fullName}</TableCell>
-                                            <TableCell>{order.totalAmount.toLocaleString()}₫</TableCell>
-                                            <TableCell>{order.paymentMethod}</TableCell>
-                                            <TableCell>{getOrderStatusChip(order.orderStatus)}</TableCell>
-                                            <TableCell>{new Date(order.createdAt).toLocaleString("vi-VN")}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-
-
-                        <div className='flex justify-center pb-[20px] pt-[30px]'>
-                            <Pagination
-                                currentPage={page}
-                                totalPage={Math.ceil(orders.length / size)}
-                                totalElements={orders.length}
-                                pageSize={size}
-                                onPageChange={(newPage) => setPage(newPage)}
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </>
-    )
+        {/* PAGINATION */}
+        <div className="flex justify-center mt-6">
+          <Pagination
+            page={page}
+            count={totalPages}
+            onChange={(e, value) => setPage(value)}
+          />
+        </div>
+      </div>
+    </div>
+  );
 }
