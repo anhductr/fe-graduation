@@ -1,6 +1,6 @@
 import SideBar from "../components/layout/SideBar.jsx";
-import { Outlet } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useOutlet } from "react-router-dom";
+import { useState, useEffect, cloneElement } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -11,10 +11,12 @@ import { FaUser } from "react-icons/fa";
 import IconButton from '@mui/material/IconButton';
 import Avatar from '@mui/material/Avatar';
 import { useLoginContext } from "../context/LoginContext";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function DashboardLayout() {
     const location = useLocation();
     const navigate = useNavigate();
+    const outlet = useOutlet();
     const { token, logout } = useLoginContext();
 
     const [anchorEl, setAnchorEl] = useState(null);
@@ -36,7 +38,6 @@ export default function DashboardLayout() {
 
     const handleProfile = () => {
         handleClose();
-        // Navigate to profile page (you can implement this later)
         console.log('Navigate to profile');
     };
 
@@ -52,7 +53,7 @@ export default function DashboardLayout() {
     };
 
     return (
-        <div className="flex min-h-screen">
+        <div className="flex min-h-screen overflow-x-hidden">
             {/* Sidebar */}
             <div className="w-[18%] flex-[0_0_18%] transition-all duration-300 ease-in-out">
                 <SideBar location={location} />
@@ -60,9 +61,9 @@ export default function DashboardLayout() {
 
             {/* Main Content */}
             <div className="relative w-[82%] flex-[0_0_82%] transition-all duration-300 ease-in-out bg-[#1D1E21] min-h-screen">
-                <div className="bg-[#f5f5f5] min-h-screen border-0 rounded-[10px] mx-1 my-3">
+                <div className="bg-[#f5f5f5] min-h-screen border-0 rounded-[10px] mx-1 my-3 relative overflow-hidden">
                     {/* User Menu */}
-                    <div className="absolute top-[8px] right-[85px] flex items-center justify-end p-5">
+                    <div className="absolute top-[8px] right-[85px] flex items-center justify-end p-5 z-20">
                         <IconButton
                             onClick={handleClick}
                             size="small"
@@ -90,6 +91,7 @@ export default function DashboardLayout() {
                                 sx: {
                                     mt: 1.5,
                                     minWidth: 200,
+                                    zIndex: 1301,
                                     '& .MuiMenuItem-root': {
                                         px: 2,
                                         py: 1.5,
@@ -118,10 +120,25 @@ export default function DashboardLayout() {
                         </Menu>
                     </div>
 
-                    <Outlet />
+                    <div className="w-full h-full relative">
+                        <AnimatePresence mode="wait" initial={false}>
+                            <motion.div
+                                key={location.pathname}
+                                initial={{ opacity: 0, x: 15 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -15 }}
+                                transition={{
+                                    duration: 0.25,
+                                    ease: "easeInOut"
+                                }}
+                                className="w-full h-full"
+                            >
+                                {outlet}
+                            </motion.div>
+                        </AnimatePresence>
+                    </div>
                 </div>
             </div>
         </div>
     );
 }
-

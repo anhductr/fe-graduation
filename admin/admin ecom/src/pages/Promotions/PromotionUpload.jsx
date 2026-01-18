@@ -12,12 +12,15 @@ import {
   Typography,
   Autocomplete,
   Button,
+  InputAdornment,
+  FormLabel,
 } from "@mui/material";
 import { CircularProgress } from "@mui/material";
 import axios from "axios";
 import debounce from "lodash.debounce";
+import PromotionService from "../../services/PromotionService";
 
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import Chip from "@mui/material/Chip";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
@@ -29,12 +32,12 @@ import { viVN } from "@mui/x-date-pickers/locales";
 dayjs.locale("vi");
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
+import { useQuery } from "@tanstack/react-query";
 
 export default function PromotionUpload() {
   const token = localStorage.getItem("token");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [active, setActive] = useState(true);
   const [discountType, setDiscountType] = useState("DISCOUNT_PERCENT"); // percent | fixed
   const [discountPercent, setDiscountPercent] = useState("");
   const [fixedAmount, setFixedAmount] = useState("");
@@ -42,18 +45,91 @@ export default function PromotionUpload() {
   const [endDate, setEndDate] = useState(null);
   const [minimumOrderAmount, setMinimumOrderAmount] = useState("");
   const [usageType, setUsageType] = useState("UNLIMITED"); // unlimited | limited
-  const [usageLimited, setUsageLimited] = useState(0);
+  const [usageLimited, setUsageLimited] = useState("");
+  const [usageLimitPerUser, setUsageLimitPerUser] = useState(1);
+  const [maxDiscountAmount, setMaxDiscountAmount] = useState("");
+
   const [applyTo, setApplyTo] = useState(null);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedProducts, setSelectedProducts] = useState([]);
-  const [promotionKind, setPromotionKind] = useState("AUTOMATIC");
+  const [promotionKind, setPromotionKind] = useState("VOUCHER");
+  const [selectedCampaign, setSelectedCampaign] = useState(null); // New state for selected campaign
 
   const [tabValue, setTabValue] = useState(0);
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
+
+  // Flash Sale State
+  const [flashSaleItems, setFlashSaleItems] = useState([]);
+  const [tempProduct, setTempProduct] = useState(null); // Single product selection for Flash Sale
+  const [tempDiscountType, setTempDiscountType] = useState("DISCOUNT_PERCENT");
+  const [tempDiscountValue, setTempDiscountValue] = useState("");
+
+  const handleAddToFlashSale = () => {
+    if (!tempProduct) {
+      alert("Vui lòng chọn sản phẩm!");
+      return;
+    }
+    if (!tempDiscountValue || Number(tempDiscountValue) <= 0) {
+      alert("Vui lòng nhập giá trị giảm giá hợp lệ!");
+      return;
+    }
+
+    // Check duplicate
+    const exists = flashSaleItems.find(item => item.productId === tempProduct.id);
+    if (exists) {
+      alert("Sản phẩm này đã có trong danh sách Flash Sale!");
+      return;
+    }
+
+    const newItem = {
+      productId: tempProduct.id,
+      productName: tempProduct.name,
+      discountType: tempDiscountType,
+      discountValue: Number(tempDiscountValue),
+    };
+
+    setFlashSaleItems([...flashSaleItems, newItem]);
+
+    // Reset temp inputs
+    setTempProduct(null);
+    setTempDiscountValue("");
+    setInputValueProduct(""); // clear search input
   };
 
-  //product
+  const handleRemoveFromFlashSale = (id) => {
+    setFlashSaleItems(flashSaleItems.filter(item => item.productId !== id));
+  };
+
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+    if (newValue === 0) {
+      // Voucher
+      setPromotionKind("VOUCHER");
+      setApplyTo("Product");
+    } else if (newValue === 1) {
+      // Discount / Auto
+      setPromotionKind("AUTO");
+      if (!applyTo) setApplyTo("ALL");
+    } else if (newValue === 2) {
+      // Flash Sale
+      setPromotionKind("FLASH_SALE");
+      setApplyTo("Product"); // Flash sale implicity uses product but list is managed separately
+      setUsageLimitPerUser(1);
+      setUsageType("LIMITED");
+      setUsageLimited(1);
+      if (startDate) {
+        setEndDate(dayjs(startDate).add(18, 'hour'));
+      }
+    }
+  };
+
+  // Effect: Flash Sale always lasts 18 hours from Start Date
+  useEffect(() => {
+    if (promotionKind === "FLASH_SALE" && startDate) {
+      setEndDate(dayjs(startDate).add(18, "hour"));
+    }
+  }, [startDate, promotionKind]);
+
+  //product generic search (reused)
   const [productOptions, setProductOptions] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [inputValueProduct, setInputValueProduct] = useState("");
@@ -72,6 +148,15 @@ export default function PromotionUpload() {
       return [];
     }
   };
+
+  // Fetch campaigns
+  const { data: campaignData, isLoading: isLoadingCampaigns } = useQuery({
+    queryKey: ["campaigns"],
+    queryFn: async () => {
+      const res = await PromotionService.getAllCampaigns();
+      return res.data?.result || [];
+    }
+  });
 
   // Debounce search
   const debouncedSearch = useMemo(
@@ -96,16 +181,15 @@ export default function PromotionUpload() {
     if (inputValueProduct && inputValueProduct.trim().length >= 2) {
       debouncedSearch(inputValueProduct);
     } else {
-      // Khi xóa hoặc < 2 ký tự → vẫn giữ lại các sản phẩm đã chọn trong dropdown
-      setProductOptions(
-        selectedProducts.map((p) => ({
-          id: p.id,
-          name: p.name,
-          price: p.price,
-        }))
-      );
+      // Logic dropdown: Nếu ở tab flash sale, có thể cần logic hiển thị khác nếu muốn
+      // Hiện tại giữ logic search chung. 
+      // Nhưng nếu đang chọn sản phẩm temp cho Flash Sale, option list có thể khác.
+      // Tuy nhiên để đơn giản, giữ nguyên logic search.
+
+      setProductOptions([]); // Clear options if empty input to hide dropdown unless necessary
+
     }
-  }, [inputValueProduct, selectedProducts]);
+  }, [inputValueProduct, debouncedSearch]); // Reduced dependencies to avoid loops
 
   //category
   const [categoryOptions, setCategoryOptions] = useState([]);
@@ -127,43 +211,9 @@ export default function PromotionUpload() {
         }
       );
       console.log("search category res: ", res.data.result);
-      // Giả sử CategoryGetListVM có field 'data' chứa mảng category
-      // Nếu cấu trúc khác (ví dụ result trực tiếp là list), bạn có thể điều chỉnh
       return res.data.result || [];
     } catch (err) {
-      // Nếu là lỗi từ Axios (có response từ server)
-      if (err.response) {
-        // Server trả về lỗi (4xx, 5xx)
-        console.error("Lỗi tìm kiếm category - Server response:", {
-          status: err.response.status,
-          statusText: err.response.statusText,
-          data: err.response.data, // Thường chứa message chi tiết từ backend
-          headers: err.response.headers,
-        });
-
-        // Ví dụ: nếu backend dùng ApiResponse với code != 200
-        if (err.response.data?.message) {
-          console.error("Message từ server:", err.response.data.message);
-        }
-      }
-      // Lỗi request không gửi được (mạng, CORS, timeout,...)
-      else if (err.request) {
-        console.error(
-          "Lỗi tìm kiếm category - Không nhận được response:",
-          err.request
-        );
-      }
-      // Lỗi khác (cấu hình axios sai, v.v.)
-      else {
-        console.error(
-          "Lỗi tìm kiếm category - Setup request lỗi:",
-          err.message
-        );
-      }
-
-      // Bạn vẫn có thể log full error object để debug sâu hơn nếu cần
-      console.error("Full error object:", err);
-
+      console.error("Lỗi tìm kiếm category:", err);
       return [];
     }
   };
@@ -177,21 +227,19 @@ export default function PromotionUpload() {
         const formatted = results.map((item) => ({
           id: item.id,
           name: item.value,
-          // có thể thêm image, sku, v.v.
         }));
 
         setCategoryOptions(formatted);
         setLoadingCategories(false);
       }, 500),
-    [token] // nếu token thay đổi thì tạo lại
+    [token]
   );
 
-  // Khi người dùng gõ
+  // Khi người dùng gõ category
   useEffect(() => {
     if (inputValueCategory && inputValueCategory.trim().length >= 2) {
       debouncedCateSearch(inputValueCategory);
     } else {
-      // Khi xóa hoặc < 2 ký tự → vẫn giữ lại các danh mục đã chọn trong dropdown
       setCategoryOptions(
         selectedCategories.map((c) => ({
           id: c.id,
@@ -205,18 +253,20 @@ export default function PromotionUpload() {
   const queryClient = useQueryClient();
 
   const createPromotionMutation = useMutation({
-    mutationFn: (payload) =>
-      axios.post("/api/v1/promotion-service/promotion/create", payload, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }),
+    mutationFn: (payload) => {
+      if (payload.promotionKind === "FLASH_SALE") {
+        return PromotionService.createFlashSale(payload);
+      } else {
+        // Use Service or keep axios (service preferred but keeping axios for standard is ok if consistent, lets use service if possible but I dont want to break existing if createPromotion signature differs).
+        // The user updated PromotionService.createPromotion to take data.
+        // payload here matches what createPromotion expects.
+        return PromotionService.createPromotion(payload);
+      }
+    },
 
     onSuccess: (response) => {
-      console.log("Tạo khuyễn mãi kho thành công:", response.data);
+      console.log("Tạo khuyến mãi thành công:", response.data);
 
-      // Tự động refetch danh sách lịch sử + tồn kho
       queryClient.invalidateQueries({ queryKey: ["promotions"] });
       navigate("/promotion", {
         state: {
@@ -262,20 +312,31 @@ export default function PromotionUpload() {
       alert("Vui lòng chọn loại giảm giá!");
       return;
     }
-    if (
-      discountType === "DISCOUNT_PERCENT" &&
-      (!discountPercent || Number(discountPercent) <= 0)
-    ) {
-      alert("Vui lòng nhập phần trăm giảm giá hợp lệ!");
-      return;
+
+    if (tabValue !== 2) {
+      if (
+        discountType === "DISCOUNT_PERCENT" &&
+        (!discountPercent || Number(discountPercent) <= 0)
+      ) {
+        alert("Vui lòng nhập phần trăm giảm giá hợp lệ!");
+        return;
+      }
+
+      if (
+        discountType === "FIXED_AMOUNT" &&
+        (!fixedAmount || Number(fixedAmount) <= 0)
+      ) {
+        alert("Vui lòng nhập số tiền giảm giá hợp lệ!");
+        return;
+      }
+    } else {
+      // Flash Sale Validation
+      if (flashSaleItems.length === 0) {
+        alert("Vui lòng thêm ít nhất 1 sản phẩm cho Flash Sale!");
+        return;
+      }
     }
-    if (
-      discountType === "FIXED_AMOUNT" &&
-      (!fixedAmount || Number(fixedAmount) <= 0)
-    ) {
-      alert("Vui lòng nhập số tiền giảm giá hợp lệ!");
-      return;
-    }
+
     if (!usageType) {
       alert("Vui lòng chọn loại sử dụng!");
       return;
@@ -293,109 +354,154 @@ export default function PromotionUpload() {
     if (applyTo === "Product") applyToValue = "Product";
     else if (applyTo === "Category") applyToValue = "Category";
 
-    // Xác định promotionKind
-    let promotionKindValue = "AUTO";
-    if (promotionKind === "VOUCHER") {
-      promotionKindValue = "VOUCHER";
-    }
-
-    const payload = {
+    // Common fields
+    const basePayload = {
       name: name.trim(),
       descriptions: description.trim(),
-      discountType: discountType,
       usageType: usageType,
-      applyTo: applyToValue,
-      active: active,
-      promotionKind: promotionKindValue,
-
-      // Dates - convert to ISO string if exists
+      applyTo: applyToValue, // Enum string
+      promotionKind: promotionKind, // Enum string
       startDate: startDate ? startDate.toISOString() : null,
       endDate: endDate ? endDate.toISOString() : null,
-
-      // Discount values - only send the relevant one
-      discountPercent:
-        discountType === "DISCOUNT_PERCENT" ? Number(discountPercent) : null,
-      fixedAmount: discountType === "FIXED_AMOUNT" ? Number(fixedAmount) : null,
-
-      // Usage limits
-      usageLimited: usageType === "LIMITED" ? Number(usageLimited) : null,
-      usageLimitPerUser: 1, // Default value
-
+      // Usage limits (backend common fields)
+      usageLimited: usageType === "LIMITED" ? Number(usageLimited) : 0,
+      usageLimitPerUser: Number(usageLimitPerUser),
       // Minimum order
-      minimumOrderPurchaseAmount: minimumOrderAmount
+      minimumOrderPurchaseAmount: (promotionKind === "VOUCHER" && minimumOrderAmount)
         ? Number(minimumOrderAmount)
         : null,
-
-      // Products/Categories - only send if applicable
-      productId: applyTo === "Product" ? selectedProducts.map((p) => p.id) : [],
-      categoryId:
-        applyTo === "Category" ? selectedCategories.map((c) => c.id) : [],
+      campaignId: selectedCampaign ? selectedCampaign.id : null,
     };
 
+    let finalPayload = {};
+
+    if (tabValue === 2) {
+      // FLASH SALE
+      const flashSaleItemsRequest = flashSaleItems.map(item => ({
+        productId: item.productId,
+        discountPercent: item.discountType === "DISCOUNT_PERCENT" ? item.discountValue : 0,
+        fixedAmount: item.discountType === "FIXED_AMOUNT" ? item.discountValue : 0
+      }));
+
+      finalPayload = {
+        ...basePayload,
+        applyTo: "Product",
+        // Flash Sale specific DTO structure
+        flashSaleItemRequests: flashSaleItemsRequest,
+        campaignId: selectedCampaign ? selectedCampaign.id : null
+      };
+
+    } else {
+      // VOUCHER & DISCOUNT (AUTO)
+      finalPayload = {
+        ...basePayload,
+        discountType: discountType,
+        discountPercent: discountType === "DISCOUNT_PERCENT" ? Number(discountPercent) : 0,
+        maxDiscountAmount: discountType === "DISCOUNT_PERCENT" && maxDiscountAmount ? Number(maxDiscountAmount) : 0,
+        fixedAmount: discountType === "FIXED_AMOUNT" ? Number(fixedAmount) : 0,
+
+        // Products/Categories - only send if applicable (Flash Sale sends items separately)
+        productId: applyTo === "Product" ? selectedProducts.map((p) => p.id) : [],
+        categoryId: applyTo === "Category" ? selectedCategories.map((c) => c.id) : [],
+      };
+    }
+
     // Gửi dữ liệu qua mutation
-    createPromotionMutation.mutate(payload);
+    createPromotionMutation.mutate(finalPayload);
   };
-
-  // //thumbnail
-  // const [thumbnail, setThumbnail] = useState({ file: null, preview: "" });
-
-  // //thumbnail function
-  // const handleThumbnailFileChange = (e) => {
-  //   const file = e.target.files[0];
-  //   if (file) {
-  //     // thu hồi URL cũ nếu có
-  //     if (thumbnail.preview) URL.revokeObjectURL(thumbnail.preview);
-
-  //     const preview = URL.createObjectURL(file);
-  //     setThumbnail({ file, preview });
-
-  //     // 👇 reset giá trị input để lần sau chọn lại cùng file vẫn chạy
-  //     e.target.value = "";
-  //   }
-  // };
-
-  // const handleThumbnailFileRemove = (e) => {
-  //   e.stopPropagation();
-
-  //   // thu hồi URL blob trước khi xóa
-  //   if (thumbnail.preview) URL.revokeObjectURL(thumbnail.preview);
-
-  //   // reset lại state và input
-  //   setThumbnail({ file: null, preview: "" });
-  //   document.getElementById("thumbnail-input").value = "";
-  // };
-
-  // const openThumbnailFilePicker = () => {
-  //   document.getElementById("thumbnail-input").click();
-  // };
-
-  // // dọn dẹp blob khi unmount
-  // useEffect(() => {
-  //   return () => {
-  //     if (thumbnail.preview) URL.revokeObjectURL(thumbnail.preview);
-  //   };
-  // }, [thumbnail]);
-
-  // const previewsRef = useRef(new Set()); // để track và revoke sau
-
-  // // cleanup on unmount: revoke tất cả preview còn lại
-  // useEffect(() => {
-  //   return () => {
-  //     previewsRef.current.forEach((url) => URL.revokeObjectURL(url));
-  //     previewsRef.current.clear();
-  //   };
-  // }, []);
 
   return (
     <>
       <div className="py-[10px] px-[100px]">
         <div className="flex justify-between items-center my-4">
           <h3 className="text-[30px] font-bold mb-4 text-[#403e57]">
-            Thêm chương trình giảm giá
+            Thêm chương trình khuyến mãi
           </h3>
         </div>
 
+        {/* Global Info Alert */}
+        <div className="w-full bg-blue-50 border border-blue-200 rounded-lg p-4 mb-5 flex gap-3 items-center">
+          <div className="text-blue-500">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+            </svg>
+          </div>
+          <Typography variant="body1" className="text-blue-800">
+            Lưu ý: Chương trình khuyến mãi sẽ được kích hoạt sau <span className="font-bold">1 ngày</span> kể từ thời điểm tạo.
+          </Typography>
+        </div>
+
+        {/* Tabs moved to top */}
+        <div className="flex flex-wrap shadow border-0 px-3 py-4 my-[10px] bg-white rounded-[10px] gap-5 mb-5">
+          <Tabs
+            value={tabValue}
+            onChange={handleTabChange}
+            aria-label="tabs promotion types"
+            sx={{
+              width: "100%",
+              "& .MuiTabs-indicator": { backgroundColor: "#4a2fcf" },
+            }}
+          >
+            <Tab
+              label="Mã Voucher"
+              sx={{ textTransform: "none", fontWeight: 600, fontSize: "18px", "&.Mui-selected": { color: "#4a2fcf" } }}
+            />
+            <Tab
+              label="Chương trình giảm giá"
+              sx={{ textTransform: "none", fontWeight: 600, fontSize: "18px", "&.Mui-selected": { color: "#4a2fcf" } }}
+            />
+            <Tab
+              label="Flash Sale"
+              sx={{ textTransform: "none", fontWeight: 600, fontSize: "18px", "&.Mui-selected": { color: "#4a2fcf" } }}
+            />
+          </Tabs>
+
+          {/* Context Notice / Voucher Code */}
+          {tabValue === 0 && (
+            <div className="w-full px-4 mb-2 flex gap-7 ">
+              <Typography variant="body2" color="primary" fontWeight="bold">
+                Mã Voucher sẽ được hệ thống tạo tự động sau khi tải lên.
+              </Typography>
+            </div>
+          )}
+        </div>
+
         <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
+          
+          {/* === Campaign Selection === */}
+          <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] bg-white rounded-[10px] gap-10">
+            <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
+              Chiến dịch (Tùy chọn)
+            </div>
+            <div className="w-full px-4 mb-4">
+              <Autocomplete
+                options={campaignData || []}
+                getOptionLabel={(option) => option.name || ""}
+                value={selectedCampaign}
+                onChange={(event, newValue) => setSelectedCampaign(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Tìm kiếm và chọn chiến dịch..."
+                    fullWidth
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: "5px",
+                        backgroundColor: "#fafafa",
+                      },
+                    }}
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <li {...props} key={option.id}>
+                    {option.name}
+                  </li>
+                )}
+              />
+            </div>
+          </div>
+
+          {/* 1. Basic Info - VISIBLE FOR ALL */}
           <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] px-[5px] mx-[0px] bg-white rounded-[10px] gap-10">
             <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
               Thông tin cơ bản
@@ -431,581 +537,365 @@ export default function PromotionUpload() {
                 ></textarea>
               </div>
             </div>
-
-            {/* banner */}
-            {/* <div className='w-full flex gap-7 ml-2'>
-              <div className='w-[200px] h-full'>
-                <div className='flex flex-col items-end text-right gap-[91px] h-full'>
-                  <h6 className="text-[18px]">Ảnh khuyến mãi</h6>
-                </div>
-              </div> */}
-
-            {/* <div className='w-full flex gap-6 flex-wrap pr-[53px]'>
-                <div className='flex flex-col items-center gap-2'>
-                  <Box
-                    sx={{
-                      width: 140,
-                      height: 140,
-                      border: "2px dashed #aaa",
-                      borderRadius: 2,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                      overflow: "hidden",
-                      position: "relative",
-                    }}
-                    onClick={openThumbnailFilePicker}
-                  >
-                    {thumbnail.preview ? (
-                      <div className="w-full h-full">
-                        <img
-                          src={thumbnail.preview}
-                          alt="thumbnail"
-                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        />
-                      </div>
-                    ) : (
-                      <div>
-                        <AddPhotoAlternateIcon
-                          fontSize="large"
-                          sx={{
-                            fill: "url(#gradient1)", // gradient cho icon
-                          }}
-                        />
-                        <svg width={0} height={0}>
-                          <defs>
-                            <linearGradient id="gradient1" x1="0" y1="0" x2="1" y2="1">
-                              <stop offset="0%" stopColor="#4a2fcf" />
-                              <stop offset="100%" stopColor="#6440F5" />
-                            </linearGradient>
-                          </defs>
-                        </svg>
-                      </div>
-                    )}
-                  </Box>
-                  <div className="flex flex-col justify-center items-center">
-                    {thumbnail.preview ? (
-                      <div className='flex gap-2'>
-                        <IconButton
-                          onClick={openThumbnailFilePicker}
-                        >
-                          <BiRefresh className='text-[25px]' />
-                        </IconButton>
-
-                        <IconButton
-                          onClick={(e) => handleThumbnailFileRemove(e)}
-                        >
-                          <HiOutlineTrash className='text-[20px]' />
-                        </IconButton>
-                      </div>
-                    ) : null}
-                  </div>
-                  <input
-                    id="thumbnail-input"
-                    type="file"
-                    accept="image/*"
-                    style={{ display: "none" }}
-                    onChange={handleThumbnailFileChange}
-                  />
-                </div>
-              </div> */}
-            {/* </div> */}
-
-            <div className="w-full flex gap-7 mx-2">
-              <div className="w-[200px] flex justify-end">
-                <h6 className="text-[18px]">Trạng thái</h6>
-              </div>
-
-              <div className="w-full pr-[53px]">
-                <Switch
-                  checked={active}
-                  onChange={(e) => setActive(e.target.checked)}
-                  color="primary"
-                />
-                <span
-                  className={
-                    active ? "text-green-600 font-medium" : "text-gray-500"
-                  }
-                >
-                  {active ? "Kích hoạt ngay" : "Chưa kích hoạt"}
-                </span>
-              </div>
-            </div>
           </div>
 
-          <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] px-[5px] mx-[0px] bg-white rounded-[10px] gap-5">
-            <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
-              Loại giảm giá & Giá trị
-            </div>
+          {/* 2. Global Discount - HIDDEN FOR FLASH SALE (Tab 2) */}
+          {tabValue !== 2 && (
+            <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] px-[5px] mx-[0px] bg-white rounded-[10px] gap-5">
+              <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
+                Loại giảm giá & Giá trị
+              </div>
 
-            <div className="w-full ml-[30px]">
-              <Box
-                sx={{
-                  "& .MuiFormControlLabel-label": {
-                    fontSize: "18px",
-                  },
-                  "& .MuiRadio-root": {
-                    transform: "scale(1.3)",
-                    marginRight: "8px",
-                  },
-                }}
-              >
-                <RadioGroup
-                  value={discountType}
-                  onChange={(e) => setDiscountType(e.target.value)}
+              <div className="w-full ml-[30px]">
+                <Box
+                  sx={{
+                    "& .MuiFormControlLabel-label": {
+                      fontSize: "18px",
+                    },
+                    "& .MuiRadio-root": {
+                      transform: "scale(1.3)",
+                      marginRight: "8px",
+                    },
+                  }}
                 >
-                  <FormControlLabel
-                    value="DISCOUNT_PERCENT"
-                    control={<Radio />}
-                    label="Giảm theo %"
-                  />
-                  <FormControlLabel
-                    value="FIXED_AMOUNT"
-                    control={<Radio />}
-                    label="Giảm cố định số tiền"
-                  />
-                </RadioGroup>
-              </Box>
-            </div>
 
-            <div className="flex mx-[30px] w-full">
-              {discountType === "DISCOUNT_PERCENT" ? (
-                <div className="flex w-[50%] justify-center">
-                  {/* Giảm theo % */}
-                  <div className="max-w-md w-full">
-                    <label className="block text-[18px] font-medium text-gray-800 mb-3">
-                      Giảm (%) *
-                    </label>
-                    <TextField
-                      type="number"
-                      value={discountPercent}
-                      onChange={(e) => setDiscountPercent(e.target.value)}
-                      fullWidth
-                      required
-                      inputProps={{ min: 0, max: 100 }}
-                      sx={{
-                        "& .MuiInputBase-input": {
-                          fontSize: "18px",
-                          height: "28px",
-                        },
-                        "& .MuiOutlinedInput-root": { borderRadius: "12px" },
-                      }}
-                      placeholder="Ví dụ: 20"
-                    />
-                  </div>
-                </div>
-              ) : (
-                /* Giảm cố định */
-                <div className="flex w-[50%] justify-center">
-                  <div className="max-w-md w-full">
-                    <label className="block text-[18px] font-medium text-gray-800 mb-3">
-                      Số tiền giảm (đ) *
-                    </label>
-                    <TextField
-                      type="number"
-                      value={fixedAmount}
-                      onChange={(e) => setFixedAmount(e.target.value)}
-                      fullWidth
-                      required
-                      inputProps={{ min: 0 }}
-                      sx={{
-                        "& .MuiInputBase-input": {
-                          fontSize: "18px",
-                          height: "28px",
-                        },
-                        "& .MuiOutlinedInput-root": { borderRadius: "12px" },
-                      }}
-                      placeholder="Ví dụ: 200000"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] px-[5px] mx-[0px] bg-white rounded-[10px] gap-5">
-            <Tabs
-              value={tabValue}
-              onChange={handleTabChange}
-              aria-label="tabs danh mục và thương hiệu"
-              sx={{
-                mb: 1,
-                "& .MuiTabs-indicator": {
-                  backgroundColor: "#4a2fcf",
-                },
-              }}
-            >
-              <Tab
-                label="Voucher"
-                sx={{
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: "18px",
-                  "&.Mui-selected": {
-                    color: "#4a2fcf",
-                  },
-                }}
-              />
-              <Tab
-                label="Giảm giá"
-                sx={{
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: "18px",
-                  "&.Mui-selected": {
-                    color: "#4a2fcf",
-                  },
-                }}
-              />
-            </Tabs>
-            {tabValue === 0 && (
-              <>
-                <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
-                  Loại voucher
-                </div>
-                <div className="w-[40%] mx-[30px]">
                   <RadioGroup
-                    value={promotionKind}
-                    onChange={(e) => setPromotionKind(e.target.value)}
+                    row
+                    value={discountType}
+                    onChange={(e) => setDiscountType(e.target.value)}
                   >
                     <FormControlLabel
-                      value="AUTOMATIC"
+                      value="DISCOUNT_PERCENT"
                       control={<Radio />}
-                      label="Không cần mã (tự động áp dụng)"
+                      label="Giảm theo %"
                     />
                     <FormControlLabel
-                      value={"VOUCHER"}
+                      value="FIXED_AMOUNT"
                       control={<Radio />}
-                      label="Khách phải nhập mã"
+                      label="Giảm cố định số tiền"
                     />
                   </RadioGroup>
-                </div>
-              </>
-            )}
-            {tabValue === 1 && (
-              <>
-                <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
-                  Điều kiện áp dụng
-                </div>
+                </Box>
+              </div>
 
-                <div className="w-full flex mx-[30px]">
-                  <div className="w-[40%]">
+              <div className="flex mx-[30px] w-full">
+                {discountType === "DISCOUNT_PERCENT" ? (
+                  <div className="flex w-full gap-7">
+                    {/* Giảm theo % */}
+                    <div className="w-1/2">
+                      <label className="block text-[18px] font-medium text-gray-800 mb-3">
+                        Giảm (%) *
+                      </label>
+                      <TextField
+                        type="number"
+                        value={discountPercent}
+                        onChange={(e) => setDiscountPercent(e.target.value)}
+                        fullWidth
+                        required={tabValue !== 2}
+                        inputProps={{ min: 0, max: 100 }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            fontSize: "18px",
+                            height: "28px",
+                          },
+                          "& .MuiOutlinedInput-root": { borderRadius: "12px" },
+                        }}
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">%</InputAdornment>
+                          ),
+                        }}
+                        placeholder="Ví dụ: 20"
+                      />
+                    </div>
+                    <div className="w-1/2">
+                      <label className="block text-[18px] font-medium text-gray-800 mb-3">
+                        Giảm tối đa (đ)
+                      </label>
+                      <TextField
+                        type="number"
+                        value={maxDiscountAmount}
+                        onChange={(e) => setMaxDiscountAmount(e.target.value)}
+                        fullWidth
+                        inputProps={{ min: 0 }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            fontSize: "18px",
+                            height: "28px",
+                          },
+                          "& .MuiOutlinedInput-root": { borderRadius: "12px" },
+                        }}
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">đ</InputAdornment>
+                          ),
+                        }}
+                        placeholder="Không giới hạn"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  /* Giảm cố định */
+                  <div className="flex w-full justify-start">
+                    <div className="max-w-md w-full">
+                      <label className="block text-[18px] font-medium text-gray-800 mb-3">
+                        Số tiền giảm (đ) *
+                      </label>
+                      <TextField
+                        type="number"
+                        value={fixedAmount}
+                        onChange={(e) => setFixedAmount(e.target.value)}
+                        fullWidth
+                        required={tabValue !== 2}
+                        inputProps={{ min: 0 }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            fontSize: "18px",
+                            height: "28px",
+                          },
+                          "& .MuiOutlinedInput-root": { borderRadius: "12px" },
+                        }}
+                        placeholder="Ví dụ: 200000"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 3. NEW FLASH SALE ITEMS SECTION - VISIBLE ONLY FOR TAB 2 */}
+          {tabValue === 2 && (
+            <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] px-[5px] mx-[0px] bg-white rounded-[10px] gap-5">
+              <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
+                Danh sách sản phẩm Flash Sale
+              </div>
+
+              <div className="w-full px-5 flex flex-col gap-4">
+                {/* Selector Area */}
+                <div className="flex gap-4 items-end bg-gray-50 p-4 rounded-xl border border-dashed border-gray-300">
+                  <div className="flex-1">
+                    <Typography variant="subtitle2" className="mb-2 font-bold text-gray-700">1. Chọn sản phẩm</Typography>
+                    <Autocomplete
+                      options={productOptions}
+                      getOptionLabel={(option) => option.name}
+                      loading={loadingProducts}
+                      inputValue={inputValueProduct}
+                      onInputChange={(e, v) => setInputValueProduct(v)}
+                      value={tempProduct}
+                      onChange={(e, v) => setTempProduct(v)}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Tìm sản phẩm"
+                          size="small"
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (<>{loadingProducts && <CircularProgress size={20} />}{params.InputProps.endAdornment}</>)
+                          }}
+                        />
+                      )}
+                    />
+                  </div>
+
+                  <div className="flex-1">
+                    <Typography variant="subtitle2" className="mb-2 font-bold text-gray-700">2. Loại giảm giá</Typography>
                     <RadioGroup
-                      value={applyTo}
-                      onChange={(e) => setApplyTo(e.target.value)}
+                      row
+                      value={tempDiscountType}
+                      onChange={(e) => setTempDiscountType(e.target.value)}
                     >
-                      <FormControlLabel
-                        value="ALL"
-                        control={<Radio />}
-                        label="Áp dụng cho tất cả"
-                      />
-                      <FormControlLabel
-                        value="Category"
-                        control={<Radio />}
-                        label="Chỉ áp dụng cho một số danh mục"
-                      />
-                      <FormControlLabel
-                        value="Product"
-                        control={<Radio />}
-                        label="Chỉ áp dụng cho sản phẩm cụ thể"
-                      />
+                      <FormControlLabel value="DISCOUNT_PERCENT" control={<Radio size="small" />} label="Theo %" />
+                      <FormControlLabel value="FIXED_AMOUNT" control={<Radio size="small" />} label="Số tiền" />
                     </RadioGroup>
                   </div>
 
-                  {/* HIỂN THỊ KHI CHỌN DANH MỤC HOẶC SẢN PHẨM */}
-                  {(applyTo === "Category" || applyTo === "Product") && (
-                    <div className="w-[60%] p-6 bg-gradient-to-r from-[#4a2fcf10] to-[#6440f510] border-2 border-[#4a2fcf] rounded-2xl">
-                      {/* from-[#4a2fcf10] = #4a2fcf với độ trong suốt 6% → nền nhẹ nhàng */}
+                  <div className="flex-1">
+                    <Typography variant="subtitle2" className="mb-2 font-bold text-gray-700">3. Giá trị giảm</Typography>
+                    <TextField
+                      size="small"
+                      type="number"
+                      fullWidth
+                      label={tempDiscountType === "DISCOUNT_PERCENT" ? "Phần trăm (%)" : "Số tiền (đ)"}
+                      value={tempDiscountValue}
+                      onChange={(e) => setTempDiscountValue(e.target.value)}
+                    />
+                  </div>
 
-                      <Typography
-                        variant="h6"
-                        className="font-bold text-xl pb-5"
-                        sx={{ color: "#4a2fcf" }} // chữ tím đậm
-                      >
-                        {applyTo === "Category"
-                          ? "Chọn danh mục áp dụng"
-                          : "Chọn sản phẩm áp dụng"}
+                  <div>
+                    <Button variant="contained" color="primary" onClick={handleAddToFlashSale} sx={{ height: 40, px: 3 }}>
+                      Thêm
+                    </Button>
+                  </div>
+                </div>
+
+                {/* List Area */}
+                {flashSaleItems.length > 0 ? (
+                  <div className="w-full overflow-hidden border rounded-lg">
+                    <table className="w-full text-sm text-left text-gray-500">
+                      <thead className="text-xs text-gray-700 uppercase bg-gray-100">
+                        <tr>
+                          <th className="px-6 py-3">Sản phẩm</th>
+                          <th className="px-6 py-3">Loại giảm</th>
+                          <th className="px-6 py-3">Giá trị</th>
+                          <th className="px-6 py-3 text-right">Hành động</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {flashSaleItems.map((item, index) => (
+                          <tr key={index} className="bg-white border-b hover:bg-gray-50">
+                            <td className="px-6 py-4 font-medium text-gray-900">{item.productName}</td>
+                            <td className="px-6 py-4">
+                              {item.discountType === "DISCOUNT_PERCENT" ? "Phần trăm (%)" : "Cố định (đ)"}
+                            </td>
+                            <td className="px-6 py-4 font-bold text-[#4a2fcf]">
+                              {item.discountValue} {item.discountType === "DISCOUNT_PERCENT" ? "%" : "đ"}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <Button
+                                size="small"
+                                color="error"
+                                onClick={() => handleRemoveFromFlashSale(item.productId)}
+                              >
+                                Xóa
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-400 italic py-4">Chưa có sản phẩm nào trong danh sách.</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 4. Scope (Apply To) - HIDDEN FOR FLASH SALE (Tab 2) */}
+          {tabValue !== 2 && (
+            <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] px-[5px] mx-[0px] bg-white rounded-[10px] gap-5">
+              <div className="w-full ">
+                <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px] mb-4">
+                  Phạm vi áp dụng
+                </div>
+
+                <div className="w-full flex mx-[30px] flex-col gap-4">
+                  <div className="w-full">
+                    <RadioGroup
+                      row
+                      value={applyTo}
+                      onChange={(e) => setApplyTo(e.target.value)}
+                    >
+                      {/* Discount Tab (1) allows All/Category */}
+                      {tabValue === 1 && (
+                        <>
+                          <FormControlLabel value="ALL" control={<Radio />} label="Toàn bộ cửa hàng" />
+                          <FormControlLabel value="Category" control={<Radio />} label="Theo danh mục" />
+                        </>
+                      )}
+
+                      {/* Product is always available (for Voucher and Discount) */}
+                      <FormControlLabel value="Product" control={<Radio />} label="Theo sản phẩm cụ thể" />
+                    </RadioGroup>
+                  </div>
+
+                  {(applyTo === "Category" || applyTo === "Product") && (
+                    <div className="w-[85%] p-6 bg-gradient-to-r from-[#4a2fcf10] to-[#6440f510] border-2 border-[#4a2fcf] rounded-2xl">
+                      <Typography variant="h6" className="font-bold text-xl pb-5" sx={{ color: "#4a2fcf" }}>
+                        {applyTo === "Category" ? "Chọn danh mục áp dụng" : "Chọn sản phẩm áp dụng"}
                       </Typography>
 
+                      {/* Selector Logic */}
                       {applyTo === "Category" ? (
                         <Box sx={{ width: "100%" }}>
-                          {/* Thanh tìm kiếm sản phẩm */}
                           <Autocomplete
                             multiple
                             options={categoryOptions}
-                            getOptionLabel={(option) => `${option.name}`}
+                            getOptionLabel={(option) => option.name}
                             loading={loadingCategories}
                             inputValue={inputValueCategory}
-                            onInputChange={(e, newInputValue) =>
-                              setInputValueCategory(newInputValue)
-                            } // Quan trọng!
+                            onInputChange={(e, v) => setInputValueCategory(v)}
                             value={selectedCategories}
-                            onChange={(e, newValue) => {
-                              const updated = newValue || [];
-                              setSelectedCategories(updated);
-                              // setSelectedCategoriesId(updated.map(item => String(item.id)));
-                            }}
-                            filterSelectedOptions
-                            noOptionsText="Không tìm thấy sản phẩm"
-                            isOptionEqualToValue={(option, value) =>
-                              option.id === value.id
-                            }
-                            clearIcon={null}
+                            onChange={(e, v) => setSelectedCategories(v || [])}
                             renderInput={(params) => (
                               <TextField
                                 {...params}
-                                label="Tìm sản phẩm theo tên..."
-                                placeholder="Nhập tên sản phẩm để thêm..."
+                                label="Tìm danh mục..."
+                                placeholder="Nhập tên..."
                                 InputProps={{
                                   ...params.InputProps,
-                                  endAdornment: (
-                                    <>
-                                      {loadingCategories && (
-                                        <CircularProgress
-                                          color="inherit"
-                                          size={20}
-                                        />
-                                      )}
-                                      {params.InputProps.endAdornment}
-                                    </>
-                                  ),
-                                }}
-                                sx={{
-                                  "& .MuiInputBase-input": { fontSize: "15px" },
-                                  "& .MuiInputLabel-root": {
-                                    fontSize: "15px",
-                                    color: "#4a2fcf",
-                                    "&.Mui-focused": { color: "#4a2fcf" },
-                                  },
-                                  "& .MuiOutlinedInput-root": {
-                                    "& fieldset": { borderColor: "#4a2fcf" },
-                                    "&:hover fieldset": {
-                                      borderColor: "#4a2fcf",
-                                    },
-                                    "&.Mui-focused fieldset": {
-                                      borderColor: "#4a2fcf",
-                                      borderWidth: 2,
-                                    },
-                                  },
-                                  "& .MuiAutocomplete-tag": { display: "none" },
+                                  endAdornment: (<>{loadingCategories && <CircularProgress size={20} />}{params.InputProps.endAdornment}</>)
                                 }}
                               />
                             )}
                             renderTags={() => null}
-                            renderOption={(props, option) => (
-                              <li {...props} key={option.id}>
-                                <Box>
-                                  <Typography variant="body1" fontWeight={500}>
-                                    {option.name}
-                                  </Typography>
-                                </Box>
-                              </li>
-                            )}
                           />
-
-                          {/* Danh sách sản phẩm đã chọn */}
                           {selectedCategories.length > 0 && (
-                            <Box
-                              sx={{
-                                mt: 2,
-                                display: "flex",
-                                flexWrap: "wrap",
-                                gap: 1,
-                              }}
-                            >
+                            <Box sx={{ mt: 2, display: "flex", flexWrap: "wrap", gap: 1 }}>
                               {selectedCategories.map((option) => (
                                 <Chip
                                   key={option.id}
-                                  label={`${option.name}`}
-                                  size="medium"
-                                  onDelete={() => {
-                                    setSelectedCategories((prev) =>
-                                      prev.filter(
-                                        (item) => item.id !== option.id
-                                      )
-                                    );
-
-                                    // setSelectedCategories(prev => prev.filter(id => id !== String(option.id)));
-                                  }}
-                                  sx={{
-                                    backgroundColor: "#4a2fcf",
-                                    color: "white",
-                                    fontSize: "13px",
-                                    height: 40,
-                                    fontWeight: 600,
-                                    "& .MuiChip-deleteIcon": {
-                                      color: "white",
-                                      "&:hover": {
-                                        color: "rgba(255,255,255,0.8)",
-                                      },
-                                    },
-                                  }}
+                                  label={option.name}
+                                  onDelete={() => setSelectedCategories(prev => prev.filter(item => item.id !== option.id))}
+                                  sx={{ backgroundColor: "#4a2fcf", color: "white" }}
                                 />
                               ))}
                             </Box>
-                          )}
-                          {selectedCategories.length > 0 && (
-                            <Button
-                              size="small"
-                              onClick={() => setSelectedCategories([])}
-                              sx={{ mt: 2 }}
-                            >
-                              Xóa tất cả danh mục
-                            </Button>
                           )}
                         </Box>
                       ) : (
                         <Box sx={{ width: "100%" }}>
-                          {/* Thanh tìm kiếm sản phẩm */}
                           <Autocomplete
                             multiple
                             options={productOptions}
-                            getOptionLabel={(option) => `${option.name}`}
+                            getOptionLabel={(option) => option.name}
                             loading={loadingProducts}
                             inputValue={inputValueProduct}
-                            onInputChange={(e, newInputValue) =>
-                              setInputValueProduct(newInputValue)
-                            } // Quan trọng!
+                            onInputChange={(e, v) => setInputValueProduct(v)}
                             value={selectedProducts}
-                            onChange={(e, newValue) => {
-                              setSelectedProducts(newValue || []); // newValue có thể null
-                            }}
-                            filterSelectedOptions
-                            noOptionsText="Không tìm thấy sản phẩm"
-                            isOptionEqualToValue={(option, value) =>
-                              option.id === value.id
-                            }
-                            clearIcon={null}
+                            onChange={(e, v) => setSelectedProducts(v || [])}
                             renderInput={(params) => (
                               <TextField
                                 {...params}
-                                label="Tìm sản phẩm theo tên..."
-                                placeholder="Nhập tên sản phẩm để thêm..."
+                                label="Tìm sản phẩm..."
+                                placeholder="Nhập tên..."
                                 InputProps={{
                                   ...params.InputProps,
-                                  endAdornment: (
-                                    <>
-                                      {loadingProducts && (
-                                        <CircularProgress
-                                          color="inherit"
-                                          size={20}
-                                        />
-                                      )}
-                                      {params.InputProps.endAdornment}
-                                    </>
-                                  ),
-                                }}
-                                sx={{
-                                  "& .MuiInputBase-input": { fontSize: "15px" },
-                                  "& .MuiInputLabel-root": {
-                                    fontSize: "15px",
-                                    color: "#4a2fcf",
-                                    "&.Mui-focused": { color: "#4a2fcf" },
-                                  },
-                                  "& .MuiOutlinedInput-root": {
-                                    "& fieldset": { borderColor: "#4a2fcf" },
-                                    "&:hover fieldset": {
-                                      borderColor: "#4a2fcf",
-                                    },
-                                    "&.Mui-focused fieldset": {
-                                      borderColor: "#4a2fcf",
-                                      borderWidth: 2,
-                                    },
-                                  },
-                                  "& .MuiAutocomplete-tag": { display: "none" },
+                                  endAdornment: (<>{loadingProducts && <CircularProgress size={20} />}{params.InputProps.endAdornment}</>)
                                 }}
                               />
                             )}
                             renderTags={() => null}
-                            renderOption={(props, option) => (
-                              <li {...props} key={option.id}>
-                                <Box>
-                                  <Typography variant="body1" fontWeight={500}>
-                                    {option.name}
-                                  </Typography>
-                                </Box>
-                              </li>
-                            )}
                           />
-
-                          {/* Danh sách sản phẩm đã chọn */}
                           {selectedProducts.length > 0 && (
-                            <Box
-                              sx={{
-                                mt: 2,
-                                display: "flex",
-                                flexWrap: "wrap",
-                                gap: 1,
-                              }}
-                            >
+                            <Box sx={{ mt: 2, display: "flex", flexWrap: "wrap", gap: 1 }}>
                               {selectedProducts.map((option) => (
                                 <Chip
                                   key={option.id}
-                                  label={`${option.name}`}
-                                  size="medium"
-                                  onDelete={() => {
-                                    setSelectedProducts((prev) =>
-                                      prev.filter(
-                                        (item) => item.id !== option.id
-                                      )
-                                    );
-                                  }}
-                                  sx={{
-                                    backgroundColor: "#4a2fcf",
-                                    color: "white",
-                                    fontSize: "13px",
-                                    height: 40,
-                                    fontWeight: 600,
-                                    "& .MuiChip-deleteIcon": {
-                                      color: "white",
-                                      "&:hover": {
-                                        color: "rgba(255,255,255,0.8)",
-                                      },
-                                    },
-                                  }}
+                                  label={option.name}
+                                  onDelete={() => setSelectedProducts(prev => prev.filter(item => item.id !== option.id))}
+                                  sx={{ backgroundColor: "#4a2fcf", color: "white" }}
                                 />
                               ))}
                             </Box>
                           )}
-                          {selectedProducts.length > 0 && (
-                            <Button
-                              size="small"
-                              onClick={() => setSelectedProducts([])}
-                              sx={{ mt: 2 }}
-                            >
-                              Xóa tất cả sản phẩm
-                            </Button>
-                          )}
                         </Box>
                       )}
 
-                      {/* Số lượng đã chọn - giữ nguyên vị trí và kiểu dáng đẹp */}
                       <div className="mt-5 text-right">
-                        <Typography
-                          variant="body1"
-                          sx={{
-                            color: "#4a2fcf",
-                            fontWeight: 700,
-                            fontSize: "1.1rem",
-                          }}
-                        >
-                          Đã chọn:{" "}
-                          <span className="text-3xl font-bold">
-                            {applyTo === "Category"
-                              ? selectedCategories.length
-                              : selectedProducts.length}
-                          </span>{" "}
-                          {applyTo === "Category" ? "danh mục" : "sản phẩm"}
+                        <Typography variant="body1" sx={{ color: "#4a2fcf", fontWeight: 700 }}>
+                          Đã chọn: <span className="text-3xl font-bold">{applyTo === "Category" ? selectedCategories.length : selectedProducts.length}</span> {applyTo === "Category" ? "danh mục" : "sản phẩm"}
                         </Typography>
                       </div>
                     </div>
                   )}
                 </div>
-              </>
-            )}
-          </div>
+              </div>
+            </div>
+          )}
 
+          {/* 5. Limits & Time - VISIBLE FOR ALL */}
           <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] px-[5px] mx-[0px] bg-white rounded-[10px] gap-5">
             <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
               Giới hạn, thời gian & mã giảm giá
@@ -1044,6 +934,7 @@ export default function PromotionUpload() {
                     slotProps={{
                       textField: {
                         sx: { width: "100%" },
+                        helperText: promotionKind === "FLASH_SALE" ? "Tự động cộng 18 tiếng từ giờ bắt đầu" : ""
                       },
                       actionBar: { actions: ["clear", "cancel", "accept"] },
                     }}
@@ -1051,46 +942,72 @@ export default function PromotionUpload() {
                 </LocalizationProvider>
               </div>
 
-              {/* Đơn tối thiểu */}
-              <TextField
-                label="Giá trị đơn hàng tối thiểu (đ) - để trống nếu không yêu cầu"
-                type="number"
-                value={minimumOrderAmount}
-                onChange={(e) => setMinimumOrderAmount(e.target.value)}
-                fullWidth
-              />
-
+              {/* Đơn tối thiểu - ONLY FOR VOUCHER (Tab 0) */}
+              {tabValue === 0 && (
+                <TextField
+                  label="Giá trị đơn hàng tối thiểu (đ)"
+                  type="number"
+                  value={minimumOrderAmount}
+                  onChange={(e) => setMinimumOrderAmount(e.target.value)}
+                  fullWidth
+                  required
+                />
+              )}
               {/* Giới hạn lượt dùng */}
-              <div className="">
-                <FormControl component="fieldset">
-                  <RadioGroup
-                    row
-                    value={usageType}
-                    onChange={(e) => setUsageType(e.target.value)}
-                  >
-                    <FormControlLabel
-                      value="UNLIMITED"
-                      control={<Radio />}
-                      label="Không giới hạn lượt dùng"
-                    />
-                    <FormControlLabel
-                      value="LIMITED"
-                      control={<Radio />}
-                      label="Giới hạn tổng lượt dùng:"
-                    />
-                  </RadioGroup>
-                </FormControl>
+              {tabValue !== 1 && (
+                < div className="">
+                  <FormControl component="fieldset">
+                    <FormLabel component="legend">Giới hạn lượt sử dụng</FormLabel>
+                    <div className="flex flex-col gap-3 mt-2">
+                      <div className="flex gap-4 items-center">
+                        <Typography variant="body2" sx={{ minWidth: 150 }}>Tổng lượt dùng toàn hệ thống:</Typography>
+                        <RadioGroup
+                          row
+                          value={usageType}
+                          onChange={(e) => setUsageType(e.target.value)}
+                        >
+                          <FormControlLabel
+                            value="UNLIMITED"
+                            control={<Radio />}
+                            label="Không giới hạn"
+                            disabled={promotionKind === "FLASH_SALE"} // Flash Sale always limited
+                          />
+                          <FormControlLabel
+                            value="LIMITED"
+                            control={<Radio />}
+                            label="Có giới hạn"
+                            disabled={promotionKind === "FLASH_SALE"}
+                          />
+                        </RadioGroup>
+                        {usageType === "LIMITED" && (
+                          <TextField
+                            type="number"
+                            size="small"
+                            label="Số lượng"
+                            value={usageLimited}
+                            onChange={(e) => setUsageLimited(e.target.value)}
+                            sx={{ width: 150 }}
+                            required
+                          />
+                        )}
+                      </div>
 
-                {usageType === "LIMITED" && (
-                  <TextField
-                    type="number"
-                    value={usageLimited}
-                    onChange={(e) => setUsageLimited(e.target.value)}
-                    sx={{ width: 200, mt: 2 }}
-                    required
-                  />
-                )}
-              </div>
+                      <div className="flex gap-4 items-center mt-2">
+                        <Typography variant="body2" sx={{ minWidth: 150 }}>Giới hạn mỗi khách hàng:</Typography>
+                        <TextField
+                          type="number"
+                          size="small"
+                          label="Số lần/khách"
+                          value={usageLimitPerUser}
+                          onChange={(e) => setUsageLimitPerUser(e.target.value)}
+                          disabled={promotionKind === "FLASH_SALE"} // Flash Sale cố định 1
+                          sx={{ width: 150 }}
+                        />
+                      </div>
+                    </div>
+                  </FormControl>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1104,16 +1021,18 @@ export default function PromotionUpload() {
               <h3 className="text-[25px]">Tải lên</h3>
             </Button>
           </div>
-        </form>
-      </div>
-      {createPromotionMutation.isPending && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white p-6 rounded-xl flex flex-col items-center gap-3">
-            <CircularProgress color="primary" />
-            <p className="text-gray-700 font-medium">Đang tải lên...</p>
+        </form >
+      </div >
+      {
+        createPromotionMutation.isPending && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="bg-white p-6 rounded-xl flex flex-col items-center gap-3">
+              <CircularProgress color="primary" />
+              <p className="text-gray-700 font-medium">Đang tải lên...</p>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
     </>
   );
 }

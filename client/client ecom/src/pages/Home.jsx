@@ -3,9 +3,8 @@ import Footer from "../layouts/Footer";
 import Banner from "../components/common/Banner";
 import CategoriesList from "../components/product/CategoriesList";
 import ProductSection from "../components/product/ProductSection";
-import { FaFire } from "react-icons/fa";
-import { MdPhoneIphone } from "react-icons/md";
-import { FaLaptop } from "react-icons/fa";
+import RecommendProduct from "../components/product/RecommendProduct";
+import FlashSaleProduct from "../components/product/FlashSaleProduct";
 import { useEffect } from "react";
 
 function Home() {
@@ -19,29 +18,69 @@ function Home() {
       <Navbar />
       <div className="bg-white min-h-screen pb-10">
         <Banner />
-        <CategoriesList />
+        <div className="mx-auto px-1">
+          <FlashSaleProduct />
+        </div>
+
+        <div className="mx-auto px-1">
+          <RecommendProduct />
+        </div>
+
 
         <div className="mx-auto px-1">
           <ProductSection
-            title="SẢN PHẨM MỚI & NỔI BẬT"
-            icon={<FaFire />}
-            sortType="DEFAULT"
+            tabs={[
+              {
+                title: "ĐIỆN THOẠI",
+                keyword: "Điện thoại",
+              },
+              {
+                title: "MÁY TÍNH BẢNG",
+                keyword: "Tablet",
+              }
+            ]}
           />
 
           <ProductSection
-            title="ĐIỆN THOẠI"
-            icon={<MdPhoneIphone />}
-            keyword="Điện thoại"
+            tabs={[
+              {
+                title: "LAPTOP",
+                keyword: "Laptop",
+              },
+              {
+                title: "MÀN HÌNH MÁY TÍNH",
+                keyword: "Màn hình",
+              },
+              {
+                title: "PC",
+                keyword: "PC",
+              },
+            ]}
           />
 
           <ProductSection
-            title="LAPTOP"
-            icon={<FaLaptop />}
-            keyword="Laptop"
+            tabs={[
+              {
+                title: "Loa",
+                keyword: "Loa",
+              },
+              {
+                title: "Tai nghe",
+                keyword: "Tai nghe",
+              },
+              {
+                title: "Chuột",
+                keyword: "Chuột",
+              },
+              {
+                title: "Bàn phím",
+                keyword: "Bàn phím",
+              },
+            ]}
           />
         </div>
 
-        <div className="h-10"></div>
+        <CategoriesList />
       </div>
       <Footer />
     </>

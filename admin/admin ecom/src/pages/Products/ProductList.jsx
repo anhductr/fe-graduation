@@ -89,11 +89,6 @@ function ProductRow({ product, onDelete }) {
           {product.variantsResponses?.length || 0}
         </TableCell>
         <TableCell align="center">{product.sold || 0}</TableCell>
-        {/* <TableCell align="center">
-                    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                       <StarRating rating={product.avgRating || 0} />
-                    </Box>
-                </TableCell> */}
         <TableCell align="center">
           <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
             <Link to={`/products/products-edit/${product.id}`}>
@@ -177,24 +172,6 @@ function ProductRow({ product, onDelete }) {
     </>
   );
 }
-
-// function StarRating({ rating }) {
-//     const fullStars = Math.floor(rating);
-//     const halfStar = rating % 1 >= 0.5;
-//     const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-//     return (
-//         <div className="flex text-yellow-400">
-//             {[...Array(fullStars)].map((_, i) => (
-//                 <TiStar key={"full" + i} className="text-[18px]"></TiStar>
-//             ))}
-//             {halfStar && <TiStar className="text-[18px] opacity-50"></TiStar>}
-//             {/* Note: TiStar doesn't have half icon easily, simplfying for now */}
-//             {[...Array(emptyStars)].map((_, i) => (
-//                 <TiStar key={"empty" + i} className="text-[18px] text-gray-300"></TiStar>
-//             ))}
-//         </div>
-//     );
-// }
 
 export default function ProductList() {
   //xử lý phân trang
@@ -398,7 +375,7 @@ export default function ProductList() {
         <div className="flex flex-wrap gap-[26px] w-full">
           <Boxes
             color={"#9dcbfcff"}
-            header={"Tổng sản phẩm"}
+            header={"Tổng số sản phẩm"}
             total={totalProduct}
             icon={<FiBox />}
           ></Boxes>

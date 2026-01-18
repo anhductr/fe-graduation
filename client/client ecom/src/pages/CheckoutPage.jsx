@@ -22,6 +22,7 @@ export default function CheckoutPage() {
         orderId,
         orderDesc: initOrderDesc,
         orderFee: initOrderFee,
+        isReorder,
     } = location.state || {};
 
     const checkoutItems =
@@ -45,7 +46,7 @@ export default function CheckoutPage() {
     const [showAddressModal, setShowAddressModal] = useState(false);
     const [voucher, setVoucher] = useState("");
     const [orderDesc, setOrderDesc] = useState("");
-    const [orderFee, setOrderFee] = useState(30000); // Default shipping fee
+    const [orderFee, setOrderFee] = useState(30000);
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
     const [error, setError] = useState(null);
 
@@ -57,7 +58,13 @@ export default function CheckoutPage() {
         }
     }, [isLoggedIn, navigate, location]);
 
-    // Redirect if cart is empty
+    useEffect(() => {
+        if (isReorder) {
+            setSelectedVoucher(null);
+            setDiscountAmount(0);
+        }
+    }, [isReorder]);
+
     useEffect(() => {
         if (
             (!location.state || !location.state.selectedItems) &&
@@ -66,7 +73,6 @@ export default function CheckoutPage() {
             navigate("/cart");
         }
     }, [location.state, items, navigate]);
-
 
     useEffect(() => {
         const fetchAddresses = async () => {
@@ -95,7 +101,7 @@ export default function CheckoutPage() {
         if (!checkoutItems || checkoutItems.length === 0) return;
 
         const skus = checkoutItems.map(item => item.sku);
-        const today = new Date().toLocaleDateString("en-CA"); // yyyy-mm-dd
+        const today = new Date().toLocaleDateString("en-CA");
 
         promotionApi
             .getVouchers({
@@ -114,8 +120,6 @@ export default function CheckoutPage() {
                 console.error("🔴 Voucher error:", err);
             });
     }, [checkoutItems, checkoutSubtotal]);
-
-
 
     const calculateDiscount = (voucher) => {
         if (!voucher) return 0;
@@ -232,12 +236,9 @@ export default function CheckoutPage() {
                 <h1 className="text-2xl font-bold mb-6">Thanh toán</h1>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left Column - Form */}
                     <div className="lg:col-span-2 space-y-6">
-                        {/* Shipping Address */}
                         <div className="bg-white rounded-lg shadow p-6">
                             <h2 className="text-lg font-semibold mb-4">Địa chỉ giao hàng</h2>
-
                             {selectedAddress ? (
                                 <div className="border rounded-lg p-4 flex justify-between items-center">
                                     <div>
@@ -316,35 +317,34 @@ export default function CheckoutPage() {
                             </div>
                         )}
 
-
-                        {/* Voucher */}
-                        <div className="bg-white rounded-lg shadow p-6">
-                            <h2 className="text-lg font-semibold mb-4">Mã giảm giá</h2>
-
-                            {selectedVoucher ? (
-                                <div className="border rounded-lg p-4 flex justify-between items-center">
-                                    <div>
-                                        <p className="font-semibold">{selectedVoucher.name}</p>
-                                        <p className="text-sm text-gray-600">
-                                            Mã: {selectedVoucher.voucherCode}
-                                        </p>
+                        {!isReorder && (
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <h2 className="text-lg font-semibold mb-4">Mã giảm giá</h2>
+                                {selectedVoucher ? (
+                                    <div className="border rounded-lg p-4 flex justify-between items-center">
+                                        <div>
+                                            <p className="font-semibold">{selectedVoucher.name}</p>
+                                            <p className="text-sm text-gray-600">
+                                                Mã: {selectedVoucher.voucherCode}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowVoucherModal(true)}
+                                            className="text-blue-600 text-sm hover:underline"
+                                        >
+                                            Thay đổi
+                                        </button>
                                     </div>
+                                ) : (
                                     <button
                                         onClick={() => setShowVoucherModal(true)}
-                                        className="text-blue-600 text-sm hover:underline"
+                                        className="w-full border border-dashed border-gray-400 py-3 rounded-lg text-gray-600"
                                     >
-                                        Thay đổi
+                                        + Chọn voucher
                                     </button>
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={() => setShowVoucherModal(true)}
-                                    className="w-full border border-dashed border-gray-400 py-3 rounded-lg text-gray-600"
-                                >
-                                    + Chọn voucher
-                                </button>
-                            )}
-                        </div>
+                                )}
+                            </div>
+                        )}
 
                         {showVoucherModal && (
                             <div className="fixed inset-0 bg-white/40 backdrop-blur-md flex items-center justify-center z-50">
@@ -386,8 +386,6 @@ export default function CheckoutPage() {
                             </div>
                         )}
 
-
-                        {/* Order Note */}
                         <div className="bg-white rounded-lg shadow p-6">
                             <h2 className="text-lg font-semibold mb-4">Ghi chú đơn hàng</h2>
                             <textarea
@@ -399,12 +397,9 @@ export default function CheckoutPage() {
                         </div>
                     </div>
 
-                    {/* Right Column - Order Summary */}
                     <div className="lg:col-span-1">
                         <div className="bg-white rounded-lg shadow p-6 sticky top-4">
                             <h2 className="text-lg font-semibold mb-4">Tóm tắt đơn hàng</h2>
-
-                            {/* Items */}
                             <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
                                 {checkoutItems.map((item, idx) => (
                                     <div key={idx} className="flex justify-between text-sm">
@@ -422,19 +417,17 @@ export default function CheckoutPage() {
 
                             <hr className="my-4" />
 
-                            {/* Subtotal */}
                             <div className="flex justify-between mb-2">
                                 <span className="text-gray-600">Tạm tính</span>
                                 <span>{formatPrice(checkoutSubtotal)}</span>
                             </div>
 
-                            {/* Shipping */}
                             <div className="flex justify-between mb-2">
                                 <span className="text-gray-600">Phí vận chuyển</span>
                                 <span>{formatPrice(orderFee)}</span>
                             </div>
 
-                            {selectedVoucher && (
+                            {!isReorder && selectedVoucher && (
                                 <div className="flex justify-between mb-2 text-green-600">
                                     <span>Giảm giá</span>
                                     <span>-{formatPrice(discountAmount)}</span>
@@ -442,21 +435,16 @@ export default function CheckoutPage() {
                             )}
 
                             <hr className="my-4" />
-
-                            {/* Total */}
                             <div className="flex justify-between text-lg font-bold mb-6">
                                 <span>Tổng cộng</span>
                                 <span className="text-red-600">{formatPrice(finalTotal)}</span>
                             </div>
-
-                            {/* Error Message */}
                             {error && (
                                 <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded mb-4 text-sm">
                                     {error}
                                 </div>
                             )}
 
-                            {/* Checkout Button */}
                             <button
                                 onClick={handleCheckout}
                                 disabled={isCreatingOrder || !addressId}
@@ -472,7 +460,6 @@ export default function CheckoutPage() {
                     </div>
                 </div>
             </div>
-
             <Footer />
         </div>
     );

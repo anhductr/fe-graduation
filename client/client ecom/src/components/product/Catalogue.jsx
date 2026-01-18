@@ -1,471 +1,131 @@
 import { time } from "framer-motion";
 import React, { useState, useEffect } from "react";
 import { IoIosArrowForward } from "react-icons/io";
+import { getCateUnderRoot } from "../../services/searchApi";
 import { getAllBrands, getCategoryById } from "../../services/catalogueApi";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
 const Catalogue = () => {
   const navigate = useNavigate();
   const [subscreen, setSubscreen] = useState(1);
-  const [phoneData, setPhoneData] = useState([]);
-  const [laptopData, setLaptopData] = useState([]);
 
-  useEffect(() => {
-    const fetchCatalogueData = async (type) => {
-      // type = 'phone' hoặc 'laptop'
+  // Use React Query for category fetching with caching
+  const { data: categoriesData } = useQuery({
+    queryKey: ['categories', 'root'],
+    queryFn: async () => {
+      const response = await getCateUnderRoot();
+      return response?.result?.categoryGetVM || [];
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  const categories = categoriesData || [];
+  const selectedCategory = categories[subscreen - 1]; // Category đang hover
+
+  // Use React Query for catalogue data fetching with caching
+  const { data: catalogueData = [] } = useQuery({
+    queryKey: ['catalogue', selectedCategory?.id || 'none'],
+    queryFn: async () => {
+      if (!selectedCategory) {
+        return [];
+      }
+
       try {
         const brandsResp = await getAllBrands();
         const brands = brandsResp.result || [];
 
         const dataPromises = brands.map(async (brand) => {
           const categoryIds = Array.isArray(brand.categoryId) ? brand.categoryId : [];
+
+          // Fetch tất cả categories của brand
           const categoryPromises = categoryIds.map((id) => getCategoryById(id));
           const categoriesResponses = await Promise.all(categoryPromises);
 
-          // Lọc category phù hợp với type (phone hoặc laptop)
-          const filteredResponses = categoriesResponses.filter((res) => {
-            if (!res || !res.result || !res.result.name) return false;
-
-            const catNameLower = res.result.name.toLowerCase();
-
-            if (type === 'phone') {
-              // Loại bỏ các category rõ ràng là laptop/tablet
-              if (
-                catNameLower.includes("macbook") ||
-                catNameLower.includes("laptop") ||
-                catNameLower.includes("máy tính xách tay") ||
-                catNameLower.includes("ipad") ||
-                catNameLower.includes("tablet")
-              ) {
-                return false;
-              }
-              return true;
-            }
-
-            if (type === 'laptop') {
-              // Loại bỏ các category rõ ràng là điện thoại
-              if (
-                catNameLower.includes("điện thoại") ||
-                catNameLower.includes("smartphone") ||
-                catNameLower.includes("phone")
-              ) {
-                return false;
-              }
-              return true;
-            }
-
-            return true;
+          // Tìm category có name khớp với category đang hover
+          const matchedCategory = categoriesResponses.find((res) => {
+            if (!res?.result?.name) return false;
+            return res.result.name.toLowerCase() === selectedCategory.name.toLowerCase();
           });
 
-          // Extract series từ childrenId
-          const extractSeriesNames = (rootCategory) => {
-            if (!rootCategory || !Array.isArray(rootCategory.childrenId)) return [];
+          // Nếu không tìm thấy category phù hợp, bỏ qua brand này
+          if (!matchedCategory?.result?.childrenId) return null;
 
-            const brandNode = rootCategory.childrenId.find((child) => {
-              if (!child.name) return false;
-              const childNameLower = child.name.toLowerCase();
-              const brandNameLower = brand.name.toLowerCase();
+          // Lấy childrenId (các brand nodes như iPhone, Samsung, etc.)
+          const brandNodes = matchedCategory.result.childrenId;
 
-              if (type === 'phone') {
-                if (brandNameLower === "apple") return childNameLower.includes("iphone");
-                if (brandNameLower === "samsung") return childNameLower.includes("samsung");
-                return childNameLower.includes(brandNameLower);
+          // Tìm brand node khớp với tên brand
+          const matchedBrandNode = brandNodes.find((node) => {
+            if (!node.name) return false;
+            const nodeName = node.name.toLowerCase();
+            const brandName = brand.name.toLowerCase();
+
+            console.log('node name: ', nodeName)
+            console.log('brand name: ', brandName)
+
+            // Special cases
+            if (brandName === "apple") {
+              return nodeName.includes("iphone") || nodeName.includes("macbook") || nodeName.includes("ipad");
+            }
+            if (brandName === nodeName) {
+              return nodeName.includes(nodeName);
+            }
+
+            return nodeName.includes(brandName);
+          });
+
+          // Nếu không tìm thấy brand node, bỏ qua
+          if (!matchedBrandNode) return null;
+
+          // Hàm đệ quy để lấy tất cả leaf nodes (childrenId === null hoặc [])
+          const collectLeafNodes = (nodes) => {
+            const leafNodes = [];
+
+            if (!Array.isArray(nodes)) return leafNodes;
+
+            for (const node of nodes) {
+              // Nếu node không có children hoặc children rỗng -> đây là leaf node
+              if (!node.childrenId || node.childrenId.length === 0) {
+                leafNodes.push({
+                  name: node.name || '',
+                  id: node.id || ''
+                });
+              } else {
+                // Nếu còn children, tiếp tục đệ quy
+                leafNodes.push(...collectLeafNodes(node.childrenId));
               }
+            }
 
-              if (type === 'laptop') {
-                if (brandNameLower === "apple") return childNameLower.includes("macbook");
-                // Các brand laptop: Lenovo, Dell, HP, MSI,... khớp theo tên
-                return childNameLower.includes(brandNameLower);
-              }
-
-              return false;
-            });
-
-            if (!brandNode || !Array.isArray(brandNode.childrenId)) return [];
-
-            return brandNode.childrenId.map((series) => ({
-              name: series.name || '',
-              id: series._id || series.id || ''  // ưu tiên _id trước, fallback sang id nếu có
-            }));
+            return leafNodes;
           };
 
-          const validItems = filteredResponses
-            .flatMap((res) => extractSeriesNames(res.result))
-            .filter((item) => item); // loại bỏ undefined
+          // Lấy tất cả leaf nodes CHỈ từ brand node này
+          const items = collectLeafNodes(matchedBrandNode.childrenId || []);
 
-          if (validItems.length === 0) return null;
+          // Nếu không có items, bỏ qua brand này
+          if (items.length === 0) return null;
 
-          // Đặt title đẹp hơn cho Apple
-          let title = brand.name;
-          if (brand.name.toLowerCase() === "apple") {
-            title = type === 'phone' ? "Apple (iPhone)" : "Apple (MacBook)";
-          }
-
-          return { title, items: validItems };
+          return {
+            title: brand.name,
+            items: items
+          };
         });
 
         const fetchedData = (await Promise.all(dataPromises)).filter(Boolean);
-        return fetchedData.length > 0 ? fetchedData : null;
+        return fetchedData;
       } catch (error) {
-        console.error(`Failed to fetch ${type} data:`, error);
-        return null;
+        console.error('Failed to fetch catalogue data:', error);
+        return [];
       }
-    };
+    },
+    enabled: !!selectedCategory, // Chỉ fetch khi có selectedCategory
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+  });
 
-    // Fetch dữ liệu cho cả Điện thoại và Laptop
-    fetchCatalogueData('phone').then((data) => setPhoneData(data || []));
-    fetchCatalogueData('laptop').then((data) => setLaptopData(data || []));
-  }, []);
-
-  const data = {
-    phone: [
-      {
-        title: "Apple (iPhone)",
-        items: [
-          "iPhone 16 Series",
-          "iPhone 15 Series",
-          "iPhone 14 Series",
-          "iPhone 13 Series",
-        ],
-      },
-      {
-        title: "Xiaomi",
-        items: [
-          "Poco Series",
-          "Xiaomi Series",
-          "Redmi Note Series",
-          "Redmi Series",
-        ],
-      },
-      {
-        title: "Phổ thông 4G",
-        items: ["Nokia", "Itel", "Masstel", "Mobell", "Viettel"],
-      },
-      {
-        title: "Samsung",
-        items: [
-          "Galaxy AI",
-          "Galaxy S Series",
-          "Galaxy Z Series",
-          "Galaxy A Series",
-          "Galaxy M Series",
-        ],
-      },
-      {
-        title: "HONOR",
-        items: [
-          "HONOR 400 Series",
-          "HONOR Magic Series",
-          "HONOR X Series",
-          "HONOR Series",
-        ],
-      },
-      {
-        title: "Theo phân khúc giá",
-        items: [
-          "Dưới 2 triệu",
-          "Từ 2 - 4 triệu",
-          "Từ 4 - 7 triệu",
-          "Từ 7 - 13 triệu",
-          "Từ 13 - 20 triệu",
-          "Trên 20 triệu",
-        ],
-      },
-      {
-        title: "OPPO",
-        items: ["OPPO Reno Series", "OPPO A Series", "OPPO Find Series"],
-      },
-      {
-        title: "Thương hiệu khác",
-        items: [
-          "Tecno",
-          "Realme",
-          "Vivo",
-          "Inoi",
-          "Benco",
-          "TCL",
-          "Nubia - ZTE",
-          "RedMagic",
-        ],
-      },
-    ],
-    laptop: [
-      {
-        title: "Thương hiệu khác",
-        items: ["Gigabyte", "Huawei", "Masstel", "Colorful"],
-      },
-      {
-        title: "Lenovo",
-        items: [
-          "Lenovo Gaming LOQ",
-          "Lenovo Yoga",
-          "Lenovo Legion Gaming",
-          "Lenovo ThinkBook",
-          "Lenovo ThinkPad",
-          "Lenovo IdeaPad",
-        ],
-      },
-      {
-        title: "Theo nhu cầu",
-        items: [
-          "Gaming - Đồ họa",
-          "Laptop Al",
-          "Sinh viên - Văn phòng",
-          "Mòng nhẹ",
-        ],
-      },
-      {
-        title: "Dell",
-        items: [
-          "Dell XPS",
-          "Dell Inspiron",
-          "Dell Vostro",
-          "Dell Latitude",
-          "Dell Gaming G Series",
-        ],
-      },
-      {
-        title: "HP",
-        items: [
-          "HP 14/15 - 14s/15s",
-          "HP cơ bản",
-          "HP Pavilion",
-          "HP Envy",
-          "HP Victus",
-        ],
-      },
-      {
-        title: "MSI",
-        items: [
-          "MSI Gaming Thin GF / Cyborg",
-          "MSI Gaming Katana/ Sword/ Crosshair",
-          "MSI Modern",
-        ],
-      },
-    ],
-    pc: [
-      {
-        title: "PC",
-        items: ["E-Power", "Apple (iMac)", "Asus", "Lenovo", "HP"],
-      },
-      {
-        title: "Màn hình",
-        items: [
-          "ASUS",
-          "Samsung",
-          "MSI",
-          "Dell",
-          "LG",
-          "ViewSonic",
-          "AOC",
-          "Xiaomi",
-          "Apple",
-          "Acer",
-          "GIGABYTE",
-          "Lenovo",
-          "Edra",
-        ],
-      },
-    ],
-    dienmay: [
-      {
-        title: "Tivi",
-        items: ["Tivi QLED", "Tivi 4K", "Google TV"],
-      },
-      {
-        title: "Máy giặt",
-        items: ["Máy giặt cửa trước", "Máy giặt cửa trên", "Máy giặt sấy"],
-      },
-      {
-        title: "Máy lạnh - Điều hòa",
-        items: [
-          "Máy lạnh - Điều hòa 1 chiều",
-          "Máy lạnh - Điều hòa 2 chiều",
-          "Máy lạnh - Điều hòa Inverter",
-        ],
-      },
-      {
-        title: "Máy sấy",
-        items: ["Sấy thông hơi", "Sấy ngưng tụ", "Sấy bơm nhiệt"],
-      },
-      {
-        title: "Tủ lạnh",
-        items: [
-          "Tủ lạnh Inverter",
-          "Tủ lạnh nhiều cửa",
-          "Side by side",
-          "Mini",
-        ],
-      },
-    ],
-    accessories: [
-      {
-        title: "Âm thanh",
-        items: [
-          "Tai nghe nhét tai",
-          "Tai nghe chụp tai",
-          "Tai nghe không dây",
-          "Loa Bluetooth",
-          "Loa karaoke",
-          "Loa vi tính",
-        ],
-      },
-      {
-        title: "Gaming Gear",
-        items: [
-          "Tai nghe",
-          "Loa",
-          "Chuột",
-          "Bàn phím",
-          "Loa",
-          "Chuột",
-          "Bàn phím",
-        ],
-      },
-      {
-        title: "Phụ kiện di động",
-        items: [
-          "Sạc, Cáp",
-          "Sạc dự phòng",
-          "Bao da, Ốp lưng",
-          "Thẻ nhớ",
-          "Miếng dán màn hình",
-          "Bút cảm ứng",
-          "Thiết bị định vị",
-          "Gậy chụp ảnh, Gimbal",
-        ],
-      },
-      {
-        title: "Thiết bị lưu trữ data",
-        items: ["USB", "Thẻ nhớ", "Ổ cứng di động"],
-      },
-      {
-        title: "Phụ kiện Laptop",
-        items: [
-          "Chuột",
-          "Bàn phím",
-          "Balo, Túi xách",
-          "Bút trình chiếu",
-          "Webcam",
-          "Giá đỡ",
-          "Miếng lót chuột",
-          "Hub chuyển đổi",
-          "Phù bàn phím",
-          "Ổ cứng di động",
-          "USB",
-        ],
-      },
-    ],
-    chuyenApple: [
-      {
-        title: "Sản phẩm Apple",
-        items: ["iPhone", "iPad", "MacBook", "iMac"],
-      },
-      {
-        title: "Phụ kiện Apple",
-        items: [
-          "Sạc & Cáp",
-          "Ốp lưng & Bao da",
-          "Chuột & Trackpad",
-          "Bàn phím",
-          "Apple Pencil",
-          "Airtag",
-        ],
-      },
-    ],
-    chuyenSamsung: [
-      {
-        title: "Sản phẩm Samsung",
-        items: [
-          "Điện thoại",
-          "Máy tính bảng",
-          "Galaxy Al",
-          "Đồng hồ thông minh",
-          "Tủ lạnh",
-          "Máy giặt",
-          "Màn hình",
-          "Tai nghe",
-          "TV & AV",
-        ],
-      },
-      {
-        title: "Phụ kiện Samsung",
-        items: [
-          "Sạc & Cáp",
-          "Ốp lưng & Bao da",
-          "Sạc dự phòng",
-          "Thiết bị định vị",
-          "Ổ cứng & Thẻ nhớ",
-          "Dây đeo đồng hồ",
-          "Phụ kiện khác",
-        ],
-      },
-    ],
-  };
-
-
-  let groupedData = [];
-
-  // useEffect(() => {
-  //   console.log('groupedData: ', groupedData)
-  // }, [groupedData])
-
-  switch (subscreen) {
-    case 1:
-      groupedData = phoneData.length > 0 ? phoneData : data.phone;
-      break;
-    case 2:
-      groupedData = laptopData.length > 0 ? laptopData : data.laptop;
-      break;
-    case 3:
-      groupedData = data.pc;
-      break;
-    case 4:
-      groupedData = data.dienmay;
-      break;
-    case 5:
-      groupedData = data.accessories;
-      break;
-    case 6:
-      groupedData = data.chuyenApple;
-      break;
-    case 7:
-      groupedData = data.chuyenSamsung;
-      break;
-    default:
-      groupedData = data.phone;
-      break;
-  }
-
-  const menuItems = [
-    {
-      text: "Điện thoại",
-    },
-    {
-      text: "Laptop",
-    },
-    {
-      text: "PC, màn hình",
-    },
-    {
-      text: "Điện máy",
-    },
-    {
-      text: "Phụ kiện",
-    },
-    {
-      text: "Chuyên đồ Apple",
-    },
-    {
-      text: "Chuyên đồ Samsung",
-    },
-    {
-      text: "Khuyến mãi",
-    },
-    // {
-    //   text: "Tin công nghệ",
-    // },
-  ];
+  // Sử dụng catalogueData trực tiếp - data được fetch dựa trên selectedCategory
+  const groupedData = catalogueData;
 
   return (
     <>
@@ -473,21 +133,22 @@ const Catalogue = () => {
         {/* Left Sidebar */}
         <div className="w-[23%]">
           <ul className="">
-            {menuItems.map(({ text }, idx) => (
+            {categories.map((item, idx) => (
               <li
-                key={idx}
+                key={item.id || idx}
                 onMouseEnter={() => {
                   setSubscreen(idx + 1);
                 }}
                 className={`${subscreen === idx + 1 ? "text-[#03A9F4] [box-shadow:rgba(50,50,93,0.25)_0px_13px_27px_-5px,rgba(0,0,0,0.3)_0px_8px_16px_-8px] translate-x-2 scale-x-100 origin-left" : "text-black"
                   } flex items-center justify-between p-3 cursor-pointer transition-all duration-100 transform rounded-full`}
               >
-                <span className="text-[17px]">{text}</span>
+                <span className="text-[17px]">{item.name}</span>
                 <IoIosArrowForward />
               </li>
             ))}
           </ul>
         </div>
+
 
         {/* Content */}
         <div className="w-[67%] flex flex-col flex-1 p-6">
@@ -509,7 +170,7 @@ const Catalogue = () => {
                             state: {
                               type: "category",
                               categoryId: item.id,
-                              cateType: 'phone'
+                              cateType: selectedCategory?.name || 'phone'
                             }
                           })}
                         >

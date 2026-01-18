@@ -164,7 +164,6 @@ export default function OrderPage() {
                                     </span>
                                 </div>
 
-                                {/* Items preview */}
                                 <div className="space-y-2 mb-3">
                                     {order.items?.slice(0, 2).map((item, idx) => (
                                         <div key={idx} className="flex items-center gap-3">
@@ -192,6 +191,15 @@ export default function OrderPage() {
                                                 className="px-4 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition"
                                             >
                                                 Thanh toán
+                                            </button>
+                                        )}
+                                        {active === "Đang xử lý" && (
+                                            <button
+                                                onClick={() => handleCancelOrder(order.orderId)}
+                                                className="px-4 py-1.5 border border-red-500 text-red-600 text-sm rounded
+                 hover:bg-red-50 transition"
+                                            >
+                                                Hủy đơn
                                             </button>
                                         )}
                                         <button className="px-4 py-1.5 border border-gray-300 text-sm rounded hover:bg-gray-50 transition">
