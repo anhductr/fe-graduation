@@ -85,7 +85,7 @@ export default function CartPage() {
   };
 
   const selectedItems = items.filter((i) => selected[i.cartItemId]);
-  const selectedTotal = selectedItems.reduce(
+  const subtotal = selectedItems.reduce(
     (sum, i) => sum + i.sellPrice * i.quantity,
     0
   );
@@ -95,7 +95,7 @@ export default function CartPage() {
       state: {
         source: "cart",
         selectedItems,
-        subtotal: selectedTotal,
+        subtotal,
       },
     });
   };
@@ -258,7 +258,7 @@ export default function CartPage() {
               )}
 
               <div className="border-t pt-3 flex justify-between text-lg font-semibold text-red-600">
-                <span>Tổng tiền</span>
+                <span>Tạm tính</span>
                 <span>
                   {selectedItems.length > 0
                     ? formatPrice(selectedTotal)

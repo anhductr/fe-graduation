@@ -4,7 +4,7 @@ import AnalysisBoxes from "./AnalysisBoxes";
 import SalesChart from "./SalesChart";
 import OrdersChart from "./OrdersChart";
 import SalesTable from "./SalesTable";
-import OrdersTable from "./OrdersTable";
+import BestSellingTable from "./BestSellingTable";
 
 export default function Analysis() {
   return (
@@ -15,8 +15,8 @@ export default function Analysis() {
       <SalesChart />
       <OrdersChart />
 
+      <BestSellingTable />
       <SalesTable />
-      <OrdersTable />
     </div>
   );
 }

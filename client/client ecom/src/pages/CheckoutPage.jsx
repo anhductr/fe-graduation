@@ -71,7 +71,7 @@ export default function CheckoutPage() {
             (!location.state || !location.state.selectedItems) &&
             (!items || items.length === 0)
         ) {
-            navigate("/cart");
+            // navigate("/cart");
         }
     }, [location.state, items, navigate]);
 
