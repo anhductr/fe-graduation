@@ -45,6 +45,7 @@ import { cartApi } from "../services/cartApi";
 import { toast } from "react-toastify"; // Assuming toast is available or use simple verify
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { useComparison } from "../context/ComparisonContext";
 
 const ProductPage = () => {
   // const {category, name, productId} = useParams();
@@ -59,6 +60,7 @@ const ProductPage = () => {
   const [showCartSuccessModal, setShowCartSuccessModal] = useState(false);
   const navigate = useNavigate();
   const { refetchCart } = useCart();
+  const { addToCompare, removeFromCompare, isInCompareList } = useComparison();
 
 
   ////////////////////////////////// xử lý tìm kiếm ////////////////////////////////// 
@@ -756,8 +758,18 @@ const ProductPage = () => {
                 <h1 className="font-bold text-gray-900 text-[30px]">
                   {currentProduct.name}
                 </h1>
-                <Button variant="outlined" className="!text-[#0096FF] !border-[#0096FF] !text-[11px] !px-2 !py-1 !normal-case">
-                  + So sánh
+                <Button
+                  variant="outlined"
+                  className={`!text-[11px] !px-2 !py-1 !normal-case ${isInCompareList(currentProduct.id) ? '!text-red-500 !border-red-500' : '!text-[#0096FF] !border-[#0096FF]'}`}
+                  onClick={() => {
+                    if (isInCompareList(currentProduct.id)) {
+                      removeFromCompare(currentProduct.id);
+                    } else {
+                      addToCompare(currentProduct);
+                    }
+                  }}
+                >
+                  {isInCompareList(currentProduct.id) ? '- Bỏ so sánh' : '+ So sánh'}
                 </Button>
               </div>
 

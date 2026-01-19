@@ -8,9 +8,11 @@ import Tooltip, { tooltipClasses } from '@mui/material/Tooltip';
 import { styled } from '@mui/material/styles';
 import { Snackbar, Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { useComparison } from "../../context/ComparisonContext";
 
 const ProductCard = ({ product }) => {
   const navigate = useNavigate();
+  const { addToCompare, removeFromCompare, isInCompareList } = useComparison();
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
   const handleCloseSnackbar = () => {
@@ -119,12 +121,23 @@ const ProductCard = ({ product }) => {
         </HyperTooltip>
 
         <HyperTooltip
-          title="So sánh"
+          title={isInCompareList(product.id) ? "Bỏ so sánh" : "So sánh"}
           placement="top"
           arrow
           disableInteractive={true}
         >
-          <button className="bg-white hover:bg-[#03A9F4] hover:text-white rounded-full p-3 shadow-md">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (isInCompareList(product.id)) {
+                removeFromCompare(product.id);
+              } else {
+                addToCompare(product);
+              }
+            }}
+            className={`bg-white hover:bg-[#03A9F4] hover:text-white rounded-full p-3 shadow-md transition-colors ${isInCompareList(product.id) ? '!text-[#d70018]' : ''}`}
+          >
             <BiSolidBarChartAlt2 size={21} />
           </button>
         </HyperTooltip>

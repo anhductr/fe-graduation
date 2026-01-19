@@ -19,6 +19,9 @@ import ScrollToTop from "./components/utils/ScrollToTop";
 import { CartProvider } from "./context/CartContext";
 import AddressManager from "./pages/AddressPage";
 import Chatbot from "./components/Chatbot/Chatbot";
+import { ComparisonProvider } from "./context/ComparisonContext";
+import ComparisonPage from "./pages/ComparisonPage";
+import ComparisonFloatingBar from "./components/comparison/ComparisonFloatingBar";
 
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from "react-toastify";
@@ -42,61 +45,65 @@ function App() {
 
   return (
     <CartProvider>
-      <ScrollToTop />
-      <Routes>
-        <Route path="/" element={<Home />}></Route>
-        <Route path="/login" element={<LoginPage />}></Route>
-        <Route path="/signup" element={<SignUp />}></Route>
-        <Route path="/forgot-password" element={<ForgotPasswordPage />}></Route>
-        <Route path="/checkout" element={<CheckoutPage />}></Route>
-        <Route path="/payment-result" element={<PaymentResultPage />}></Route>
-        <Route path="/:name" element={<ProductPage />}></Route>
-        <Route path="/search" element={<SearchResultPage></SearchResultPage>} ></Route>
-        <Route path="/cart" element={<CartPage></CartPage>}></Route>
-        <Route path="/account" element={<UserDashboardPage />}>
-          <Route
-            index
-            element={
-              <UserInfoPage />
-            }
-          />
-          <Route
-            path="orders"
-            element={
-              <OrderPage />
-            }
-          />
-          <Route
-            path="address"
-            element={
-              <AddressManager />
-            }
-          />
-        </Route>
-      </Routes>
+      <ComparisonProvider>
+        <ScrollToTop />
+        <Routes>
+          <Route path="/" element={<Home />}></Route>
+          <Route path="/login" element={<LoginPage />}></Route>
+          <Route path="/signup" element={<SignUp />}></Route>
+          <Route path="/forgot-password" element={<ForgotPasswordPage />}></Route>
+          <Route path="/checkout" element={<CheckoutPage />}></Route>
+          <Route path="/payment-result" element={<PaymentResultPage />}></Route>
+          <Route path="/compare" element={<ComparisonPage />}></Route>
+          <Route path="/:name" element={<ProductPage />}></Route>
+          <Route path="/search" element={<SearchResultPage></SearchResultPage>} ></Route>
+          <Route path="/cart" element={<CartPage></CartPage>}></Route>
+          <Route path="/account" element={<UserDashboardPage />}>
+            <Route
+              index
+              element={
+                <UserInfoPage />
+              }
+            />
+            <Route
+              path="orders"
+              element={
+                <OrderPage />
+              }
+            />
+            <Route
+              path="address"
+              element={
+                <AddressManager />
+              }
+            />
+          </Route>
+        </Routes>
 
-      <LoginForm
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-        isModal={true}
-        onSwitchToRegister={() => {
-          setIsLoginModalOpen(false);
-          setIsRegisterModalOpen(true);
-        }}
-      />
+        <LoginForm
+          isOpen={isLoginModalOpen}
+          onClose={() => setIsLoginModalOpen(false)}
+          isModal={true}
+          onSwitchToRegister={() => {
+            setIsLoginModalOpen(false);
+            setIsRegisterModalOpen(true);
+          }}
+        />
 
-      <Chatbot />
-      <ToastContainer position="top-right" autoClose={3000} />
+        <Chatbot />
+        <ComparisonFloatingBar />
+        <ToastContainer position="top-right" autoClose={3000} />
 
-      <RegistrationForm
-        isOpen={isRegisterModalOpen}
-        onClose={() => setIsRegisterModalOpen(false)}
-        isModal={true}
-        onSwitchToLogin={() => {
-          setIsRegisterModalOpen(false);
-          setIsLoginModalOpen(true);
-        }}
-      />
+        <RegistrationForm
+          isOpen={isRegisterModalOpen}
+          onClose={() => setIsRegisterModalOpen(false)}
+          isModal={true}
+          onSwitchToLogin={() => {
+            setIsRegisterModalOpen(false);
+            setIsLoginModalOpen(true);
+          }}
+        />
+      </ComparisonProvider>
     </CartProvider>
   );
 }
