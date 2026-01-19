@@ -838,20 +838,28 @@ const ProductPage = () => {
                 </div>
               </div>
 
-              {/* sellPrice box */}
+              {/* Prices Section */}
               <div className="flex items-center gap-6 justify-start py-2">
-                <div className="py-2 text-red-600 font-semibold text-4xl">
-                  {sellPrice.toLocaleString('vi-VN')}₫
-                </div>
-
-                <div className="py-2 line-through text-gray-500 text-xl">
-                  {listPrice.toLocaleString('vi-VN')}₫
-                </div>
-
-                {discountPercentage !== 0 && (
-                  <div className="border border-[2px] border-red-600 rounded-[10px] text-sm py-1 px-4 text-red-600 font-semibold">
-                    -{discountPercentage}
+                {sellPrice === listPrice ? (
+                  <div className="py-2 text-red-600 font-semibold text-4xl">
+                    {sellPrice.toLocaleString('vi-VN')}₫
                   </div>
+                ) : (
+                  <>
+                    <div className="py-2 text-red-600 font-semibold text-4xl">
+                      {sellPrice.toLocaleString('vi-VN')}₫
+                    </div>
+
+                    <div className="py-2 line-through text-gray-500 text-xl">
+                      {listPrice.toLocaleString('vi-VN')}₫
+                    </div>
+
+                    {discountPercentage !== 0 && (
+                      <div className="border border-[2px] border-red-600 rounded-[10px] text-sm py-1 px-4 text-red-600 font-semibold">
+                        -{discountPercentage} %
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -865,7 +873,7 @@ const ProductPage = () => {
                   </li>
                   <li className="flex items-start gap-2">
                     <FaCheck className="text-green-500 mt-1 shrink-0" />
-                    <span>Bảo hành chính hãng 12 tháng tại trung tâm bảo hành ủy quyền</span>
+                    <span>Bảo hành chính hãng {currentProduct.warranty} tháng tại trung tâm bảo hành ủy quyền</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <FaCheck className="text-green-500 mt-1 shrink-0" />

@@ -18,6 +18,7 @@ function Home() {
       <Navbar />
       <div className="bg-white min-h-screen pb-10">
         <Banner />
+        <CategoriesList />
         <div className="mx-auto px-1">
           <FlashSaleProduct />
         </div>
@@ -37,12 +38,7 @@ function Home() {
               {
                 title: "MÁY TÍNH BẢNG",
                 keyword: "Máy tính bảng",
-              }
-            ]}
-          />
-
-          <ProductSection
-            tabs={[
+              },
               {
                 title: "LAPTOP",
                 keyword: "Laptop",
@@ -68,19 +64,9 @@ function Home() {
                 title: "TAI NGHE",
                 keyword: "Tai nghe",
               },
-              {
-                title: "CHUỘT",
-                keyword: "Chuột",
-              },
-              {
-                title: "BÀN PHÍM",
-                keyword: "Bàn phím",
-              },
             ]}
           />
         </div>
-
-        <CategoriesList />
       </div>
       <Footer />
     </>
