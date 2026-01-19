@@ -73,6 +73,13 @@ export const getCateUnderRoot = async () => {
     return response.data;
 };
 
+export const getCategoryPathToRoot = async (categoryId) => {
+    const response = await api.get("/search-service/search/category/pathToRoot", {
+        params: { categoryId }
+    });
+    return response.data;
+};
+
 export const getProductByBanner = async ({
     page = 1,
     size = 10,
@@ -97,12 +104,11 @@ export const getProductByBanner = async ({
     // Remove null/undefined keys
     Object.keys(body).forEach(key => body[key] == null && delete body[key]);
 
-    const response = await api.get("/search-service/search/banner", {
+    const response = await api.post("/search-service/search/banner", body, {
         params: {
             page,
             size,
         },
-        data: body
     });
 
     return response.data; // ApiResponse<ProductGetListVM>
