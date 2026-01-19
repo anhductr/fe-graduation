@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Modal, Input, Pagination } from "antd";
+import { Button, Modal, Input, Pagination, message } from "antd";
 import { toast } from "react-toastify";
 import { api } from "../libs/axios";
 
@@ -144,6 +144,7 @@ export default function AddressManager() {
             district: district?.name,
             city: province?.name,
         };
+        console.log('payload: ', payload);
 
         try {
             if (editing) {

@@ -12,7 +12,7 @@ import Footer from "../layouts/Footer";
 export default function CheckoutPage() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { cart, items, totalPrice } = useCart();
+    const { cart, items: cartItems, totalPrice: cartTotalPrice } = useCart();
     const { user, isLoggedIn } = useAuth();
     const {
         source,
@@ -22,13 +22,14 @@ export default function CheckoutPage() {
         orderId,
         orderDesc: initOrderDesc,
         orderFee: initOrderFee,
-        isReorder,
     } = location.state || {};
+    const isReorder = source === "order";
 
     const checkoutItems =
         source === "cart" ? selectedItems : orderItems;
 
-    const checkoutSubtotal = subtotal || 0;
+    const checkoutSubtotal =
+        typeof subtotal === "number" ? subtotal : 0;;
     const checkoutState = location.state;
 
     const skuList = checkoutItems.map(item => item.sku).join(",");
@@ -39,6 +40,8 @@ export default function CheckoutPage() {
     const [showVoucherModal, setShowVoucherModal] = useState(false);
     const [discountAmount, setDiscountAmount] = useState(0);
 
+    const items = location.state?.selectedItems || cartItems;
+    const totalPrice = items.reduce((sum, item) => sum + (item.sellPrice * item.quantity), 0);
 
     const [addressId, setAddressId] = useState("");
     const [addresses, setAddresses] = useState([]);
@@ -50,8 +53,6 @@ export default function CheckoutPage() {
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
     const [error, setError] = useState(null);
 
-
-    // Redirect if not logged in
     useEffect(() => {
         if (!isLoggedIn) {
             navigate("/login", { state: { from: location.pathname } });
@@ -70,7 +71,7 @@ export default function CheckoutPage() {
             (!location.state || !location.state.selectedItems) &&
             (!items || items.length === 0)
         ) {
-            navigate("/cart");
+            // navigate("/cart");
         }
     }, [location.state, items, navigate]);
 
@@ -192,7 +193,7 @@ export default function CheckoutPage() {
             orderDesc,
             orderFee,
             addressId,
-            totalPrice: checkoutSubtotal,
+            totalPrice: checkoutSubtotal - orderFee,
             paymentMethod: "VNPAY",
             items: checkoutItems.map(item => ({
                 sku: item.sku,
@@ -411,6 +412,7 @@ export default function CheckoutPage() {
                                                 (item.sellPrice || item.price) * item.quantity
                                             )}
                                         </span>
+                                        <span>{formatPrice(item.sellPrice * item.quantity)}</span>
                                     </div>
                                 ))}
                             </div>

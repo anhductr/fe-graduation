@@ -1,10 +1,9 @@
 import { useContext, useState, useEffect, useRef } from "react";
 import Card from '@mui/material/Card';
-import { TiStar } from "react-icons/ti";
+import { MdStar, MdStarBorder, MdStarHalf, MdOutlineShoppingCart } from "react-icons/md";
 import { BiSolidBarChartAlt2 } from "react-icons/bi";
 import { motion } from "framer-motion";
 import { CiCircleCheck } from "react-icons/ci";
-import { MdOutlineShoppingCart } from "react-icons/md";
 import Tooltip, { tooltipClasses } from '@mui/material/Tooltip';
 import { styled } from '@mui/material/styles';
 import { Snackbar, Alert } from "@mui/material";
@@ -19,17 +18,18 @@ const ProductCard = ({ product }) => {
   };
 
   function StarRating({ rating }) {
-    const fullStars = Math.floor(rating);
-    const halfStar = rating % 1 >= 0.5;
+    const safeRating = Number(rating) || 0;
+    const fullStars = Math.floor(safeRating);
+    const halfStar = safeRating % 1 >= 0.5;
     const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
     return (
       <div className="flex text-yellow-400">
         {[...Array(fullStars)].map((_, i) => (
-          <TiStar key={"full" + i} className="fas fa-star text-[22px]"></TiStar>
+          <MdStar key={"full" + i} className="text-[24px]"></MdStar>
         ))}
-        {halfStar && <i className="fas fa-star-half-alt"></i>}
+        {halfStar && <MdStarHalf className="text-[24px]" />}
         {[...Array(emptyStars)].map((_, i) => (
-          <TiStar key={"empty" + i} className="far fa-star text-[22px]"></TiStar>
+          <MdStarBorder key={"empty" + i} className="text-[24px]"></MdStarBorder>
         ))}
       </div>
     );
@@ -72,6 +72,13 @@ const ProductCard = ({ product }) => {
 
   return (
     <div className="relative group rounded-xl bg-white [box-shadow:rgba(60,64,67,0.15)_0px_1px_2px_0px,rgba(60,64,67,0.1)_0px_2px_6px_2px] pt-4 min-w-[255px] max-w-[255px] pb-6 relative flex flex-col justify-between transition-all duration-300 hover:[box-shadow:rgba(60,64,67,0.3)_0px_2px_8px_2px,rgba(60,64,67,0.2)_0px_4px_12px_4px] hover:-translate-y-1">
+
+      {/* Discount Badge */}
+      {product.discountPercent !== null && (
+        <div className="absolute top-0 left-0 bg-[#D70018] text-white text-[12px] font-bold px-3 py-1 rounded-tl-xl rounded-br-xl z-20 shadow-sm">
+          Giảm {product.discountPercent}%
+        </div>
+      )}
 
       {/* ICONS FLOATING */}
       <div className="
@@ -135,15 +142,15 @@ const ProductCard = ({ product }) => {
 
       {/* CONTENT */}
       <div className="flex flex-col gap-3 p-4 flex-1">
-        <div className="text-[14px] text-gray-800 h-[38px] overflow-hidden">
+        <div className="text-[16px] text-gray-800 h-[38px] overflow-hidden">
           {product.name}
         </div>
 
-        <div className="flex items-center text-[12px] text-gray-500 select-none">
-          {/* <StarRating rating={product.avgRating} /> */}
+        <div className="flex items-center select-none">
+          <StarRating rating={product.avgRating} />
         </div>
 
-        <div className="text-[14px] font-bold text-[#d60000]">
+        <div className="text-[17px] font-bold text-[#d60000]">
           {Number(product.price) === Number(product.listPrice) ? (
             /* Khi không có giảm giá: chỉ hiện listPrice, không gạch */
             <span>
@@ -161,7 +168,7 @@ const ProductCard = ({ product }) => {
               }).format(Number(product.price))}
 
               {product.listPrice && (
-                <span className="line-through text-gray-400 ml-1 text-[12px]">
+                <span className="line-through text-gray-400 ml-1 text-[15px]">
                   {new Intl.NumberFormat("vi-VN", {
                     style: "currency",
                     currency: "VND",
@@ -212,7 +219,7 @@ const ProductCard = ({ product }) => {
           />
         </div>
 
-        <span className="text-[13px] leading-5">Còn 96 sản phẩm</span>
+        <span className="text-[14px] leading-5">Đã bán {product.sold} sản phẩm</span>
       </div>
       <Snackbar
         open={snackbar.open}

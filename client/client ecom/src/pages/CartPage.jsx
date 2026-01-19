@@ -23,48 +23,33 @@ export default function CartPage() {
 
   const [selected, setSelected] = useState({});
 
+  // Auto-select item when coming from "Buy Now"
+  useEffect(() => {
+    const buyNowSku = location.state?.buyNowSku;
+    if (buyNowSku && items && items.length > 0) {
+      const targetItem = items.find((i) => i.sku === buyNowSku);
+      if (targetItem) {
+        setSelected({ [targetItem.cartItemId]: true });
+        // Clear the state to prevent re-selection on subsequent renders
+        navigate(location.pathname, { replace: true, state: {} });
+      }
+    }
+  }, [items, location.state, navigate, location.pathname]);
+
   useEffect(() => {
     if (items && items.length > 0) {
-      // Check for buyNowSku from navigation state
-      const buyNowSku = location.state?.buyNowSku;
-
-      if (buyNowSku) {
-        // Auto-select ONLY the buy-now item
-        const targetItem = items.find(i => i.sku === buyNowSku);
-        if (targetItem) {
-          setSelected({ [targetItem.cartItemId]: true });
-        } else {
-          // Fallback if item not found (rare race condition), select nothing or everything?
-          // Safest is to fallback to standard logic below or empty.
-          // Standard logic:
-          const currentIds = new Set(items.map((i) => i.cartItemId));
-          setSelected((prev) => {
-            const cleaned = {};
-            Object.keys(prev).forEach((id) => {
-              if (currentIds.has(id)) cleaned[id] = prev[id];
-            });
-            return cleaned;
-          });
-        }
-        // Clear state to avoid re-triggering on refresh? 
-        // location.state is persistent on refresh until replaced.
-        // Better to just respect it.
-      } else {
-        // Standard logic: Maintain previous selection or select all?
-        // Existing logic was: maintain previous selection, clean up stale IDs.
-        const currentIds = new Set(items.map((i) => i.cartItemId));
-        setSelected((prev) => {
-          const cleaned = {};
-          Object.keys(prev).forEach((id) => {
-            if (currentIds.has(id)) cleaned[id] = prev[id];
-          });
-          return cleaned;
+      const currentIds = new Set(items.map((i) => i.cartItemId));
+      setSelected((prev) => {
+        const cleaned = {};
+        Object.keys(prev).forEach((id) => {
+          if (currentIds.has(id)) cleaned[id] = prev[id];
         });
-      }
+        return cleaned;
+      });
     } else {
       setSelected({});
     }
-  }, [items, location.state]);
+  }, [items]);
 
   const handleChangeCheckedAll = (e) => {
     const checked = e.target.checked;
@@ -114,7 +99,7 @@ export default function CartPage() {
   };
 
   const selectedItems = items.filter((i) => selected[i.cartItemId]);
-  const selectedTotal = selectedItems.reduce(
+  const subtotal = selectedItems.reduce(
     (sum, i) => sum + i.sellPrice * i.quantity,
     0
   );
@@ -124,7 +109,7 @@ export default function CartPage() {
       state: {
         source: "cart",
         selectedItems,
-        subtotal: selectedTotal,
+        subtotal,
       },
     });
   };
@@ -214,7 +199,7 @@ export default function CartPage() {
                     <div className="flex flex-shrink-0 items-center space-x-2 border border-gray-400 rounded-[5px] overflow-hidden">
                       <button
                         onClick={() => decreaseQty(item)}
-                        className="px-3 py-1 bg-white hover:bg-gray-100 border-r border-gray-300 disabled:cursor-not-allowed"
+                        className="px-3 py-1 bg-white hover:bg-gray-100 border-r border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={item.quantity <= 1}
                       >
                         -
@@ -287,10 +272,10 @@ export default function CartPage() {
               )}
 
               <div className="border-t pt-3 flex justify-between text-lg font-semibold text-red-600">
-                <span>Tổng tiền</span>
+                <span>Tạm tính</span>
                 <span>
                   {selectedItems.length > 0
-                    ? formatPrice(selectedTotal)
+                    ? formatPrice(subtotal)
                     : formatPrice(cartTotalPrice)}
                 </span>
               </div>
@@ -333,4 +318,4 @@ export default function CartPage() {
       <Footer />
     </div>
   );
-}
+};

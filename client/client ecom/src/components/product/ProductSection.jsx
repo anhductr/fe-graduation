@@ -2,7 +2,9 @@ import { useContext, useState, useEffect, useRef } from "react";
 import ProductCard from "./ProductCard";
 import { Link, useNavigate } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation } from "swiper/modules";
 import "swiper/css";
+import "swiper/css/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { getSearchSuggestionsFull, searchProducts } from "../../services/searchApi";
 import { IoIosArrowForward } from "react-icons/io";
@@ -142,6 +144,7 @@ const ProductSection = ({ tabs, sortType = "DEFAULT" }) => {
                             nextEl: `#next-${uniqueId}`,
                             prevEl: `#prev-${uniqueId}`,
                         }}
+                        modules={[Navigation]}
                         className="!pl-1 !pr-1 !py-2"
                     >
                         {products.map((product, index) => (
