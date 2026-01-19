@@ -6,61 +6,61 @@ import { LocalizationProvider } from "@mui/x-date-pickers";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
-const YEAR_OPTIONS = [2023, 2024, 2025];
-
-function generateRawData(year) {
-  return [
-    { time: `${year}-01`, sales: 8, import: 5 },
-    { time: `${year}-02`, sales: 9, import: 6 },
-    { time: `${year}-03`, sales: 9.1, import: 6.2 },
-    { time: `${year}-04`, sales: 9.3, import: 6.5 },
-    { time: `${year}-05`, sales: 12, import: 8 },
-    { time: `${year}-06`, sales: 12.9, import: 9 },
-    { time: `${year}-07`, sales: 12.9, import: 9.1 },
-    { time: `${year}-08`, sales: 13, import: 9.3 },
-    { time: `${year}-09`, sales: 13.2, import: 9.5 },
-    { time: `${year}-10`, sales: 13.4, import: 9.8 },
-    { time: `${year}-11`, sales: 13.6, import: 10 },
-    { time: `${year}-12`, sales: 13.8, import: 10.2 },
-  ];
-}
+const currentYear = dayjs().year();
+const YEAR_OPTIONS = [
+  currentYear - 3,
+  currentYear - 2,
+  currentYear - 1,
+  currentYear,
+];
 
 export default function SalesChart() {
   const [year, setYear] = useState(dayjs().year());
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
-  const [viewType, setViewType] = useState("month");
-  const [customRange, setCustomRange] = useState(null);
+  const [rawData, setRawData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  function generateRawData(year, startDate, endDate) {
-    if (startDate && endDate) {
-      const days = endDate.diff(startDate, "day") + 1;
+  async function fetchRevenue(payload) {
+    setLoading(true);
+    try {
+      const res = await fetch(
+        "/analysis-service/analysis/revenue",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
-      return Array.from({ length: days }, (_, i) => {
-        const d = startDate.add(i, "day");
-        return {
-          time: d.format("YYYY-MM-DD"),
-          sales: Math.random() * 10 + 10,
-          import: Math.random() * 8 + 6,
-        };
-      });
+      const json = await res.json();
+      if (json.code === 200) {
+        const mapped = json.result.map((item) => ({
+          time: item.date,
+          sales: item.totalSales,
+          import: item.totalStockIn,
+        }));
+        setRawData(mapped);
+      } else {
+        setRawData([]);
+      }
+    } catch (err) {
+      console.error("Fetch revenue error:", err);
+      setRawData([]);
+    } finally {
+      setLoading(false);
     }
-
-    return Array.from({ length: 12 }, (_, i) => ({
-      time: `${year}-${String(i + 1).padStart(2, "0")}`,
-      sales: Math.random() * 10 + 20,
-      import: Math.random() * 8 + 12,
-    }));
   }
-
-  const rawData = useMemo(
-    () => generateRawData(year, startDate, endDate),
-    [year, startDate, endDate]
-  );
 
   useEffect(() => {
     if (startDate && endDate) {
-      setViewType("custom");
+      fetchRevenue({
+        periodType: "RANGE",
+        fromDate: startDate.format("YYYY-MM-DD"),
+        toDate: endDate.format("YYYY-MM-DD"),
+      });
     }
   }, [startDate, endDate]);
 
@@ -76,7 +76,6 @@ export default function SalesChart() {
         top: 40,
         bottom: 70,
       },
-
       tooltip: {
         trigger: "axis",
         formatter: (params) => {
@@ -108,8 +107,7 @@ export default function SalesChart() {
             if (startDate && endDate) {
               return dayjs(value).format("DD/MM");
             }
-
-            return `Tháng ${Number(value.split("-")[1])}`;
+            return `Tháng ${dayjs(value).month() + 1}`;
           },
         },
       },
@@ -117,7 +115,7 @@ export default function SalesChart() {
       yAxis: {
         type: "value",
       },
-      
+
       series: [
         {
           name: "Doanh số",
@@ -199,7 +197,7 @@ export default function SalesChart() {
         },
       ],
     };
-  }, [rawData, viewType]);
+  }, [rawData]);
 
   return (
     <div className="shadow border-0 p-5 my-[20px] bg-white rounded-[10px]">
@@ -209,17 +207,6 @@ export default function SalesChart() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* <Select
-            size="small"
-            value={viewType}
-            onChange={(e) => setViewType(e.target.value)}
-            sx={{ minWidth: 110 }}
-          >
-            <MenuItem value="week">Theo tuần</MenuItem>
-            <MenuItem value="month">Theo tháng</MenuItem>
-            <MenuItem value="year">Theo năm</MenuItem>
-          </Select> */}
-
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <DatePicker
               label="Từ ngày"
@@ -240,23 +227,19 @@ export default function SalesChart() {
             />
           </LocalizationProvider>
 
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => {
-              setStartDate(null);
-              setEndDate(null);
-              setViewType("month");
-            }}
-          >
-            Xóa lọc ngày
-          </Button>
-
           <Select
             size="small"
             value={year}
-            disabled={!!startDate && !!endDate}
-            onChange={(e) => setYear(Number(e.target.value))}
+            onChange={(e) => {
+              const selectedYear = Number(e.target.value);
+              setYear(selectedYear);
+              setStartDate(null);
+              setEndDate(null);
+              fetchRevenue({
+                periodType: "YEAR",
+                year: selectedYear,
+              });
+            }}
             sx={{ minWidth: 90 }}
           >
             {YEAR_OPTIONS.map((y) => (
