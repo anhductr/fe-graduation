@@ -140,10 +140,6 @@ const ProductSection = ({ tabs, sortType = "DEFAULT" }) => {
                             768: { slidesPerView: 4 },
                             1024: { slidesPerView: 5 },
                         }}
-                        navigation={{
-                            nextEl: `#next-${uniqueId}`,
-                            prevEl: `#prev-${uniqueId}`,
-                        }}
                         modules={[Navigation]}
                         className="!pl-1 !pr-1 !py-2"
                     >
@@ -156,7 +152,7 @@ const ProductSection = ({ tabs, sortType = "DEFAULT" }) => {
 
                     {/* Navigation Buttons */}
                     <button
-                        id={`prev-${uniqueId}`}
+                        onClick={() => swiperRef.current?.swiper?.slidePrev()}
                         className="
                         absolute left-[-20px] top-1/2 -translate-y-1/2 z-10
                         w-10 h-10 rounded-full bg-black/40 shadow-md text-white border border-gray-200
@@ -170,7 +166,7 @@ const ProductSection = ({ tabs, sortType = "DEFAULT" }) => {
                     </button>
 
                     <button
-                        id={`next-${uniqueId}`}
+                        onClick={() => swiperRef.current?.swiper?.slideNext()}
                         className="
                         absolute right-[-20px] top-1/2 -translate-y-1/2 z-10
                         w-10 h-10 rounded-full bg-black/40 shadow-md text-white border border-gray-200
