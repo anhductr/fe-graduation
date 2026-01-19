@@ -3,6 +3,7 @@ import CommentService from '../../services/CommentService';
 import CommentsTable from '../../components/Comments/CommentsTable';
 import CommentModal from '../../components/Comments/CommentModal';
 import AlertContext from '../../context/AlertContext';
+import Pagination from '../../components/common/Pagination';
 import './CommentsList.css';
 
 const CommentsList = ({ productId }) => {
@@ -20,23 +21,26 @@ const CommentsList = ({ productId }) => {
 
   // Fetch comments on mount and when filters change
   useEffect(() => {
-    if (productId) {
-      fetchComments();
-    }
+    fetchComments();
   }, [productId, pagination.page]);
 
   const fetchComments = async () => {
-    if (!productId) {
-      return;
-    }
-
     try {
       setLoading(true);
-      const response = await CommentService.getCommentsByProduct(
-        productId,
-        pagination.page,
-        pagination.size
-      );
+      let response;
+
+      if (productId) {
+        response = await CommentService.getCommentsByProduct(
+          productId,
+          pagination.page,
+          pagination.size
+        );
+      } else {
+        response = await CommentService.getAllComments(
+          pagination.page,
+          pagination.size
+        );
+      }
 
       if (response.data && response.data.result) {
         setComments(response.data.result.data);
@@ -45,7 +49,6 @@ const CommentsList = ({ productId }) => {
           totalPage: response.data.result.totalPage,
           totalElements: response.data.result.totalElements
         }));
-        // showAlert('Comments loaded successfully', 'success');
       }
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -65,27 +68,42 @@ const CommentsList = ({ productId }) => {
     setShowModal(true);
   };
 
+  const handleReply = (comment) => {
+    setSelectedComment(null); // Ensure we are not in edit mode
+    setReplyingTo(comment); // New state for replying
+    setShowModal(true);
+  };
+
   const handleSaveComment = async (formData) => {
     try {
       setLoading(true);
       if (formData.id) {
-        // Update existing comment
+        // Update existing comment - Not implementing edit as per previous request?
+        // But logic is here if needed.
         const response = await CommentService.updateComment(formData);
         if (response.data) {
-          setComments(comments.map(c => c.id === formData.id ? response.data.result : c));
+          // Refresh or update state
+          fetchComments();
           showAlert('Comment updated successfully', 'success');
         }
       } else {
-        // Create new comment
-        const response = await CommentService.createComment(formData);
+        // Create new comment (or reply)
+        // If it's a reply, ensure parentId is set (Modal handles this in formData)
+        // User request: { content, productId, parentId }
+        const payload = {
+          content: formData.content,
+          productId: formData.productId,
+          parentId: formData.parentId
+        };
+        const response = await CommentService.createComment(payload);
         if (response.data) {
-          // Refresh comments list
           await fetchComments();
           showAlert('Comment created successfully', 'success');
         }
       }
       setShowModal(false);
       setSelectedComment(null);
+      setReplyingTo(null);
     } catch (error) {
       console.error('Error saving comment:', error);
       showAlert(error.response?.data?.message || 'Failed to save comment', 'error');
@@ -96,10 +114,14 @@ const CommentsList = ({ productId }) => {
 
   const handleDeleteComment = async (id) => {
     if (window.confirm('Are you sure you want to delete this comment?')) {
+      // ... existing logic
       try {
         setLoading(true);
         await CommentService.deleteComment(id);
-        setComments(comments.filter(c => c.id !== id));
+        // Refresh to handle threaded deletion if needed, but filtering local state is faster if flat
+        // Since we have threads, maybe refetch is safer to update tree?
+        // But reusing existing logic:
+        fetchComments(); // safer than filter for threads
         showAlert('Comment deleted successfully', 'success');
       } catch (error) {
         console.error('Error deleting comment:', error);
@@ -111,6 +133,7 @@ const CommentsList = ({ productId }) => {
   };
 
   const handleDeleteAllComments = async () => {
+    // ... existing logic
     if (window.confirm('Are you sure you want to delete ALL comments for this product? This cannot be undone.')) {
       try {
         setLoading(true);
@@ -130,20 +153,12 @@ const CommentsList = ({ productId }) => {
     setPagination(prev => ({ ...prev, page: newPage }));
   };
 
-  // handleSearch removed
+  // State for replying
+  const [replyingTo, setReplyingTo] = useState(null);
 
   return (
     <div className="comments-list-container">
-      {/* 
-      <div className="page-header">
-        <h1>Comment Management</h1>
-        <p>Manage user comments on your products</p>
-      </div>
-      */}
-
       <div className="search-filter-section">
-        {/* Search group removed */}
-
         {productId && (
           <button className="btn-add-comment" onClick={handleAddComment} disabled={loading}>
             + Add Comment
@@ -183,39 +198,29 @@ const CommentsList = ({ productId }) => {
           comments={comments}
           onEdit={handleEditComment}
           onDelete={handleDeleteComment}
+          onReply={handleReply}
           loading={loading}
         />
       </div>
 
-      {productId && pagination.totalPage > 1 && (
-        <div className="pagination-section">
-          <button
-            className="btn-pagination"
-            onClick={() => handlePageChange(pagination.page - 1)}
-            disabled={pagination.page === 1 || loading}
-          >
-            Previous
-          </button>
-          <span className="page-info">
-            Page {pagination.page} of {pagination.totalPage}
-          </span>
-          <button
-            className="btn-pagination"
-            onClick={() => handlePageChange(pagination.page + 1)}
-            disabled={pagination.page === pagination.totalPage || loading}
-          >
-            Next
-          </button>
-        </div>
-      )}
+      <Pagination
+        currentPage={pagination.page}
+        totalPage={pagination.totalPage}
+        totalElements={pagination.totalElements}
+        pageSize={pagination.size}
+        onPageChange={handlePageChange}
+        loading={loading}
+      />
 
       {showModal && (
         <CommentModal
           comment={selectedComment}
+          replyingTo={replyingTo}
           productId={productId}
           onClose={() => {
             setShowModal(false);
             setSelectedComment(null);
+            setReplyingTo(null);
           }}
           onSave={handleSaveComment}
           isLoading={loading}

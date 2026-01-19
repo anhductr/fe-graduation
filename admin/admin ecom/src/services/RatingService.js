@@ -1,6 +1,6 @@
 import { api } from "../libs/axios";
 
-const RATING_API_BASE = 'http://localhost:8888/api/v1/rating-service';
+const RATING_API_BASE = '/rating-service';
 
 const RatingService = {
   // Get rating summary for a product
@@ -10,10 +10,20 @@ const RatingService = {
     });
   },
 
+  // Get all ratings (new)
+  getAllRatings: (page = 1, size = 10) => {
+    return api.get(`${RATING_API_BASE}/rating/get-all`, {
+      params: {
+        page,
+        size
+      }
+    });
+  },
+
   // Get all ratings with filters
   getAllRatingsFiltered: (productId, page = 1, size = 10, filterType = 'ALL') => {
     return api.get(`${RATING_API_BASE}/rating/get/filter`, {
-      params: { 
+      params: {
         productId,
         page,
         size,

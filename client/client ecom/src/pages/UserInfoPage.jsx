@@ -4,7 +4,7 @@ import { FaLeaf } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import { authApi } from "../services/authApi";
 import { api } from "../libs/axios";
-import { useQueryClient } from "@tanstack/react-query";
+import { toast } from 'react-toastify';
 
 export default function UserInfoPage() {
     const { user, isUserLoading } = useAuth();
@@ -69,7 +69,6 @@ export default function UserInfoPage() {
 
     useEffect(() => {
         if (user) {
-            console.log("checkavt: ", user)
             setUsername(user.username || "");
             setEmail(user.email || "");
             setFirstName(user.firstName || "");
@@ -129,8 +128,6 @@ export default function UserInfoPage() {
             setUploading(false);
         }
     }
-
-    const queryClient = useQueryClient();
 
     async function handleUpdateProfile() {
         try {

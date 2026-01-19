@@ -51,11 +51,12 @@ export const getSearchSuggestionsQuick = async (keyword = "", limit = 5) => {
 };
 
 export const getSearchSuggestionsFull = async (keyword = "") => {
-    if (!keyword.trim()) return [];
+    if (!keyword) return [];
 
     const response = await api.get("/search-service/search/autocomplete/full", {
-        params: { q: keyword.trim() },
+        params: { q: keyword },
     });
+    console.log('full search:', response.data)
     return response.data;
 };
 

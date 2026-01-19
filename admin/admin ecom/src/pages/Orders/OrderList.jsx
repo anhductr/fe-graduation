@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import Pagination from '@mui/material/Pagination';
+import Pagination from '../../components/common/Pagination';
 import Boxes from '../../components/common/Boxes';
 import axios from "axios";
 import {
@@ -376,13 +376,11 @@ export default function OrderList() {
 
                         <div className='flex justify-center pb-[20px] pt-[30px]'>
                             <Pagination
-                                count={10}
-                                sx={{
-                                    "& .MuiPaginationItem-root.Mui-selected": {
-                                        background: "linear-gradient(to right, #4a2fcf, #6440F5)",
-                                        color: "#fff",
-                                    },
-                                }}
+                                currentPage={page}
+                                totalPage={Math.ceil(orders.length / size)}
+                                totalElements={orders.length}
+                                pageSize={size}
+                                onPageChange={(newPage) => setPage(newPage)}
                             />
                         </div>
                     </div>

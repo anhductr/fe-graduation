@@ -129,7 +129,7 @@ const CommentSection = ({ productId }) => {
         const payload = {
             content: content,
             productId: productId,
-            userId: user?.id,
+            userId: user?.userId,
             parentId: null
         };
 
@@ -147,7 +147,7 @@ const CommentSection = ({ productId }) => {
         const payload = {
             content: replyContent,
             productId: productId,
-            userId: user?.id,
+            userId: user?.userId,
             parentId: parentId
         };
 
@@ -182,7 +182,7 @@ const CommentSection = ({ productId }) => {
             id: commentId,
             content: editContent,
             productId: productId,
-            userId: user?.id
+            userId: user?.userId
         });
     };
 
@@ -274,11 +274,11 @@ const CommentSection = ({ productId }) => {
                                     {/* Parent Comment */}
                                     <div className="flex gap-4 mb-3">
                                         <Avatar
-                                            src={comment.avatarUrl}
+                                            src={comment.imageUrl}
                                             className="!w-10 !h-10 !text-sm !font-bold"
-                                            style={{ backgroundColor: !comment.avatarUrl ? getAvatarColor(displayName) : undefined }}
+                                            style={{ backgroundColor: !comment.imageUrl ? getAvatarColor(displayName) : undefined }}
                                         >
-                                            {!comment.avatarUrl ? initial : ""}
+                                            {!comment.imageUrl ? initial : ""}
                                         </Avatar>
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1 justify-between">
@@ -289,7 +289,7 @@ const CommentSection = ({ productId }) => {
                                                         {comment.createdAt ? format(new Date(comment.createdAt), "dd/MM/yyyy HH:mm") : ""}
                                                     </span>
                                                 </div>
-                                                {user?.id && comment?.userId && String(user.id) === String(comment.userId) && (
+                                                {user?.userId && comment?.userId && String(user.userId) === String(comment.userId) && (
                                                     <div className="flex gap-2">
                                                         {!editingCommentId && (
                                                             <>
