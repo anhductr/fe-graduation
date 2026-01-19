@@ -89,6 +89,7 @@ function ProductRow({ product, onDelete }) {
           {product.variantsResponses?.length || 0}
         </TableCell>
         <TableCell align="center">{product.sold || 0}</TableCell>
+        <TableCell align="center">{product.warranty || '-'}</TableCell>
         <TableCell align="center">
           <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
             <Link to={`/products/products-edit/${product.id}`}>
@@ -486,7 +487,9 @@ export default function ProductList() {
                 <TableCell align="center" sx={{ fontWeight: "bold" }}>
                   Đã bán
                 </TableCell>
-                {/* <TableCell align="center" sx={{ fontWeight: 'bold' }}>Đánh giá</TableCell> */}
+                <TableCell align="center" sx={{ fontWeight: "bold" }}>
+                  Bảo hành
+                </TableCell>
                 <TableCell align="center" sx={{ fontWeight: "bold" }}>
                   Thao tác
                 </TableCell>

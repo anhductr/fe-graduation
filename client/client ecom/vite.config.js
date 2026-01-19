@@ -6,6 +6,9 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
     plugins: [react(), tailwindcss()],
+    define: {
+      'import.meta.env.CONTENT_CHATBOT_API_URL': JSON.stringify(env.CONTENT_CHATBOT_API_URL),
+    },
     server: {
       port: 3000,
       proxy: {
