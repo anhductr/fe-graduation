@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { orderApi } from "../services/orderApi";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
+import OrderDetailModal from "../components/order/OrderDetailModal";
 
 export default function OrderPage() {
   const { user } = useAuth();
@@ -13,6 +14,8 @@ export default function OrderPage() {
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(5);
   const [hasPendingOrder, setHasPendingOrder] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const tabs = [
     { label: "Tất cả", status: "ALL" },
@@ -81,6 +84,16 @@ export default function OrderPage() {
       console.error("Cancel order error:", err);
       alert(err.response?.data?.message || "Không thể hủy đơn hàng");
     }
+  };
+
+  const handleViewDetail = (order) => {
+    setSelectedOrder(order);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedOrder(null);
   };
 
   const orders = ordersData?.data || [];
@@ -324,7 +337,10 @@ export default function OrderPage() {
                         Hủy đơn
                       </button>
                     )}
-                    <button className="px-4 py-1.5 border border-gray-300 text-sm rounded hover:bg-gray-50 transition">
+                    <button
+                      onClick={() => handleViewDetail(order)}
+                      className="px-4 py-1.5 border border-gray-300 text-sm rounded hover:bg-gray-50 transition"
+                    >
                       Chi tiết
                     </button>
                   </div>
@@ -375,6 +391,11 @@ export default function OrderPage() {
           </button>
         </div>
       </div>
+      <OrderDetailModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        order={selectedOrder}
+      />
     </>
   );
 }
