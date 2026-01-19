@@ -89,7 +89,7 @@ function ProductRow({ product, onDelete }) {
           {product.variantsResponses?.length || 0}
         </TableCell>
         <TableCell align="center">{product.sold || 0}</TableCell>
-        <TableCell align="center">{product.warranty || '-'}</TableCell>
+        <TableCell align="center">{product.warranty || "-"}</TableCell>
         <TableCell align="center">
           <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
             <Link to={`/products/products-edit/${product.id}`}>
@@ -157,8 +157,8 @@ function ProductRow({ product, onDelete }) {
                       </TableCell>
                       <TableCell align="right">
                         <Chip
-                          label={variant.stock > 0 ? "Còn hàng" : "Hết hàng"}
-                          color={variant.stock > 0 ? "success" : "default"}
+                          label={variant.inStock > 0 ? "Còn hàng" : "Hết hàng"}
+                          color={variant.inStock > 0 ? "success" : "default"}
                           size="small"
                         />
                       </TableCell>
@@ -268,7 +268,11 @@ export default function ProductList() {
         ...product,
         listCategory: product.categories || [],
         variantsResponses: product.variants || [],
-        mediaList: product.mediaList || (product.imageList ? product.imageList.map(img => ({ url: img })) : [])
+        mediaList:
+          product.mediaList ||
+          (product.imageList
+            ? product.imageList.map((img) => ({ url: img }))
+            : []),
       };
 
       // Đảm bảo mediaList luôn là mảng để tránh lỗi truy cập [0]
@@ -282,8 +286,10 @@ export default function ProductList() {
     }
   };
 
-  const totalProduct = searchResults ? searchResults.length : (productData?.totalElements || 0);
-  const totalPageProduct = searchResults ? 1 : (productData?.pageSize || 1);
+  const totalProduct = searchResults
+    ? searchResults.length
+    : productData?.totalElements || 0;
+  const totalPageProduct = searchResults ? 1 : productData?.pageSize || 1;
 
   // filter state
   const inputSearchRef = useRef(null);
@@ -409,18 +415,20 @@ export default function ProductList() {
             />
             <Button
               size="medium"
-              className={`${isToggleFilter
-                ? "!border-2 !border-gray-500"
-                : "!border !border-[#ccc]"
-                } !text-[#403e57] !ml-4 !px-3 !rounded-[10px] !hover:bg-gray-100 !normal-case`}
+              className={`${
+                isToggleFilter
+                  ? "!border-2 !border-gray-500"
+                  : "!border !border-[#ccc]"
+              } !text-[#403e57] !ml-4 !px-3 !rounded-[10px] !hover:bg-gray-100 !normal-case`}
               variant="outlined"
               onClick={() => setIsToggleFilter(!isToggleFilter)}
             >
               <VscFilter className="" />
               <span className="ml-1">Bộ lọc</span>
               <IoIosArrowUp
-                className={`ml-1 transition-transform duration-200 ${isToggleFilter ? "rotate-180" : "rotate-0"
-                  }`}
+                className={`ml-1 transition-transform duration-200 ${
+                  isToggleFilter ? "rotate-180" : "rotate-0"
+                }`}
               />
             </Button>
             <Button
@@ -436,10 +444,11 @@ export default function ProductList() {
           {/* filter submenu */}
           <div
             aria-label="submenu"
-            className={`${isToggleFilter === true
-              ? "pointer-events-auto"
-              : "h-[0px] opacity-0 pointer-events-none"
-              } !text-[rgba(0,0,0,0.7)] overflow-hidden transition-all duration-300 flex flex-col gap-3`}
+            className={`${
+              isToggleFilter === true
+                ? "pointer-events-auto"
+                : "h-[0px] opacity-0 pointer-events-none"
+            } !text-[rgba(0,0,0,0.7)] overflow-hidden transition-all duration-300 flex flex-col gap-3`}
           >
             <div className="flex flex-col mt-[10px] gap-1">
               <h1 className="text-[18px] font-bold">Danh mục</h1>
@@ -503,7 +512,8 @@ export default function ProductList() {
                   onDelete={handleDeleteClick}
                 />
               ))}
-              {(!(searchResults || productData?.data) || (searchResults || productData?.data).length === 0) && (
+              {(!(searchResults || productData?.data) ||
+                (searchResults || productData?.data).length === 0) && (
                 <TableRow>
                   <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
                     {isLoadingProducts

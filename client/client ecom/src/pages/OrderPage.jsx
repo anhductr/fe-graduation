@@ -21,7 +21,7 @@ export default function OrderPage() {
     { label: "Tất cả", status: "ALL" },
     { label: "Chờ thanh toán", status: "PENDING" },
     { label: "Đang xử lý", status: "PROCESSING" },
-    { label: "Hoàn tất", status: "COMPLETED" },
+    // { label: "Hoàn tất", status: "COMPLETED" },
     { label: "Đã giao", status: "DELIVERED" },
     { label: "Đã hủy", status: "CANCELLED" },
   ];
