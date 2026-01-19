@@ -53,14 +53,14 @@ export default function InventoryList() {
   const token = localStorage.getItem("token");
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const size = 6; // số sản phẩm mỗi trang
+  const size = 10; // số sản phẩm mỗi Lịch sử nhập hàng
 
   const historyRef = useRef(null);
 
   // const [startDate, setStartDate] = useState('');
   // const [endDate, setEndDate] = useState('');
   const [startDate, setStartDate] = useState(
-    dayjs().subtract(MAX_RANGE_MONTHS, "month").startOf("day")
+    dayjs().subtract(MAX_RANGE_MONTHS, "month").startOf("day"),
   );
 
   const [endDate, setEndDate] = useState(dayjs().endOf("day"));
@@ -95,7 +95,7 @@ export default function InventoryList() {
     } catch (error) {
       console.error(
         "Lỗi trong fetchStockInHistory:",
-        error.response?.data || error
+        error.response?.data || error,
       );
       throw error;
     }
@@ -141,10 +141,8 @@ export default function InventoryList() {
   });
 
   useEffect(() => {
-    // Invalidate và refetch khi startDate hoặc endDate thay đổi
-    queryClient.invalidateQueries({ queryKey: ["stockins"] });
     setPage(1); // reset về trang 1 khi thay đổi ngày
-  }, [startDate, endDate, queryClient]);
+  }, [startDate, endDate]);
 
   // Khi có dữ liệu:
   const stockInHistory = stockInHistoryData?.data;
@@ -197,8 +195,9 @@ export default function InventoryList() {
         vertical: "top",
         horizontal: "center",
         severity: "error",
-        message: `Lỗi khi tải danh sách người dùng: ${serverError || serverDetail || fallbackMessage
-          }`,
+        message: `Lỗi khi tải danh sách người dùng: ${
+          serverError || serverDetail || fallbackMessage
+        }`,
       });
     } else {
       // Khi load xong thì tắt snackbar loading
@@ -249,8 +248,9 @@ export default function InventoryList() {
       setPopup({
         open: true,
         severity: "error",
-        message: `Lỗi khi xóa: ${error.response?.data?.message || error.message
-          }`,
+        message: `Lỗi khi xóa: ${
+          error.response?.data?.message || error.message
+        }`,
       });
     },
   });
@@ -547,13 +547,36 @@ export default function InventoryList() {
                 <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
                   {/* ... TableHeader ... */}
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, width: "14%" }}>Mã phiếu</TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: "16%" }}>Nhà cung cấp</TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: "14%" }} align="center">Số mặt hàng</TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: "14%" }} align="right">Tổng tiền</TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: "14%" }}>Ngày nhập</TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: "14%" }}>Ghi chú</TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: "14%" }} align="center">Thao tác</TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: "14%" }}>
+                      Mã phiếu
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: "16%" }}>
+                      Nhà cung cấp
+                    </TableCell>
+                    <TableCell
+                      sx={{ fontWeight: 600, width: "14%" }}
+                      align="center"
+                    >
+                      Số mặt hàng
+                    </TableCell>
+                    <TableCell
+                      sx={{ fontWeight: 600, width: "14%" }}
+                      align="right"
+                    >
+                      Tổng tiền
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: "14%" }}>
+                      Ngày nhập
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: "14%" }}>
+                      Ghi chú
+                    </TableCell>
+                    <TableCell
+                      sx={{ fontWeight: 600, width: "14%" }}
+                      align="center"
+                    >
+                      Thao tác
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -561,31 +584,94 @@ export default function InventoryList() {
                     <TableRow key={row.referenceCode} hover>
                       {/* ... Rows ... */}
                       <TableCell>
-                        <Chip label={row.referenceCode} color="primary" variant="outlined" sx={{ height: 20, fontSize: "0.68rem", "& .MuiChip-label": { px: 0.75 } }} />
+                        <Chip
+                          label={row.referenceCode}
+                          color="primary"
+                          variant="outlined"
+                          sx={{
+                            height: 20,
+                            fontSize: "0.68rem",
+                            "& .MuiChip-label": { px: 0.75 },
+                          }}
+                        />
                       </TableCell>
                       <TableCell>
-                        <Typography fontWeight={400} color="primary" fontSize="13px">{row.supplierName}</Typography>
+                        <Typography
+                          fontWeight={400}
+                          color="primary"
+                          fontSize="13px"
+                        >
+                          {row.supplierName}
+                        </Typography>
                       </TableCell>
                       <TableCell align="center">
-                        <Chip label={`${row.items.length} sản phẩm`} color="info" sx={{ height: 20, fontSize: "0.68rem", "& .MuiChip-label": { px: 0.75 } }} />
+                        <Chip
+                          label={`${row.items.length} sản phẩm`}
+                          color="info"
+                          sx={{
+                            height: 20,
+                            fontSize: "0.68rem",
+                            "& .MuiChip-label": { px: 0.75 },
+                          }}
+                        />
                       </TableCell>
                       <TableCell align="right">
-                        <Typography fontWeight={700} color="error" fontSize="13px">{formatCurrency(row.totalAmount)}</Typography>
+                        <Typography
+                          fontWeight={700}
+                          color="error"
+                          fontSize="13px"
+                        >
+                          {formatCurrency(row.totalAmount)}
+                        </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography fontSize={"13px"}>{formatDate(row.createAt)}</Typography>
+                        <Typography fontSize={"13px"}>
+                          {formatDate(row.createAt)}
+                        </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" color={row.note ? "text.primary" : "text.secondary"} fontSize={"13px"} sx={{ fontStyle: row.note ? "normal" : "italic", maxWidth: 150, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={row.note || "Không có ghi chú"}>
+                        <Typography
+                          variant="body2"
+                          color={row.note ? "text.primary" : "text.secondary"}
+                          fontSize={"13px"}
+                          sx={{
+                            fontStyle: row.note ? "normal" : "italic",
+                            maxWidth: 150,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                          title={row.note || "Không có ghi chú"}
+                        >
                           {row.note || "—"}
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
                         <Tooltip title="Xem chi tiết" disableInteractive>
-                          <IconButton size="small" color="primary" onClick={() => handleOpenEditStockIn(row)}><FaEye /></IconButton>
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleOpenEditStockIn(row)}
+                          >
+                            <FaEye />
+                          </IconButton>
                         </Tooltip>
                         <Tooltip title="Xóa" disableInteractive>
-                          <IconButton size="small" color="error" onClick={() => { if (window.confirm(`Bạn có chắc chắn muốn xóa phiếu nhập ${row.referenceCode}?`)) { handleDeleteStockIn(row.referenceCode); } }}><MdDelete /></IconButton>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `Bạn có chắc chắn muốn xóa phiếu nhập ${row.referenceCode}?`,
+                                )
+                              ) {
+                                handleDeleteStockIn(row.referenceCode);
+                              }
+                            }}
+                          >
+                            <MdDelete />
+                          </IconButton>
                         </Tooltip>
                       </TableCell>
                     </TableRow>
