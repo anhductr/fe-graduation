@@ -52,7 +52,8 @@ export default function InventoryList() {
   const inputSearchRef = useRef(null);
   const token = localStorage.getItem("token");
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
+  const [inventoryPage, setInventoryPage] = useState(1);
+  const [stockHistoryPage, setStockHistoryPage] = useState(1);
   const size = 10; // số sản phẩm mỗi Lịch sử nhập hàng
 
   const historyRef = useRef(null);
@@ -108,7 +109,7 @@ export default function InventoryList() {
     isError: isErrorInventory,
     error: errorInventory,
   } = useQuery({
-    queryKey: ["inventory", { page, size }],
+    queryKey: ["inventory", { page: inventoryPage, size }],
     queryFn: fetchInventory,
     refetchOnMount: "always",
     keepPreviousData: true,
@@ -127,7 +128,7 @@ export default function InventoryList() {
     queryKey: [
       "stockins",
       {
-        page,
+        page: stockHistoryPage,
         size,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
@@ -141,7 +142,7 @@ export default function InventoryList() {
   });
 
   useEffect(() => {
-    setPage(1); // reset về trang 1 khi thay đổi ngày
+    setStockHistoryPage(1); // reset về trang 1 khi thay đổi ngày
   }, [startDate, endDate]);
 
   // Khi có dữ liệu:
@@ -195,9 +196,8 @@ export default function InventoryList() {
         vertical: "top",
         horizontal: "center",
         severity: "error",
-        message: `Lỗi khi tải danh sách người dùng: ${
-          serverError || serverDetail || fallbackMessage
-        }`,
+        message: `Lỗi khi tải danh sách người dùng: ${serverError || serverDetail || fallbackMessage
+          }`,
       });
     } else {
       // Khi load xong thì tắt snackbar loading
@@ -248,9 +248,8 @@ export default function InventoryList() {
       setPopup({
         open: true,
         severity: "error",
-        message: `Lỗi khi xóa: ${
-          error.response?.data?.message || error.message
-        }`,
+        message: `Lỗi khi xóa: ${error.response?.data?.message || error.message
+          }`,
       });
     },
   });
@@ -450,11 +449,11 @@ export default function InventoryList() {
 
             <div className="flex justify-center pb-[20px] pt-[30px]">
               <Pagination
-                currentPage={page}
-                totalPage={inventoryData?.totalPage || 1}
+                currentPage={inventoryPage}
+                totalPage={Math.ceil((inventoryData?.totalElements || 0) / size) || 1}
                 totalElements={inventoryData?.totalElements || 0}
                 pageSize={size}
-                onPageChange={(newPage) => setPage(newPage)}
+                onPageChange={(newPage) => setInventoryPage(newPage)}
               />
             </div>
           </div>
@@ -682,11 +681,11 @@ export default function InventoryList() {
 
             <div className="flex justify-center pb-[20px] pt-[30px]">
               <Pagination
-                currentPage={page}
-                totalPage={stockInHistoryData?.totalPage || 10}
+                currentPage={stockHistoryPage}
+                totalPage={Math.ceil((stockInHistoryData?.totalElements || 0) / size) || 1}
                 totalElements={stockInHistoryData?.totalElements || 0}
                 pageSize={size}
-                onPageChange={(newPage) => setPage(newPage)}
+                onPageChange={(newPage) => setStockHistoryPage(newPage)}
               />
             </div>
           </div>
