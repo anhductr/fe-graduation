@@ -77,6 +77,7 @@ export default function ProductEdit() {
     const [specifications, setSpecifications] = useState([]);
     const [listThumbnails, setListThumbnails] = useState([{ file: null, preview: "" }]);
     const [brandName, setBrandName] = useState('');
+    const [warranty, setWarranty] = useState('');
 
     const action = useRef([]); // để lưu action hiện tại (thêm/sửa)
     const [listVariants, setListVariants] = useState([{
@@ -218,6 +219,7 @@ export default function ProductEdit() {
             setSpecifications(groupSpecifications(product.specifications));
             setVideo(product.videoUrl);
             setBrandName(product.brandName);
+            setWarranty(product.warranty || '');
             setImageList((prev) => {
                 const updated = [...prev];
                 product.mediaList.filter((file) => file.mediaPurpose === "GALLERY").forEach((file, index) => {
@@ -868,6 +870,7 @@ export default function ProductEdit() {
                 categoryId: body.categoryId,
                 specifications: body.specifications,
                 productVariants: body.productVariants,
+                warranty: body.warranty,
             },
             {
                 headers: {
@@ -935,7 +938,6 @@ export default function ProductEdit() {
             );
 
             await Promise.all(deletePromises);
-            console.log(`Đã xóa thumbnail của ${thumbnailsToDelete.length} variant bị xóa`);
         }
 
         // Xử lý các action (upload / delete / reorder)
@@ -1009,7 +1011,8 @@ export default function ProductEdit() {
             avgRating,
             categoryId: listCategoryId,
             specifications: flattenedSpecs,
-            productVariants: productVariantsToSend
+            productVariants: productVariantsToSend,
+            warranty: warranty ? parseInt(warranty, 10) : null,
         };
 
         editMutation.mutate({
@@ -1240,6 +1243,27 @@ export default function ProductEdit() {
 
                                 <div className='w-full pr-[53px]'>
                                     <input value={brandName} onChange={(e) => setBrandName(e.target.value)} type='text' className="bg-[#fafafa] pl-[15px] rounded-[5px] text-[15px] w-full h-[40px] border-[rgba(0,0,0,0.1)] border border-solid"></input>
+                                </div>
+                            </div>
+
+                            <div className='w-full flex gap-7 mx-2'>
+                                <div className='w-[200px] flex justify-end'>
+                                    <h6 className="text-[18px]">Bảo hành (tháng)</h6>
+                                </div>
+                                <div className='w-full pr-[53px]'>
+                                    <input
+                                        value={warranty}
+                                        onChange={e => {
+                                            // Chỉ cho phép nhập số nguyên
+                                            const val = e.target.value.replace(/[^0-9]/g, "");
+                                            setWarranty(val);
+                                        }}
+                                        type='text'
+                                        inputMode='numeric'
+                                        pattern='[0-9]*'
+                                        className="bg-[#fafafa] pl-[15px] rounded-[5px] text-[15px] w-full h-[40px] border-[rgba(0,0,0,0.1)] border border-solid"
+                                        placeholder="Nhập số tháng bảo hành"
+                                    />
                                 </div>
                             </div>
 

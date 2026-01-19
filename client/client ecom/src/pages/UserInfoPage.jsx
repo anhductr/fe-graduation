@@ -301,16 +301,16 @@ export default function UserInfoPage() {
                                 <div className="w-[40%] flex gap-4">
                                     <div className="flex flex-col gap-1 flex-1">
                                         <span>Họ</span>
-                                        <input type="text" placeholder="Họ" className="input-field" onChange={(e) => setFirstName(e.target.value)} required />
+                                        <input type="text" placeholder="Họ" className="input-field" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
                                     </div>
                                     <div className="flex flex-col gap-1 flex-1">
                                         <span>Tên</span>
-                                        <input type="text" placeholder="Tên" className="input-field" onChange={(e) => setLastName(e.target.value)} required />
+                                        <input type="text" placeholder="Tên" className="input-field" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
                                     </div>
                                 </div>
                                 <div className="w-[40%] flex flex-col gap-1">
                                     <span>Số điện thoại</span>
-                                    <input type="text" placeholder="Số điện thoại" className="input-field" onChange={(e) => setPhone(e.target.value)} />
+                                    <input type="text" placeholder="Số điện thoại" className="input-field" value={phone} onChange={(e) => setPhone(e.target.value)} />
                                 </div>
                                 <div className="w-[40%] flex flex-col gap-1">
                                     <label className="block font-medium text-gray-700 mb-2">Giới tính</label>

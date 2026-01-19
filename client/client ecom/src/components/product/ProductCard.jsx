@@ -144,20 +144,31 @@ const ProductCard = ({ product }) => {
         </div>
 
         <div className="text-[14px] font-bold text-[#d60000]">
-          {/* giá sell */}
-          {new Intl.NumberFormat("vi-VN", {
-            style: "currency",
-            currency: "VND",
-          }).format(Number(product.price))}
-
-          {/* giá thật (listPrice) */}
-          {product.listPrice && (
-            <span className="line-through text-gray-400 ml-1 text-[12px]">
+          {Number(product.price) === Number(product.listPrice) ? (
+            /* Khi không có giảm giá: chỉ hiện listPrice, không gạch */
+            <span>
               {new Intl.NumberFormat("vi-VN", {
                 style: "currency",
                 currency: "VND",
               }).format(Number(product.listPrice))}
             </span>
+          ) : (
+            /* Khi có giảm giá: hiện price (đỏ) và listPrice (gạch) */
+            <>
+              {new Intl.NumberFormat("vi-VN", {
+                style: "currency",
+                currency: "VND",
+              }).format(Number(product.price))}
+
+              {product.listPrice && (
+                <span className="line-through text-gray-400 ml-1 text-[12px]">
+                  {new Intl.NumberFormat("vi-VN", {
+                    style: "currency",
+                    currency: "VND",
+                  }).format(Number(product.listPrice))}
+                </span>
+              )}
+            </>
           )}
         </div>
       </div>

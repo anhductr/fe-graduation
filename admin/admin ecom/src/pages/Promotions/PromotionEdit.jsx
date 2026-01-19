@@ -57,6 +57,7 @@ export default function PromotionEdit() {
   const [selectedProductsId, setSelectedProductsId] = useState([]);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [defaultPromo, setDefaultPromo] = useState(null);
+  const [campaignId, setCampaignId] = useState("");
   const deleteApplyTo = useRef([]);
 
   //xử lý xóa danh mục và spham đã chọn
@@ -206,6 +207,9 @@ export default function PromotionEdit() {
       } else if (promotion.applyTo === "Product" && promotion.productId && promotion.productId.length > 0) {
         setSelectedProductsId(promotion.productId);
         loadInitialProducts(promotion.productId);
+      }
+      if (promotion.campaignId) {
+        setCampaignId(promotion.campaignId);
       }
       setDefaultPromo(promotion);
     }
@@ -512,13 +516,14 @@ export default function PromotionEdit() {
       endDate: endDate ? endDate.toISOString() : null,
 
       active: active,
+      campaignId: campaignId || null,
 
-      productId: applyTo === "Product" ? newProductIds : null,
+      productId: applyTo === "Product" ? newProductIds : [],
 
-      categoryId: applyTo === "Category" ? newCategoryIds : null,
+      categoryId: applyTo === "Category" ? newCategoryIds : [],
 
       deleteApplyTo:
-        deleteApplyTo.current.length > 0 ? deleteApplyTo.current : null,
+        deleteApplyTo.current.length > 0 ? deleteApplyTo.current : [],
     };
 
     console.log("Payload gửi đi:", payload); // <<<<< CHECK CÁI NÀY TRONG CONSOLE!!!

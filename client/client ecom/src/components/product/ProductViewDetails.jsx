@@ -67,9 +67,6 @@ const ProductViewDetails = ({ clickedIndex, isOpen, onClose, product }) => {
         <nav
           className={`flex justify-center space-x-10 border-b border-gray-300 text-xs sm:text-sm`}
         >
-          <button className="text-gray-500 hover:text-gray-700 py-2">
-            Nổi bật
-          </button>
           <button
             onClick={() => setTab("video-product")}
             className={`${tab === "video-product"

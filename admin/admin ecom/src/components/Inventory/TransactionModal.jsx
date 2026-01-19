@@ -63,7 +63,6 @@ const style = {
 export default function TransactionModal({ onClose, productId }) {
   const token = localStorage.getItem("token");
   //api function
-  //api function
   const getTransactionData = async (sku) => {
     const res = await InventoryService.getTransactions({
       sku,
@@ -71,14 +70,15 @@ export default function TransactionModal({ onClose, productId }) {
       size: 20,
     });
     console.log("res data: ", res.data);
-    return res.data.content;
+    // Trả về res.data.data theo cấu trúc API bạn cung cấp
+    return res.data?.data || [];
   };
 
   const getStockInData = async (stockInId) => {
     try {
       const res = await InventoryService.getStockInById(stockInId);
       console.log("res stockin: ", res.data.result);
-      return res.data.result;
+      return res.data?.result || null;
     } catch (err) {
       console.error("Lỗi khi gọi API", err);
       throw err;
@@ -108,9 +108,10 @@ export default function TransactionModal({ onClose, productId }) {
     isError: isErrorInvent,
     error: errorInvent,
   } = useQuery({
-    queryKey: ["transactionList"], //thêm productId vào queryKey
-    queryFn: () => getTransactionData(productId), //truyền productId vào hàm
+    queryKey: ["transactionList", productId],
+    queryFn: () => getTransactionData(productId),
     refetchOnMount: "always",
+    enabled: !!productId, // Chỉ chạy khi có productId
   });
   const transactionData = inventData;
 

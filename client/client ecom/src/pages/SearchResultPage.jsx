@@ -10,7 +10,7 @@ import Breadcrumbs from "../components/common/Breadcrumbs";
 import LeftFilter from "../components/product/LeftFilter";
 import RightContent from "../components/product/RightContent";
 import { useSearchKeyword } from "../context/SearchContext";
-import { searchProducts } from "../services/searchApi"; // Correct path based on your structure (searchApi.js)
+import { searchProducts, getProductByBanner } from "../services/searchApi"; // Correct path based on your structure (searchApi.js)
 import { useQuery } from "@tanstack/react-query";
 import { useFilterStore } from "../utils/searchHelpers";
 import { sortTypeMap } from "../utils/searchHelpers";
@@ -22,6 +22,7 @@ export default function SearchResultPage() {
   /////// xử lý state truyền từ các page khác ///////
   const location = useLocation();
   const { state } = location;  // Lấy state từ navigate
+  const [bannerUrl, setBannerUrl] = useState(null);
 
   const { currentKeyword, setCurrentKeyword } = useSearchKeyword(); // vẫn giữ context cho keyword
 
@@ -31,6 +32,19 @@ export default function SearchResultPage() {
   const categoryId = searchType === "category" ? state?.categoryId : null;
   const brand = searchType === "brand" ? state?.brand : null;
   const cateType = searchType === "category" ? state?.cateType || "phone" : "phone";
+
+  // Banner specific state
+  const ownerId = searchType === "banner" ? state?.ownerId : null;
+  const ownerType = searchType === "banner" ? state?.ownerType : null;
+
+  useEffect(() => {
+    if (searchType === "banner" && state?.bannerUrl) {
+      setBannerUrl(state.bannerUrl);
+    } else {
+      setBannerUrl(null);
+    }
+  }, [searchType, state]);
+
 
   const {
     storage,            // Dung lượng ROM
@@ -125,35 +139,58 @@ export default function SearchResultPage() {
     });
   });
 
-  // Use useQuery to fetch products based on the keyword
+  // Use useQuery to fetch products
+  // Conditional query based on searchType
   const { data: rawApiData, isLoading, error } = useQuery({
     queryKey: [
-      "searchProducts",
+      searchType === "banner" ? "getProductByBanner" : "searchProducts",
       keyword ?? null,
       categoryId ?? null,
       brand ?? null,
+      ownerId ?? null,
+      ownerType ?? null,
       minPrice ?? null,
       maxPrice ?? null,
       backendSortType,
       attributes,
     ],
-    queryFn: () => searchProducts({
-      keyword: keyword || null,
-      category: categoryId || null,
-      brandName: brand || null,
-      minPrice: minPrice === 0 ? 0 : minPrice || null,
-      maxPrice: maxPrice || null,
-      sortType: backendSortType,
-      attributes,
-      page: 1,
-      size: 20,
-    }),
-    // enabled: !!(keyword || categoryId || brand || minPrice !== null || maxPrice !== null),
-    // staleTime: 1000 * 60 * 5,
+    queryFn: () => {
+      if (searchType === "banner") {
+        return getProductByBanner({
+          page: 1,
+          size: 20,
+          ownerId,
+          ownerType,
+          minPrice: minPrice === 0 ? 0 : minPrice || null,
+          maxPrice: maxPrice || null,
+          sortType: backendSortType,
+        });
+      }
+
+      return searchProducts({
+        keyword: keyword || null,
+        category: categoryId || null,
+        brandName: brand || null,
+        minPrice: minPrice === 0 ? 0 : minPrice || null,
+        maxPrice: maxPrice || null,
+        sortType: backendSortType,
+        attributes,
+        page: 1,
+        size: 20,
+      });
+    },
+    // enabled: !!(keyword || categoryId || brand || (searchType === "banner" && ownerId && ownerType) || minPrice !== null || maxPrice !== null),
   });
 
+
   // API return { result: { productGetVMList: [] } } OR { productGetVMList: [] }
-  const products = rawApiData?.result?.productGetVMList || rawApiData?.productGetVMList || [];
+  const products = rawApiData?.result?.productGetVMList || rawApiData?.productGetVMList || rawApiData?.result?.data || [];
+  // Note: getProductByBanner might return a different structure, need to verify. 
+  // searchApi.js says: return response.data; // ApiResponse<ProductGetListVM> for getProductByBanner
+  // getProductFlashSale also returns ApiResponse<ProductGetListVM>
+  // searchProducts returns ApiResponse<ProductGetListVM>
+  // ProductGetListVM usually has 'data' or 'productGetVMList'. 
+  // Let's assume standard structure or handle 'data' which is common for pageable lists.
 
   // For now, just console.log the response
   useEffect(() => {
@@ -281,6 +318,13 @@ export default function SearchResultPage() {
           <Breadcrumbs pagename={"Điện thoại"} />
         </div>
         <div className="px-15 py-2">
+          {/* Banner Image */}
+          {bannerUrl && (
+            <div className="w-full mb-6 rounded-lg overflow-hidden shadow-sm">
+              <img src={bannerUrl} alt="Banner" className="w-full h-auto object-cover" />
+            </div>
+          )}
+
           {/* <BrandButtons /> */}
           <div className="flex flex-row gap-10 items-start ">
             <LeftFilter
@@ -290,7 +334,7 @@ export default function SearchResultPage() {
               isClearChip={isClearChip}
               setIsClearChip={setIsClearChip}
               cateType={cateType}
-              specAggregations={specAggregations}
+              specAggregations={searchType === "banner" ? null : specAggregations} // Hide specs if banner
             />
             {!isLoading && (
               <>

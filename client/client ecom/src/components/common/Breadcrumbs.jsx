@@ -11,12 +11,35 @@ const Breadcrumbs = ({ pagename, product }) => {
         </Link>
         {pagename === "product" ? (
           <>
-            <RxChevronRight className="text-gray-800"/>
-            <Link to="/phones">{product.category}</Link>
-            <RxChevronRight className="text-gray-800"/>
+            <RxChevronRight className="text-gray-800" />
+            {/* Render Category Tree */}
+            {product.categories && product.categories.length > 0 ? (
+              product.categories
+                .filter(cat => {
+                  const name = (cat.name || cat).toLowerCase();
+                  const slug = (cat.slug || '').toLowerCase();
+                  return name !== 'trang chủ' && name !== 'root' && slug !== 'root';
+                })
+                .map((cat, index) => (
+                  <React.Fragment key={index}>
+                    <Link to={`/category/${cat.slug || cat.id || '#'}`}>{cat.name || cat}</Link>
+                    <RxChevronRight className="text-gray-800" />
+                  </React.Fragment>
+                ))
+            ) : (
+              <>
+                {product.category && (
+                  <>
+                    <Link to="/phones">{product.category}</Link>
+                    <RxChevronRight className="text-gray-800" />
+                  </>
+                )}
+              </>
+            )}
+
             <Link>{product.brand}</Link>
-            <RxChevronRight className="text-gray-800"/>
-            <div>{product.name}</div>
+            <RxChevronRight className="text-gray-800" />
+            <div className="font-semibold text-gray-900 truncate max-w-[300px]" title={product.name}>{product.name}</div>
           </>
         ) : (
           <>

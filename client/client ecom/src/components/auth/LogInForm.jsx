@@ -111,6 +111,9 @@ const LoginForm = ({ isOpen, onClose, onSwitchToRegister, isModal = true }) => {
           <Link
             to="/forgot-password"
             className="text-xs text-gray-700 underline hover:text-gray-900"
+            onClick={() => {
+              if (onClose) onClose();
+            }}
           >
             Quên mật khẩu?
           </Link>
@@ -171,6 +174,7 @@ const LoginForm = ({ isOpen, onClose, onSwitchToRegister, isModal = true }) => {
       {isModal && isOpen && (
         <div
           className="fixed inset-0 z-40 backdrop-blur-md bg-white/20 transition-all duration-300"
+          
           onClick={onClose}
         ></div>
       )}

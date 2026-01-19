@@ -16,6 +16,7 @@ export const sortTypeMap = {
 };
 
 export const specFilters = {
+    //điện thoại và mtinh bảng
     phone: [
         { groupName: "Dung lượng ROM", group: "Storage", key: "Dung lượng" },
         { groupName: "Hỗ trợ mạng", group: "Connectivity", key: "Hỗ trợ mạng" },
@@ -23,12 +24,36 @@ export const specFilters = {
         { groupName: "Hệ điều hành", group: "OperatingSystem", key: "Tên OS" },
         { groupName: "RAM", group: "RAM", key: "Dung lượng" },
     ],
-    phoneChild: [
-        { groupName: "Dung lượng ROM", group: "Storage", key: "Dung lượng" },
-        { groupName: "Hỗ trợ mạng", group: "Connectivity", key: "Hỗ trợ mạng" },
+
+    //laptop
+    laptop: [
         { groupName: "Kích thước màn hình", group: "Display", key: "Kích thước màn hình" },
+        { groupName: "CPU tổng hợp", group: "Performance", key: "CPU tổng hợp" },
+        { groupName: "Tần số quét", group: "Display", key: "Tần số quét" },
         { groupName: "RAM", group: "RAM", key: "Dung lượng" },
+        { groupName: "Kiểu ổ cứng", group: "Storage", key: "Kiểu ổ cứng" },
+        { groupName: "Dung lượng SSD", group: "Storage", key: "Dung lượng SSD" },
+        { groupName: "Hệ điều hành", group: "OperatingSystem", key: "Tên OS" },
     ],
+
+    //pc
+    pc: [
+        { groupName: "CPU tổng hợp", group: "Performance", key: "CPU tổng hợp" },
+        { groupName: "Card đồ họa", group: "Graphic", key: "Card đồ họa" },
+    ],
+
+    //màn hình rời
+    monitor: [
+        { groupName: "Kích thước màn hình", group: "Display", key: "Kích thước màn hình" },
+        { groupName: "Tần số quét", group: "Display", key: "Tần số quét" },
+        { groupName: "Độ phân giải", group: "Display", key: "Độ phân giải" },
+        { groupName: "Tấm nền", group: "Display", key: "Tấm nền" },
+        { groupName: "Độ sáng", group: "Display", key: "Độ sáng" },
+        { groupName: "Loại màn hình", group: "Display", key: "Loại màn hình" },
+        { groupName: "Tỷ lệ màn hình", group: "Display", key: "Tỷ lệ màn hình" },
+    ],
+
+    //dùng cho nếu ko cần lọc thông số
     default: []
 };
 

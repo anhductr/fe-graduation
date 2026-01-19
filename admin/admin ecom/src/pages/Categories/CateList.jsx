@@ -477,13 +477,14 @@ export default function CateList() {
         <div className="flex flex-wrap gap-[26px] w-full">
           <Boxes
             color="#81bcfaff"
-            header={`Tổng danh mục: ${cates.length}`}
+            header={`Tổng số danh mục`}
+            total={cates.length}
             icon={<MdOutlineCategory />}
           />
           <Boxes
             color="#dd92f4ff"
-            header={`Danh mục cha: ${cates.filter((c) => c.parentId == null).length
-              }`}
+            header={`Tổng số thương hiệu`}
+            total={brands.length}
             icon={<CiBoxList />}
           />
         </div>

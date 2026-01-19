@@ -52,15 +52,16 @@ export default function InventoryList() {
   const inputSearchRef = useRef(null);
   const token = localStorage.getItem("token");
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
-  const size = 6; // số sản phẩm mỗi trang
+  const [inventoryPage, setInventoryPage] = useState(1);
+  const [stockHistoryPage, setStockHistoryPage] = useState(1);
+  const size = 10; // số sản phẩm mỗi Lịch sử nhập hàng
 
   const historyRef = useRef(null);
 
   // const [startDate, setStartDate] = useState('');
   // const [endDate, setEndDate] = useState('');
   const [startDate, setStartDate] = useState(
-    dayjs().subtract(MAX_RANGE_MONTHS, "month").startOf("day")
+    dayjs().subtract(MAX_RANGE_MONTHS, "month").startOf("day"),
   );
 
   const [endDate, setEndDate] = useState(dayjs().endOf("day"));
@@ -95,7 +96,7 @@ export default function InventoryList() {
     } catch (error) {
       console.error(
         "Lỗi trong fetchStockInHistory:",
-        error.response?.data || error
+        error.response?.data || error,
       );
       throw error;
     }
@@ -108,7 +109,7 @@ export default function InventoryList() {
     isError: isErrorInventory,
     error: errorInventory,
   } = useQuery({
-    queryKey: ["inventory", { page, size }],
+    queryKey: ["inventory", { page: inventoryPage, size }],
     queryFn: fetchInventory,
     refetchOnMount: "always",
     keepPreviousData: true,
@@ -127,7 +128,7 @@ export default function InventoryList() {
     queryKey: [
       "stockins",
       {
-        page,
+        page: stockHistoryPage,
         size,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
@@ -141,10 +142,8 @@ export default function InventoryList() {
   });
 
   useEffect(() => {
-    // Invalidate và refetch khi startDate hoặc endDate thay đổi
-    queryClient.invalidateQueries({ queryKey: ["stockins"] });
-    setPage(1); // reset về trang 1 khi thay đổi ngày
-  }, [startDate, endDate, queryClient]);
+    setStockHistoryPage(1); // reset về trang 1 khi thay đổi ngày
+  }, [startDate, endDate]);
 
   // Khi có dữ liệu:
   const stockInHistory = stockInHistoryData?.data;
@@ -349,12 +348,12 @@ export default function InventoryList() {
         <div className="flex flex-wrap gap-[26px] w-full">
           <Boxes
             color={"#81faf8ff"}
-            header={"Tổng khách hàng"}
+            header={"Toàn bộ tồn kho"}
             icon={<FaRegUser />}
           ></Boxes>
           <Boxes
             color={"#e8806bff"}
-            header={"Tổng thành viên"}
+            header={"Tổng số phiếu nhập"}
             icon={<MdCardMembership />}
           ></Boxes>
         </div>
@@ -450,11 +449,11 @@ export default function InventoryList() {
 
             <div className="flex justify-center pb-[20px] pt-[30px]">
               <Pagination
-                currentPage={page}
-                totalPage={inventoryData?.totalPage || 1}
+                currentPage={inventoryPage}
+                totalPage={Math.ceil((inventoryData?.totalElements || 0) / size) || 1}
                 totalElements={inventoryData?.totalElements || 0}
                 pageSize={size}
-                onPageChange={(newPage) => setPage(newPage)}
+                onPageChange={(newPage) => setInventoryPage(newPage)}
               />
             </div>
           </div>
@@ -547,13 +546,36 @@ export default function InventoryList() {
                 <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
                   {/* ... TableHeader ... */}
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, width: "14%" }}>Mã phiếu</TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: "16%" }}>Nhà cung cấp</TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: "14%" }} align="center">Số mặt hàng</TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: "14%" }} align="right">Tổng tiền</TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: "14%" }}>Ngày nhập</TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: "14%" }}>Ghi chú</TableCell>
-                    <TableCell sx={{ fontWeight: 600, width: "14%" }} align="center">Thao tác</TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: "14%" }}>
+                      Mã phiếu
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: "16%" }}>
+                      Nhà cung cấp
+                    </TableCell>
+                    <TableCell
+                      sx={{ fontWeight: 600, width: "14%" }}
+                      align="center"
+                    >
+                      Số mặt hàng
+                    </TableCell>
+                    <TableCell
+                      sx={{ fontWeight: 600, width: "14%" }}
+                      align="right"
+                    >
+                      Tổng tiền
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: "14%" }}>
+                      Ngày nhập
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: "14%" }}>
+                      Ghi chú
+                    </TableCell>
+                    <TableCell
+                      sx={{ fontWeight: 600, width: "14%" }}
+                      align="center"
+                    >
+                      Thao tác
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -561,31 +583,94 @@ export default function InventoryList() {
                     <TableRow key={row.referenceCode} hover>
                       {/* ... Rows ... */}
                       <TableCell>
-                        <Chip label={row.referenceCode} color="primary" variant="outlined" sx={{ height: 20, fontSize: "0.68rem", "& .MuiChip-label": { px: 0.75 } }} />
+                        <Chip
+                          label={row.referenceCode}
+                          color="primary"
+                          variant="outlined"
+                          sx={{
+                            height: 20,
+                            fontSize: "0.68rem",
+                            "& .MuiChip-label": { px: 0.75 },
+                          }}
+                        />
                       </TableCell>
                       <TableCell>
-                        <Typography fontWeight={400} color="primary" fontSize="13px">{row.supplierName}</Typography>
+                        <Typography
+                          fontWeight={400}
+                          color="primary"
+                          fontSize="13px"
+                        >
+                          {row.supplierName}
+                        </Typography>
                       </TableCell>
                       <TableCell align="center">
-                        <Chip label={`${row.items.length} sản phẩm`} color="info" sx={{ height: 20, fontSize: "0.68rem", "& .MuiChip-label": { px: 0.75 } }} />
+                        <Chip
+                          label={`${row.items.length} sản phẩm`}
+                          color="info"
+                          sx={{
+                            height: 20,
+                            fontSize: "0.68rem",
+                            "& .MuiChip-label": { px: 0.75 },
+                          }}
+                        />
                       </TableCell>
                       <TableCell align="right">
-                        <Typography fontWeight={700} color="error" fontSize="13px">{formatCurrency(row.totalAmount)}</Typography>
+                        <Typography
+                          fontWeight={700}
+                          color="error"
+                          fontSize="13px"
+                        >
+                          {formatCurrency(row.totalAmount)}
+                        </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography fontSize={"13px"}>{formatDate(row.createAt)}</Typography>
+                        <Typography fontSize={"13px"}>
+                          {formatDate(row.createAt)}
+                        </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" color={row.note ? "text.primary" : "text.secondary"} fontSize={"13px"} sx={{ fontStyle: row.note ? "normal" : "italic", maxWidth: 150, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={row.note || "Không có ghi chú"}>
+                        <Typography
+                          variant="body2"
+                          color={row.note ? "text.primary" : "text.secondary"}
+                          fontSize={"13px"}
+                          sx={{
+                            fontStyle: row.note ? "normal" : "italic",
+                            maxWidth: 150,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                          title={row.note || "Không có ghi chú"}
+                        >
                           {row.note || "—"}
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
                         <Tooltip title="Xem chi tiết" disableInteractive>
-                          <IconButton size="small" color="primary" onClick={() => handleOpenEditStockIn(row)}><FaEye /></IconButton>
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleOpenEditStockIn(row)}
+                          >
+                            <FaEye />
+                          </IconButton>
                         </Tooltip>
                         <Tooltip title="Xóa" disableInteractive>
-                          <IconButton size="small" color="error" onClick={() => { if (window.confirm(`Bạn có chắc chắn muốn xóa phiếu nhập ${row.referenceCode}?`)) { handleDeleteStockIn(row.referenceCode); } }}><MdDelete /></IconButton>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `Bạn có chắc chắn muốn xóa phiếu nhập ${row.referenceCode}?`,
+                                )
+                              ) {
+                                handleDeleteStockIn(row.referenceCode);
+                              }
+                            }}
+                          >
+                            <MdDelete />
+                          </IconButton>
                         </Tooltip>
                       </TableCell>
                     </TableRow>
@@ -596,11 +681,11 @@ export default function InventoryList() {
 
             <div className="flex justify-center pb-[20px] pt-[30px]">
               <Pagination
-                currentPage={page}
-                totalPage={stockInHistoryData?.totalPage || 10}
+                currentPage={stockHistoryPage}
+                totalPage={Math.ceil((stockInHistoryData?.totalElements || 0) / size) || 1}
                 totalElements={stockInHistoryData?.totalElements || 0}
                 pageSize={size}
-                onPageChange={(newPage) => setPage(newPage)}
+                onPageChange={(newPage) => setStockHistoryPage(newPage)}
               />
             </div>
           </div>
