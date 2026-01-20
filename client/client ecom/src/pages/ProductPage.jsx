@@ -46,6 +46,9 @@ import { toast } from "react-toastify"; // Assuming toast is available or use si
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useComparison } from "../context/ComparisonContext";
+import SimilarProduct from "../components/product/SimilarProduct";
+import { trackProductView, trackAddToCart } from "../services/recommendationApi";
+import { useAuth } from "../context/AuthContext";
 
 const ProductPage = () => {
   // const {category, name, productId} = useParams();
@@ -61,7 +64,7 @@ const ProductPage = () => {
   const navigate = useNavigate();
   const { refetchCart } = useCart();
   const { addToCompare, removeFromCompare, isInCompareList } = useComparison();
-
+  const { user } = useAuth(); // Get user
 
   ////////////////////////////////// xử lý tìm kiếm ////////////////////////////////// 
   const getSearchKeyword = (productName) => {
@@ -303,6 +306,13 @@ const ProductPage = () => {
   // Re-declare empty products array or keep it if needed for compatibility
   const products = [];
 
+  // Track product view
+  useEffect(() => {
+    if (activeProductData?.id && user?.userId) {
+      trackProductView(user.userId, activeProductData.id);
+    }
+  }, [activeProductData?.id, user?.userId]);
+
   //cập nhật ảnh về sản phẩm
   const [currentImg, setCurrentImg] = useState(0);
 
@@ -435,6 +445,12 @@ const ProductPage = () => {
 
       await cartApi.addToCart(payload);
       console.log("✅ Cart API call successful!");
+
+      // Track add to cart
+      if (user?.userId && activeProductData?.id) {
+        trackAddToCart(user.userId, activeProductData.id, selectedVariant?.id);
+      }
+
       await refetchCart(); // Immediately refresh cart data to update icon
       setShowCartSuccessModal(true); // Show modal instead of alert
     } catch (error) {
@@ -465,6 +481,11 @@ const ProductPage = () => {
 
       await cartApi.addToCart(payload);
       await refetchCart();
+
+      // Track add to cart (Buy Now)
+      if (user?.userId && activeProductData?.id) {
+        trackAddToCart(user.userId, activeProductData.id, selectedVariant?.id);
+      }
 
       // Navigate to cart and pass the SKU to auto-select
       navigate('/cart', { state: { buyNowSku: targetSku } });
@@ -970,37 +991,7 @@ const ProductPage = () => {
 
 
           <div className="py-5 border-b-2 border-gray-200 flex flex-col gap-8">
-            <h1 className="font-bold text-gray-900 text-lg text-[30px]">
-              Sản phẩm tương tự
-            </h1>
-            <div className="relative">
-              <Swiper
-                loop={true}
-                spaceBetween={34}
-                slidesPerView={5}
-                navigation={{
-                  nextEl: ".relate-next",
-                  prevEl: ".relate-prev",
-                }}
-                modules={[Navigation]}
-                className="!pl-1 !pr-1 !py-2"
-              >
-                {products.map((product, index) => (
-                  <SwiperSlide key={index}>
-                    <ProductCard product={product} />
-                  </SwiperSlide>
-                ))}
-              </Swiper>
-              {/* Nút trái */}
-              <button className="relate-prev absolute left-[-4px] -translate-y-1/2 z-10 text-gray-700 text-3xl transition bg-white/70 top-1/2 w-10 h-20 rounded-r-full flex items-center justify-center shadow-md transition-transform duration-300 ease-in-out hover:scale-110">
-                <IoIosArrowBack />
-              </button>
-
-              {/* Nút phải */}
-              <button className="relate-next absolute right-[-4px] -translate-y-1/2 z-10 text-gray-700 text-3xl transition bg-white/70 top-1/2 w-10 h-20 rounded-l-full flex items-center justify-center shadow-md transition-transform duration-300 ease-in-out hover:scale-110">
-                <IoIosArrowForward />
-              </button>
-            </div>
+            <SimilarProduct productId={currentProduct.id} />
           </div>
 
           {/* đánh giá, commnet và thông số kỹ thuật*/}

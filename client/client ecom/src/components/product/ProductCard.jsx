@@ -8,16 +8,20 @@ import Tooltip, { tooltipClasses } from '@mui/material/Tooltip';
 import { styled } from '@mui/material/styles';
 import { Snackbar, Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { trackProductClick } from "../../services/recommendationApi";
+import { useAuth } from "../../context/AuthContext";
 import { useComparison } from "../../context/ComparisonContext";
-
 const ProductCard = ({ product }) => {
   const navigate = useNavigate();
+  const { user } = useAuth(); // Get user from AuthContext
   const { addToCompare, removeFromCompare, isInCompareList } = useComparison();
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
   };
+
+
 
   function StarRating({ rating }) {
     const safeRating = Number(rating) || 0;
@@ -71,7 +75,6 @@ const ProductCard = ({ product }) => {
       color: 'rgba(30, 30, 30, 0.95)',
     },
   }));
-
   return (
     <div className="relative group rounded-xl bg-white [box-shadow:rgba(60,64,67,0.15)_0px_1px_2px_0px,rgba(60,64,67,0.1)_0px_2px_6px_2px] pt-4 min-w-[255px] max-w-[255px] pb-6 relative flex flex-col justify-between transition-all duration-300 hover:[box-shadow:rgba(60,64,67,0.3)_0px_2px_8px_2px,rgba(60,64,67,0.2)_0px_4px_12px_4px] hover:-translate-y-1">
 
@@ -101,6 +104,11 @@ const ProductCard = ({ product }) => {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
+
+              // Track click
+              if (user?.userId) {
+                trackProductClick(user.userId, product.id);
+              }
 
               // Xử lý name thành slug (thay dấu cách bằng -, loại bỏ ký tự đặc biệt nếu cần)
               const slug = product.name

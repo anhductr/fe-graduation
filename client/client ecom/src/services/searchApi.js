@@ -56,7 +56,6 @@ export const getSearchSuggestionsFull = async (keyword = "") => {
     const response = await api.get("/search-service/search/autocomplete/full", {
         params: { q: keyword },
     });
-    console.log('full search:', response.data)
     return response.data;
 };
 
@@ -112,6 +111,27 @@ export const getProductByBanner = async ({
     });
 
     return response.data; // ApiResponse<ProductGetListVM>
+};
+
+export const getSuggestedProductsByIds = async ({
+    productIds = [],
+    recomentedType = "",
+    page = 1,
+    size = 10
+} = {}) => {
+    const body = {
+        productIds,
+        recomentedType
+    };
+
+    const response = await api.post("/search-service/search/product/suggest", body, {
+        params: {
+            page,
+            size
+        }
+    });
+
+    return response.data;
 };
 
 export const getProductFlashSale = async ({

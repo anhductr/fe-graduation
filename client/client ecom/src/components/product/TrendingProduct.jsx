@@ -3,43 +3,46 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import { IoIosArrowForward, IoIosArrowBack } from "react-icons/io";
 import ProductCard from "./ProductCard";
-import { getPersonalizedRecommendations } from "../../services/recommendationApi";
+import { getTrendingRecommendations } from "../../services/recommendationApi";
 import { getSuggestedProductsByIds } from "../../services/searchApi";
-import { useAuth } from "../../context/AuthContext";
 
-export default function RecommendProduct() {
+export default function TrendingProduct() {
     const swiperRef = useRef(null);
-    const uniqueId = "recommend-product";
+    const uniqueId = "trending-product";
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
-    const { user, isUserLoading } = useAuth();
 
     useEffect(() => {
-        if (isUserLoading) return;
-
-        const fetchRecommendations = async () => {
+        const fetchTrending = async () => {
             try {
-                // 1. Get personalized recommendations
-                console.log("Fetching recommendations for user:", user?.userId);
-                const recomResponse = await getPersonalizedRecommendations(user?.userId, {
-                    limit: 15, 
-                    method: "hybrid",
-                    recent_k: 10
+                // 1. Get trending recommendations
+                const trendingResponse = await getTrendingRecommendations({
+                    limit: 15
                 });
 
-                const recommendations = recomResponse?.recommendations || [];
+                // Check structure. Assuming similar to personalized: returned object might have recommendations list
+                // or it might be a direct list. 
+                // Adjusting to handle generic "list of items with product_id" or "list of products"
 
-                if (recommendations.length > 0) {
-                    const productIds = recommendations.map(rec => rec.product_id);
+                let productIds = [];
+                const rawList = trendingResponse?.recommendations || trendingResponse?.data || trendingResponse || [];
+
+                if (Array.isArray(rawList)) {
+                    // Try to extract IDs if they exist
+                    productIds = rawList.map(item => item.product_id || item.id).filter(Boolean);
+                }
+
+                if (productIds.length > 0) {
+                    // 2. Get full product details if we only have IDs or partial info
+                    // Using getSuggestedProductsByIds to get full view models
                     const productsResponse = await getSuggestedProductsByIds({
                         productIds,
-                        recomentedType: "hybrid",
+                        recomentedType: "trending",
                         page: 1,
                         size: 15
                     });
 
-                    // Access the list from the correct path based on user's provided JSON
-                    // Structure: { result: { productGetVMList: [...] } }
+                    // Parse response similar to RecommendProduct
                     const fetchedProducts = productsResponse?.result?.productGetVMList ||
                         productsResponse?.content ||
                         productsResponse?.data ||
@@ -52,30 +55,30 @@ export default function RecommendProduct() {
                     }
                 }
             } catch (error) {
-                console.error("Failed to fetch recommendations:", error);
+                console.error("Failed to fetch trending products:", error);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchRecommendations();
-    }, [isUserLoading, user?.id]);
+        fetchTrending();
+    }, []);
 
-    if (loading) return null; // Or a skeleton loader
+    if (loading) return null;
     if (!products || products.length === 0) return null;
 
     return (
         <div className="w-full relative px-15 my-8">
             {/* Main Container */}
-            <div className="relative rounded-[20px] p-[2px] bg-[#6fa6ff] shadow-sm">
+            <div className="relative rounded-[20px] p-[2px] bg-[#ff6f6f] shadow-sm">
 
                 {/* Content Container */}
                 <div
                     className="relative rounded-[18px] px-2 pb-6 pt-15"
                     style={{
-                        backgroundImage: "linear-gradient(90deg, #ee7752, #e73c7e, #23a6d5, #23d5ab)",
+                        backgroundImage: "linear-gradient(90deg, #ff9a9e, #fecfef, #feada6)",
                         backgroundSize: "300% 300%",
-                        animation: "colorAnim 12s infinite linear alternate",
+                        animation: "colorAnim 12s infinite linear alternate"
                     }}
                 >
                     <style jsx global>{`
@@ -88,9 +91,9 @@ export default function RecommendProduct() {
 
                     {/* Header Pill */}
                     <div className="absolute -top-0 left-1/2 -translate-x-1/2 z-10 w-[35%]">
-                        <div className="bg-[#6fa6ff] text-white h-[45px] rounded-b-[25px] flex items-center justify-center gap-2 font-bold uppercase text-xl shadow-sm">
-                            <span className="text-yellow-300 text-2xl">✨</span>
-                            GỢI Ý CHO BẠN
+                        <div className="bg-[#ff6f6f] text-white h-[45px] rounded-b-[25px] flex items-center justify-center gap-2 font-bold uppercase text-xl shadow-sm">
+                            <span className="text-yellow-300 text-2xl">🔥</span>
+                            XU HƯỚNG MUA SẮM
                         </div>
                     </div>
 
@@ -98,7 +101,7 @@ export default function RecommendProduct() {
                     <div className="relative group/swiper px-4">
                         <Swiper
                             key={uniqueId}
-                            loop={products.length > 5} // Only loop if enough products
+                            loop={products.length > 5}
                             spaceBetween={12}
                             slidesPerView={2}
                             ref={swiperRef}
@@ -130,7 +133,7 @@ export default function RecommendProduct() {
                                 flex items-center justify-center
                                 opacity-0 group-hover/swiper:opacity-100 
                                 transition-all duration-300
-                                hover:bg-white hover:text-blue-600
+                                hover:bg-white hover:text-red-500
                             "
                         >
                             <IoIosArrowBack size={24} />
@@ -145,7 +148,7 @@ export default function RecommendProduct() {
                                 flex items-center justify-center
                                 opacity-0 group-hover/swiper:opacity-100 
                                 transition-all duration-300
-                                hover:bg-white hover:text-blue-600
+                                hover:bg-white hover:text-red-500
                             "
                         >
                             <IoIosArrowForward size={24} />

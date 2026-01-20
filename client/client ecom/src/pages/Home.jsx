@@ -4,6 +4,7 @@ import Banner from "../components/common/Banner";
 import CategoriesList from "../components/product/CategoriesList";
 import ProductSection from "../components/product/ProductSection";
 import RecommendProduct from "../components/product/RecommendProduct";
+import TrendingProduct from "../components/product/TrendingProduct";
 import FlashSaleProduct from "../components/product/FlashSaleProduct";
 import { useEffect } from "react";
 
@@ -24,7 +25,7 @@ function Home() {
         </div>
 
         <div className="mx-auto px-1">
-          <RecommendProduct />
+          <TrendingProduct />
         </div>
 
 
@@ -66,6 +67,10 @@ function Home() {
               },
             ]}
           />
+        </div>
+
+        <div className="mx-auto px-1">
+          <RecommendProduct />
         </div>
       </div>
       <Footer />

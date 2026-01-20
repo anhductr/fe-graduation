@@ -16,9 +16,6 @@ const ProductSection = ({ tabs, sortType = "DEFAULT" }) => {
     const [activeTabIndex, setActiveTabIndex] = useState(0);
     const activeTab = tabs[activeTabIndex];
     const navigate = useNavigate();
-    useEffect(() => {
-        console.log(activeTab.keyword)
-    }, [activeTab])
     // 1. Fetch category ID using autocomplete based on keyword
     const { data: suggestionData } = useQuery({
         queryKey: ["categorySearch", activeTab.keyword],
