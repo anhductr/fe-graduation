@@ -88,7 +88,7 @@ function Footer() {
                 width="40"
               />
             </div>
-            <div className="font-semibold text-[14px] mb-1">
+            {/* <div className="font-semibold text-[14px] mb-1">
               ĐĂNG KÝ NHẬN TIN KHUYẾN MÃI
             </div>
             <div className="text-[12px] mb-1 text-red-600 font-normal">
@@ -121,8 +121,8 @@ function Footer() {
                 type="submit"
               >
                 ĐĂNG KÝ NGAY
-              </button>
-            </form>
+              </button> */}
+            {/* </form> */}
           </div>
           {/* Column 2 */}
           <div className="w-full sm:w-auto sm:flex-shrink-0 sm:max-w-[220px] mb-6 sm:mb-0 text-[12px] text-gray-700 font-normal">
@@ -267,7 +267,7 @@ function Footer() {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 }
 export default Footer;
