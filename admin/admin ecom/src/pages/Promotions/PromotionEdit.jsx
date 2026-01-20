@@ -58,6 +58,20 @@ export default function PromotionEdit() {
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [defaultPromo, setDefaultPromo] = useState(null);
   const [campaignId, setCampaignId] = useState("");
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [maxDiscountAmount, setMaxDiscountAmount] = useState("");
+  const [usageLimitPerUser, setUsageLimitPerUser] = useState(1);
+  const [promotionKind, setPromotionKind] = useState("VOUCHER");
+
+  // Fetch campaigns
+  const { data: campaignData, isLoading: isLoadingCampaigns } = useQuery({
+    queryKey: ["campaigns"],
+    queryFn: async () => {
+      const res = await PromotionService.getAllCampaigns();
+      return res.data?.result || [];
+    }
+  });
+
   const deleteApplyTo = useRef([]);
 
   //xử lý xóa danh mục và spham đã chọn
@@ -199,6 +213,9 @@ export default function PromotionEdit() {
       setMinimumOrderAmount(promotion.minimumOrderPurchaseAmount);
       setUsageType(promotion.usageType); // unlimited | limited
       setUsageLimited(promotion.usageLimited);
+      setUsageLimitPerUser(promotion.usageLimitPerUser || 1);
+      setMaxDiscountAmount(promotion.maxDiscountAmount || "");
+      setPromotionKind(promotion.promotionKind || (promotion.voucherCode ? "VOUCHER" : "AUTO")); // Fallback logic if kind not present
       setApplyTo(promotion.applyTo);
 
       if (promotion.applyTo === "Category" && promotion.categoryId && promotion.categoryId.length > 0) {
@@ -210,10 +227,15 @@ export default function PromotionEdit() {
       }
       if (promotion.campaignId) {
         setCampaignId(promotion.campaignId);
+        // Find campaign object if data loaded
+        if (campaignData) {
+          const camp = campaignData.find(c => c.id === promotion.campaignId);
+          setSelectedCampaign(camp || null);
+        }
       }
       setDefaultPromo(promotion);
     }
-  }, [promotion]);
+  }, [promotion, campaignData]);
 
   // useEffect(() => {
   //     console.log('prd ids: ', selectedProductsId)
@@ -391,6 +413,8 @@ export default function PromotionEdit() {
       discountPercent: body.discountPercent,
       fixedAmount: body.fixedAmount,
       usageLimited: body.usageLimited,
+      usageLimitPerUser: body.usageLimitPerUser,
+      maxDiscountAmount: body.maxDiscountAmount,
       minimumOrderPurchaseAmount: body.minimumOrderPurchaseAmount,
       startDate: body.startDate,
       endDate: body.endDate,
@@ -398,6 +422,7 @@ export default function PromotionEdit() {
       productId: body.productId,
       categoryId: body.categoryId,
       deleteApplyTo: body.deleteApplyTo,
+      campaignId: body.campaignId,
     });
 
     return res.data;
@@ -506,7 +531,12 @@ export default function PromotionEdit() {
         discountType === "DISCOUNT_PERCENT" ? Number(discountPercent) || 0 : 0,
       fixedAmount:
         discountType === "FIXED_AMOUNT" ? Number(fixedAmount) || 0 : 0,
+      maxDiscountAmount:
+        discountType === "DISCOUNT_PERCENT" ? Number(maxDiscountAmount) || 0 : 0,
+
       usageLimited: usageType === "LIMITED" ? Number(usageLimited) || 0 : 0,
+      usageLimitPerUser: Number(usageLimitPerUser) || 1,
+
       minimumOrderPurchaseAmount: minimumOrderAmount
         ? Number(minimumOrderAmount)
         : null,
@@ -516,7 +546,7 @@ export default function PromotionEdit() {
       endDate: endDate ? endDate.toISOString() : null,
 
       active: active,
-      campaignId: campaignId || null,
+      campaignId: selectedCampaign ? selectedCampaign.id : null,
 
       productId: applyTo === "Product" ? newProductIds : [],
 
@@ -643,6 +673,49 @@ export default function PromotionEdit() {
         </div>
 
         <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
+
+          {/* Flash Sale Warning */}
+          {promotionKind === "FLASH_SALE" && (
+            <div className="w-full bg-red-50 border border-red-200 rounded-lg p-4 mb-2 flex gap-3 items-center">
+              <Typography variant="body1" className="text-red-700 font-bold">
+                LƯU Ý: Đây là chương trình Flash Sale. Bạn không thể chỉnh sửa thông tin chi tiết, chỉ có thể Xóa hoặc Thay đổi trạng thái kích hoạt.
+              </Typography>
+            </div>
+          )}
+
+          {/* Campaign Selection */}
+          <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] bg-white rounded-[10px] gap-10">
+            <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
+              Chiến dịch (Tùy chọn)
+            </div>
+            <div className="w-full px-4 mb-4">
+              <Autocomplete
+                options={campaignData || []}
+                getOptionLabel={(option) => option.name || ""}
+                value={selectedCampaign}
+                onChange={(event, newValue) => setSelectedCampaign(newValue)}
+                disabled={promotionKind === "FLASH_SALE"}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Tìm kiếm và chọn chiến dịch..."
+                    fullWidth
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: "5px",
+                        backgroundColor: "#fafafa",
+                      },
+                    }}
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <li {...props} key={option.id}>
+                    {option.name}
+                  </li>
+                )}
+              />
+            </div>
+          </div>
           <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] px-[5px] mx-[0px] bg-white rounded-[10px] gap-10">
             <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
               Thông tin cơ bản
@@ -818,9 +891,9 @@ export default function PromotionEdit() {
 
             <div className="flex mx-[30px] w-full">
               {discountType === "DISCOUNT_PERCENT" ? (
-                <div className="flex w-[50%] justify-center">
+                <div className="flex w-[50%] justify-center gap-4">
                   {/* Giảm theo % */}
-                  <div className="max-w-md w-full">
+                  <div className="w-[50%]">
                     <label className="block text-[18px] font-medium text-gray-800 mb-3">
                       Giảm (%) *
                     </label>
@@ -839,6 +912,26 @@ export default function PromotionEdit() {
                         "& .MuiOutlinedInput-root": { borderRadius: "12px" },
                       }}
                       placeholder="Ví dụ: 20"
+                    />
+                  </div>
+                  <div className="w-[50%]">
+                    <label className="block text-[18px] font-medium text-gray-800 mb-3">
+                      Giảm tối đa (đ)
+                    </label>
+                    <TextField
+                      type="number"
+                      value={maxDiscountAmount}
+                      onChange={(e) => setMaxDiscountAmount(e.target.value)}
+                      fullWidth
+                      inputProps={{ min: 0 }}
+                      sx={{
+                        "& .MuiInputBase-input": {
+                          fontSize: "18px",
+                          height: "28px",
+                        },
+                        "& .MuiOutlinedInput-root": { borderRadius: "12px" },
+                      }}
+                      placeholder="Ví dụ: 500000"
                     />
                   </div>
                 </div>
@@ -1287,6 +1380,17 @@ export default function PromotionEdit() {
                     required
                   />
                 )}
+                {/* Usage Per User */}
+                <div className="mt-4">
+                  <TextField
+                    label="Giới hạn dùng/khách (1 = dùng 1 lần)"
+                    type="number"
+                    value={usageLimitPerUser}
+                    onChange={(e) => setUsageLimitPerUser(e.target.value)}
+                    sx={{ width: 200 }}
+                    inputProps={{ min: 1 }}
+                  />
+                </div>
               </div>
 
               {/* Mã giảm giá */}

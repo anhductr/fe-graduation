@@ -41,6 +41,8 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
+import { PiFlagBannerBold } from "react-icons/pi";
+
 
 import { IoCloseCircleOutline, IoChevronForwardOutline } from "react-icons/io5";
 import PromotionService from "../../services/PromotionService";
@@ -368,7 +370,7 @@ export default function PromotionList() {
         </div>
 
         <div className="flex flex-wrap gap-[26px] w-full">
-          <Boxes color={"#81faf8ff"} header={"Tổng số chiến dịch"} icon={<FaRegUser />} />
+          <Boxes color={"#81faf8ff"} header={"Tổng số chiến dịch"} icon={<PiFlagBannerBold />} />
           <Boxes color={"#81faf8ff"} header={"Tổng số khuyến mãi voucher"} icon={<FaRegUser />} />
           <Boxes color={"#e8806bff"} header={"Tổng số khuyến mãi giảm giá"} icon={<MdCardMembership />} />
           <Boxes color={"#e8806bff"} header={"Tổng số khuyến mãi flash sale"} icon={<MdCardMembership />} />
