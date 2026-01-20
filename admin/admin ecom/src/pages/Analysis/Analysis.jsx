@@ -3,7 +3,7 @@ import AnalysisBoxes from "./AnalysisBoxes";
 
 import SalesChart from "./SalesChart";
 import OrdersChart from "./OrdersChart";
-import SalesTable from "./SalesTable";
+import BadSellingTable from "./BadSellingTable";
 import BestSellingTable from "./BestSellingTable";
 
 export default function Analysis() {
@@ -16,7 +16,7 @@ export default function Analysis() {
       <OrdersChart />
 
       <BestSellingTable />
-      <SalesTable />
+      <BadSellingTable />
     </div>
   );
 }
