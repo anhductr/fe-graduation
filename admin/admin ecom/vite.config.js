@@ -18,11 +18,10 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
         },
         "/analysis-service": {
-          target: "http://localhost:8073",
+          target: "https://nonpoisonously-fungic-alberto.ngrok-free.dev",
           changeOrigin: true,
         },
       },
     },
   }
 })
-
