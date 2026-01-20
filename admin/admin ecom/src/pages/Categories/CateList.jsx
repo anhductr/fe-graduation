@@ -25,6 +25,7 @@ import {
   Tabs,
   Tab,
   Chip,
+  Checkbox,
 } from "@mui/material";
 import { ExpandMore, ExpandLess } from "@mui/icons-material";
 import { VscFilter } from "react-icons/vsc";
@@ -32,6 +33,8 @@ import { IoIosArrowUp } from "react-icons/io";
 import { FaPlus } from "react-icons/fa6";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../../libs/axios.js";
+import CategoryService from "../../services/CategoryService";
+import BrandService from "../../services/BrandService";
 
 export default function CateList() {
   const navigate = useNavigate();
@@ -279,18 +282,75 @@ export default function CateList() {
     }
   }, [isLoadingCate, isErrorCate, errorCate]);
 
+  // Selection State
+  const [selectedCateIds, setSelectedCateIds] = useState([]);
+  const [isDeleteAllCate, setIsDeleteAllCate] = useState(false);
+  const [selectedBrands, setSelectedBrands] = useState([]); // List of brand names
+  const [isDeleteAllBrand, setIsDeleteAllBrand] = useState(false);
+
+  // Category Selection
+  const handleSelectAllCate = (event) => {
+    if (event.target.checked) {
+      setIsDeleteAllCate(true);
+      // Select all visible (flattened tree would be needed for true "all", but let's use cates flat list)
+      setSelectedCateIds(cates.map(c => c.id));
+    } else {
+      setIsDeleteAllCate(false);
+      setSelectedCateIds([]);
+    }
+  };
+
+  const handleSelectCate = (id) => {
+    setSelectedCateIds(prev => {
+      if (prev.includes(id)) {
+        setIsDeleteAllCate(false);
+        return prev.filter(item => item !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  // Brand Selection
+  const handleSelectAllBrand = (event) => {
+    if (event.target.checked) {
+      setIsDeleteAllBrand(true);
+      setSelectedBrands(brands.map(b => b.name));
+    } else {
+      setIsDeleteAllBrand(false);
+      setSelectedBrands([]);
+    }
+  };
+
+  const handleSelectBrand = (name) => {
+    setSelectedBrands(prev => {
+      if (prev.includes(name)) {
+        setIsDeleteAllBrand(false);
+        return prev.filter(item => item !== name);
+      } else {
+        return [...prev, name];
+      }
+    });
+  };
+
   // Mutations
   const deleteCateMutation = useMutation({
-    mutationFn: deleteCate,
+    mutationFn: (param) => {
+      if (isDeleteAllCate) return CategoryService.deleteAll();
+      if (Array.isArray(param)) return CategoryService.deleteCateByListId(param);
+      return CategoryService.deleteCate(param);
+    },
     onSuccess: (res) => {
       queryClient.invalidateQueries(["categories"]);
       setPopup({
         open: true,
         severity: "success",
-        message: "Xóa thể loại thành công!",
+        message: isDeleteAllCate ? "Xóa tất cả thể loại thành công!" : "Xóa thể loại thành công!",
         vertical: "top",
         horizontal: "center",
       });
+      setSelectedCateIds([]);
+      setIsDeleteAllCate(false);
     },
     onError: (err) => {
       console.error("Lỗi khi xóa thể loại:", err);
@@ -305,16 +365,22 @@ export default function CateList() {
   });
 
   const deleteBrandMutation = useMutation({
-    mutationFn: deleteBrand,
+    mutationFn: (param) => {
+      if (isDeleteAllBrand) return BrandService.deleteAll();
+      if (Array.isArray(param)) return BrandService.deleteList(param);
+      return BrandService.deleteBrand(param);
+    },
     onSuccess: (res) => {
       queryClient.invalidateQueries(["brands"]);
       setPopup({
         open: true,
         severity: "success",
-        message: "Xóa thương hiệu thành công!",
+        message: isDeleteAllBrand ? "Xóa tất cả thương hiệu thành công!" : "Xóa thương hiệu thành công!",
         vertical: "top",
         horizontal: "center",
       });
+      setSelectedBrands([]);
+      setIsDeleteAllBrand(false);
     },
     onError: (err) => {
       console.error("Lỗi khi xóa thương hiệu:", err);
@@ -329,14 +395,18 @@ export default function CateList() {
   });
 
   // Category delete handlers
-  const handleDeleteClickCate = (cateId) => {
-    setSelectedCateId(cateId);
+  const handleDeleteClickCate = (cateId) => { // Can accept ID (single) or null (bulk default if using logic)
+    if (cateId) {
+      setSelectedCateId(cateId);
+    }
     setOpenConfirmCate(true);
   };
 
   const handleConfirmDeleteCate = () => {
     if (selectedCateId) {
       deleteCateMutation.mutate(selectedCateId);
+    } else if (isDeleteAllCate || selectedCateIds.length > 0) {
+      deleteCateMutation.mutate(selectedCateIds);
     }
     setOpenConfirmCate(false);
     setSelectedCateId(null);
@@ -349,13 +419,17 @@ export default function CateList() {
 
   // Brand delete handlers
   const handleDeleteBrandClick = (brandName) => {
-    setSelectedBrand(brandName);
+    if (brandName) {
+      setSelectedBrand(brandName);
+    }
     setOpenConfirmBrand(true);
   };
 
   const handleConfirmDeleteBrand = () => {
     if (selectedBrand) {
       deleteBrandMutation.mutate(selectedBrand);
+    } else if (isDeleteAllBrand || selectedBrands.length > 0) {
+      deleteBrandMutation.mutate(selectedBrands);
     }
     setOpenConfirmBrand(false);
     setSelectedBrand(null);
@@ -369,12 +443,20 @@ export default function CateList() {
   // Recursive row component for hierarchical display
   function Row({ row, level = 0 }) {
     const [open, setOpen] = useState(false);
+    const isSelected = selectedCateIds.includes(row.id);
 
     return (
       <>
-        <TableRow key={row.id} hover>
-          <TableCell sx={{ pl: level * 3 + 2, alignItems: "center" }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <TableRow key={row.id} hover selected={isSelected}>
+          <TableCell padding="checkbox" sx={{ pl: level * 3 + 1 }}> {/* Adjust padding for hierarchy look? Or just flat check */}
+            <Checkbox
+              color="primary"
+              checked={isSelected}
+              onChange={() => handleSelectCate(row.id)}
+            />
+          </TableCell>
+          <TableCell sx={{ alignItems: "center" }}> {/* Removed pl here as it is moved to checkbox or kept? Original had pl for hierarchy on name */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: level * 3 }}> {/* Indent name instead */}
               <Box
                 component="span"
                 sx={{ display: "inline-block", width: 36, textAlign: "center" }}
@@ -545,6 +627,16 @@ export default function CateList() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     value={searchTerm}
                   />
+                  {selectedCateIds.length > 0 && (
+                    <Button
+                      variant="contained"
+                      color="error"
+                      onClick={() => handleDeleteClickCate(null)}
+                      className="!normal-case"
+                    >
+                      <MdDelete className="mr-1" /> Xóa {isDeleteAllCate ? "TẤT CẢ" : selectedCateIds.length}
+                    </Button>
+                  )}
                   <Button
                     variant="contained"
                     className="!ml-auto !normal-case !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow"
@@ -569,6 +661,13 @@ export default function CateList() {
                   <Table>
                     <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
                       <TableRow>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            color="primary"
+                            checked={isDeleteAllCate}
+                            onChange={handleSelectAllCate}
+                          />
+                        </TableCell>
                         <TableCell sx={{ width: "40%", fontWeight: 600 }}>
                           Tên thể loại
                         </TableCell>
@@ -612,6 +711,17 @@ export default function CateList() {
                   value={brandSearchTerm}
                 />
 
+                {selectedBrands.length > 0 && (
+                  <Button
+                    variant="contained"
+                    color="error"
+                    onClick={() => handleDeleteBrandClick(null)}
+                    className="!normal-case"
+                  >
+                    <MdDelete className="mr-1" /> Xóa {isDeleteAllBrand ? "TẤT CẢ" : selectedBrands.length}
+                  </Button>
+                )}
+
                 <Button
                   variant="contained"
                   className="!ml-auto !normal-case !bg-gradient-to-r !from-[#4a2fcf] !to-[#6440F5] !shadow"
@@ -634,6 +744,13 @@ export default function CateList() {
                 <Table>
                   <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
                     <TableRow>
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          color="primary"
+                          checked={isDeleteAllBrand}
+                          onChange={handleSelectAllBrand}
+                        />
+                      </TableCell>
                       <TableCell sx={{ width: "30%" }}>
                         Tên thương hiệu
                       </TableCell>
@@ -648,61 +765,71 @@ export default function CateList() {
                   <TableBody>
                     {brands
                       .filter(b => !brandSearchTerm || b.name.toLowerCase().includes(brandSearchTerm.toLowerCase()))
-                      .map((brand, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{brand.name}</TableCell>
-                          <TableCell>
-                            {brand.categoryId && brand.categoryId.length > 0 ? (
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  flexWrap: "wrap",
-                                  gap: 0.5,
+                      .map((brand, index) => {
+                        const isSelected = selectedBrands.includes(brand.name);
+                        return (
+                          <TableRow key={index} selected={isSelected}>
+                            <TableCell padding="checkbox">
+                              <Checkbox
+                                color="primary"
+                                checked={isSelected}
+                                onChange={() => handleSelectBrand(brand.name)}
+                              />
+                            </TableCell>
+                            <TableCell>{brand.name}</TableCell>
+                            <TableCell>
+                              {brand.categoryId && brand.categoryId.length > 0 ? (
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    gap: 0.5,
+                                  }}
+                                >
+                                  {brand.categoryId.map((catId) => {
+                                    const catName =
+                                      categoryMap[catId] ||
+                                      `ID: ${catId} (không tìm thấy)`;
+                                    return (
+                                      <Chip
+                                        key={catId}
+                                        label={catName}
+                                        size="small"
+                                        color="primary"
+                                        variant="outlined"
+                                      />
+                                    );
+                                  })}
+                                </Box>
+                              ) : (
+                                <span style={{ color: "#999" }}>
+                                  Chưa liên kết thể loại nào
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell align="center">
+                              <IconButton
+                                size="small"
+                                onClick={() => {
+                                  navigate("/categories/brand-edit", {
+                                    state: { brand },
+                                    replace: false,
+                                  });
                                 }}
                               >
-                                {brand.categoryId.map((catId) => {
-                                  const catName =
-                                    categoryMap[catId] ||
-                                    `ID: ${catId} (không tìm thấy)`;
-                                  return (
-                                    <Chip
-                                      key={catId}
-                                      label={catName}
-                                      size="small"
-                                      color="primary"
-                                      variant="outlined"
-                                    />
-                                  );
-                                })}
-                              </Box>
-                            ) : (
-                              <span style={{ color: "#999" }}>
-                                Chưa liên kết thể loại nào
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell align="center">
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                navigate("/categories/brand-edit", {
-                                  state: { brand },
-                                  replace: false,
-                                });
-                              }}
-                            >
-                              <MdEdit />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDeleteBrandClick(brand.name)}
-                              color="error"
-                            >
-                              <MdDelete />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                                <MdEdit />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleDeleteBrandClick(brand.name)}
+                                color="error"
+                              >
+                                <MdDelete />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -712,7 +839,13 @@ export default function CateList() {
       </div>
       {/* Modal xác nhận xoá */}
       <Dialog open={openConfirmCate} onClose={handleCancelDeleteCate}>
-        <DialogTitle>Bạn có chắc chắn muốn xoá thể loại này không?</DialogTitle>
+        <DialogTitle>
+          {isDeleteAllCate
+            ? "CẢNH BÁO: Bạn có chắc chắn muốn xóa TẤT CẢ thể loại không?"
+            : selectedCateIds.length > 0 && !selectedCateId
+              ? `Bạn có chắc chắn muốn xóa ${selectedCateIds.length} thể loại đã chọn không?`
+              : "Bạn có chắc chắn muốn xoá thể loại này không?"}
+        </DialogTitle>
         <DialogActions>
           <Button onClick={handleCancelDeleteCate} color="inherit">
             Không
@@ -729,7 +862,11 @@ export default function CateList() {
 
       <Dialog open={openConfirmBrand} onClose={handleCancelDeleteBrand}>
         <DialogTitle>
-          Bạn có chắc chắn muốn xoá thương hiệu này không?
+          {isDeleteAllBrand
+            ? "CẢNH BÁO: Bạn có chắc chắn muốn xóa TẤT CẢ thương hiệu không?"
+            : selectedBrands.length > 0 && !selectedBrand
+              ? `Bạn có chắc chắn muốn xóa ${selectedBrands.length} thương hiệu đã chọn không?`
+              : "Bạn có chắc chắn muốn xoá thương hiệu này không?"}
         </DialogTitle>
         <DialogActions>
           <Button onClick={handleCancelDeleteBrand} color="inherit">

@@ -18,6 +18,7 @@ import {
   Collapse,
   Chip,
   Typography,
+  Checkbox,
 } from "@mui/material";
 import { Link } from "react-router-dom";
 import { FiBox } from "react-icons/fi";
@@ -37,12 +38,19 @@ import { useLocation } from "react-router-dom";
 import ProductService from "../../services/ProductService";
 
 // Row component for expandable table
-function ProductRow({ product, onDelete }) {
+function ProductRow({ product, onDelete, selected, onSelect }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <TableRow sx={{ "& > *": { borderBottom: "unset" } }}>
+      <TableRow sx={{ "& > *": { borderBottom: "unset" } }} selected={selected}>
+        <TableCell padding="checkbox">
+          <Checkbox
+            color="primary"
+            checked={selected}
+            onChange={onSelect}
+          />
+        </TableCell>
         <TableCell>
           <IconButton
             aria-label="expand row"
@@ -179,6 +187,12 @@ export default function ProductList() {
   const [page, setPage] = useState(1);
   const size = 10; // Tăng size cho table
 
+  // Reset selection when page changes
+  useEffect(() => {
+    setSelectedIds([]);
+    setIsDeleteAll(false);
+  }, [page]);
+
   //api function
   const queryClient = useQueryClient();
 
@@ -227,23 +241,121 @@ export default function ProductList() {
     },
   });
 
-  //modal xóa
+  // Modal xóa
   const [openConfirm, setOpenConfirm] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState(null);
+  const [isDeleteAll, setIsDeleteAll] = useState(false); // Flag for delete all
+  const [selectedIds, setSelectedIds] = useState([]); // Array of selected IDs
+
   const handleDeleteClick = (productId) => {
     setSelectedProductId(productId);
+    setIsDeleteAll(false);
     setOpenConfirm(true);
   };
+
+  const handleDeleteSelected = () => {
+    // Nếu chọn tất cả (bao gồm cả các trang khác - logic đơn giản ở đây là check header)
+    // Tạm thời logic: Nếu check header -> xóa tất cả (theo yêu cầu user "tích chọn tất cả thì khi nhấn thùng rác thì sẽ gọi api xóa tất cả")
+    // Nhưng để an toàn và chuẩn UX, ta check xem select all có active không.
+    // Ở đây ta dùng 2 button khác nhau hoặc message khác nhau.
+    // Logic Prompt: "tích chọn tất cả thì khi nhấn thùng rác thì sẽ gọi api xóa tất cả"
+    // => Header checkbox click -> selectAll Mode.
+
+    setOpenConfirm(true);
+  };
+
   const handleConfirmDelete = () => {
-    if (selectedProductId) {
+    if (isDeleteAll) {
+      deleteAllMutation.mutate();
+    } else if (selectedIds.length > 0 && !selectedProductId) {
+      // Bulk delete manual selection
+      deleteListMutation.mutate(selectedIds);
+    } else if (selectedProductId) {
+      // Single delete
       deleteMutation.mutate(selectedProductId);
     }
     setOpenConfirm(false);
     setSelectedProductId(null);
+    setIsDeleteAll(false);
+    setSelectedIds([]); // Clear selection
   };
+
   const handleCancelDelete = () => {
     setOpenConfirm(false);
     setSelectedProductId(null);
+    setIsDeleteAll(false);
+  };
+
+  // Xóa nhiều
+  const deleteListMutation = useMutation({
+    mutationFn: (ids) => ProductService.DeleteListProduct(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["products"]);
+      setPopup({
+        open: true,
+        message: "Xóa danh sách sản phẩm thành công!",
+        severity: "success",
+        horizontal: "center",
+        vertical: "top",
+      });
+      setSelectedIds([]);
+    },
+    onError: (err) => {
+      setPopup({
+        open: true,
+        message: err.response?.data?.message || "Xóa thất bại!",
+        severity: "error",
+        horizontal: "center",
+        vertical: "top",
+      });
+    },
+  });
+
+  // Xóa tất cả
+  const deleteAllMutation = useMutation({
+    mutationFn: () => ProductService.DeleteAll(),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["products"]);
+      setPopup({
+        open: true,
+        message: "Xóa tất cả sản phẩm thành công!",
+        severity: "success",
+        horizontal: "center",
+        vertical: "top",
+      });
+      setSelectedIds([]);
+    },
+    onError: (err) => {
+      setPopup({
+        open: true,
+        message: err.response?.data?.message || "Xóa thất bại!",
+        severity: "error",
+        horizontal: "center",
+        vertical: "top",
+      });
+    },
+  });
+
+  // Handle Selection
+  const handleSelectAll = (event) => {
+    if (event.target.checked) {
+      setIsDeleteAll(true);
+      // Select all visible items for UI feedback
+      const visibleIds = (searchResults || productData?.data || []).map(p => p.id);
+      setSelectedIds(visibleIds);
+    } else {
+      setIsDeleteAll(false);
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (event, id) => {
+    if (event.target.checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(item => item !== id));
+      setIsDeleteAll(false); // Unchecking one means not "All" anymore
+    }
   };
 
   //user querry
@@ -374,9 +486,22 @@ export default function ProductList() {
         </Snackbar>
 
         <div className="flex justify-between items-center my-4">
-          <h3 className="text-[30px] font-bold mb-4 text-[#403e57]">
-            Quản lý sản phẩm
-          </h3>
+          <div className="flex items-center gap-4">
+            <h3 className="text-[30px] font-bold mb-4 text-[#403e57]">
+              Quản lý sản phẩm
+            </h3>
+            {selectedIds.length > 0 && (
+              <Button
+                variant="contained"
+                color="error"
+                onClick={handleDeleteSelected}
+                startIcon={<IoTrashOutline />}
+                sx={{ mb: 2 }}
+              >
+                Xóa {isDeleteAll ? "TẤT CẢ" : selectedIds.length} mục
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-[26px] w-full">
@@ -415,20 +540,18 @@ export default function ProductList() {
             />
             <Button
               size="medium"
-              className={`${
-                isToggleFilter
-                  ? "!border-2 !border-gray-500"
-                  : "!border !border-[#ccc]"
-              } !text-[#403e57] !ml-4 !px-3 !rounded-[10px] !hover:bg-gray-100 !normal-case`}
+              className={`${isToggleFilter
+                ? "!border-2 !border-gray-500"
+                : "!border !border-[#ccc]"
+                } !text-[#403e57] !ml-4 !px-3 !rounded-[10px] !hover:bg-gray-100 !normal-case`}
               variant="outlined"
               onClick={() => setIsToggleFilter(!isToggleFilter)}
             >
               <VscFilter className="" />
               <span className="ml-1">Bộ lọc</span>
               <IoIosArrowUp
-                className={`ml-1 transition-transform duration-200 ${
-                  isToggleFilter ? "rotate-180" : "rotate-0"
-                }`}
+                className={`ml-1 transition-transform duration-200 ${isToggleFilter ? "rotate-180" : "rotate-0"
+                  }`}
               />
             </Button>
             <Button
@@ -444,11 +567,10 @@ export default function ProductList() {
           {/* filter submenu */}
           <div
             aria-label="submenu"
-            className={`${
-              isToggleFilter === true
-                ? "pointer-events-auto"
-                : "h-[0px] opacity-0 pointer-events-none"
-            } !text-[rgba(0,0,0,0.7)] overflow-hidden transition-all duration-300 flex flex-col gap-3`}
+            className={`${isToggleFilter === true
+              ? "pointer-events-auto"
+              : "h-[0px] opacity-0 pointer-events-none"
+              } !text-[rgba(0,0,0,0.7)] overflow-hidden transition-all duration-300 flex flex-col gap-3`}
           >
             <div className="flex flex-col mt-[10px] gap-1">
               <h1 className="text-[18px] font-bold">Danh mục</h1>
@@ -488,6 +610,16 @@ export default function ProductList() {
           <Table aria-label="collapsible table">
             <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
               <TableRow>
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    color="primary"
+                    inputProps={{
+                      'aria-label': 'select all desserts',
+                    }}
+                    checked={isDeleteAll}
+                    onChange={handleSelectAll}
+                  />
+                </TableCell>
                 <TableCell />
                 <TableCell sx={{ fontWeight: "bold" }}>Sản phẩm</TableCell>
                 <TableCell align="center" sx={{ fontWeight: "bold" }}>
@@ -510,18 +642,20 @@ export default function ProductList() {
                   key={product.id}
                   product={product}
                   onDelete={handleDeleteClick}
+                  selected={selectedIds.indexOf(product.id) !== -1}
+                  onSelect={(event) => handleSelectOne(event, product.id)}
                 />
               ))}
               {(!(searchResults || productData?.data) ||
                 (searchResults || productData?.data).length === 0) && (
-                <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
-                    {isLoadingProducts
-                      ? "Đang tải..."
-                      : "Không có sản phẩm nào"}
-                  </TableCell>
-                </TableRow>
-              )}
+                  <TableRow>
+                    <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+                      {isLoadingProducts
+                        ? "Đang tải..."
+                        : "Không có sản phẩm nào"}
+                    </TableCell>
+                  </TableRow>
+                )}
             </TableBody>
           </Table>
         </TableContainer>
@@ -541,7 +675,13 @@ export default function ProductList() {
 
       {/* Modal xác nhận xoá */}
       <Dialog open={openConfirm} onClose={handleCancelDelete}>
-        <DialogTitle>Bạn có chắc chắn muốn xoá sản phẩm này không?</DialogTitle>
+        <DialogTitle>
+          {isDeleteAll
+            ? "CẢNH BÁO: Bạn có chắc chắn muốn xóa TẤT CẢ sản phẩm trong hệ thống không?"
+            : selectedIds.length > 0 && !selectedProductId
+              ? `Bạn có chắc chắn muốn xóa ${selectedIds.length} sản phẩm đã chọn không?`
+              : "Bạn có chắc chắn muốn xoá sản phẩm này không?"}
+        </DialogTitle>
         <DialogActions>
           <Button onClick={handleCancelDelete} color="inherit">
             Không

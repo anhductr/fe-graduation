@@ -110,7 +110,7 @@ export default function InvAddTableRow({
   return (
     <>
       {isWatchMode ? (
-        <TableCell>{item.productName}</TableCell>
+        <TableCell>{item.variantName}</TableCell>
       ) : (
         <TableCell>
           <Autocomplete

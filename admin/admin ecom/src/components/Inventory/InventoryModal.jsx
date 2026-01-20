@@ -86,6 +86,7 @@ export default function InventoryModal({ onClose, initialData = null }) {
           label: item.productName || item.sku,
           sku: item.sku,
         },
+        variantName: item.variantName || item.productName || item.sku,
         color: item.color,
         quantity: item.quantity,
         unitCost: item.unitCost,

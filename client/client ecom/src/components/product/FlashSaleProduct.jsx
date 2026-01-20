@@ -1,6 +1,8 @@
 import React, { useRef } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation } from "swiper/modules";
 import "swiper/css";
+import "swiper/css/navigation";
 import { IoIosArrowForward, IoIosArrowBack } from "react-icons/io";
 import { FaBolt } from "react-icons/fa";
 import ProductCard from "./ProductCard";
@@ -18,7 +20,7 @@ export default function FlashSaleProduct() {
         keepPreviousData: true,
     });
 
-    const products = apiResponse?.result?.data || [];
+    const products = apiResponse?.result?.productGetVMList || [];
 
     // Don't render if loading or no products
     if (isLoading || !products || products.length === 0) {
@@ -27,6 +29,19 @@ export default function FlashSaleProduct() {
 
     return (
         <div className="w-full relative px-15 my-8">
+            <style jsx>{`
+                @keyframes shake {
+                    0% { transform: rotate(0deg); }
+                    25% { transform: rotate(10deg); }
+                    50% { transform: rotate(0deg); }
+                    75% { transform: rotate(-10deg); }
+                    100% { transform: rotate(0deg); }
+                }
+                .lightning-icon {
+                    animation: shake 1.5s infinite ease-in-out;
+                }
+            `}</style>
+
             {/* Main Container */}
             <div className="relative rounded-[20px] p-[2px] bg-[#d32f2f] shadow-sm">
 
@@ -36,9 +51,9 @@ export default function FlashSaleProduct() {
                     {/* Header Pill */}
                     <div className="absolute -top-0 left-1/2 -translate-x-1/2 z-10 w-[35%]">
                         <div className="bg-[#d32f2f] text-white h-[45px] rounded-b-[25px] flex items-center justify-center gap-2 font-bold uppercase text-xl shadow-sm">
-                            <span className="text-yellow-300 text-2xl"><FaBolt /></span>
+                            <span className="text-yellow-300 text-2xl lightning-icon"><FaBolt /></span>
                             FLASH SALE
-                            <span className="text-yellow-300 text-2xl"><FaBolt /></span>
+                            <span className="text-yellow-300 text-2xl lightning-icon"><FaBolt /></span>
                         </div>
                     </div>
 
@@ -46,7 +61,7 @@ export default function FlashSaleProduct() {
                     <div className="relative group/swiper px-4">
                         <Swiper
                             key={uniqueId}
-                            loop={products.length > 4} // Loop only if enough items
+                            loop={products.length > 5} // Loop only if enough items
                             spaceBetween={12}
                             slidesPerView={2}
                             ref={swiperRef}
@@ -55,10 +70,7 @@ export default function FlashSaleProduct() {
                                 768: { slidesPerView: 4 },
                                 1024: { slidesPerView: 5 },
                             }}
-                            navigation={{
-                                nextEl: `#next-${uniqueId}`,
-                                prevEl: `#prev-${uniqueId}`,
-                            }}
+                            modules={[Navigation]}
                             className="!py-2"
                         >
                             {products.map((product) => (
@@ -68,11 +80,10 @@ export default function FlashSaleProduct() {
                             ))}
                         </Swiper>
 
-                        {products.length > 4 && (
+                        {products.length > 5 && (
                             <>
                                 {/* Navigation Buttons */}
                                 <button
-                                    id={`prev-${uniqueId}`}
                                     onClick={() => swiperRef.current?.swiper?.slidePrev()}
                                     className="
                                         absolute left-[-10px] top-1/2 -translate-y-1/2 z-20
@@ -87,7 +98,6 @@ export default function FlashSaleProduct() {
                                 </button>
 
                                 <button
-                                    id={`next-${uniqueId}`}
                                     onClick={() => swiperRef.current?.swiper?.slideNext()}
                                     className="
                                         absolute right-[-10px] top-1/2 -translate-y-1/2 z-20

@@ -282,6 +282,17 @@ const ProductPage = () => {
     specifications: activeProductData?.specifications || []
   };
 
+  // Helper: Check if product is phone or tablet based on categories
+  const isPhoneOrTablet = () => {
+    if (!currentProduct.categories || currentProduct.categories.length === 0) return false;
+
+    return currentProduct.categories.some(cat => {
+      const name = (cat.name || '').toLowerCase();
+      return name.includes('điện thoại') || name.includes('máy tính bảng') ||
+        name.includes('phone') || name.includes('tablet');
+    });
+  };
+
   // Derived price/discount from selected variant
   const sellPrice = selectedVariant?.sellPrice || 0;
   const listPrice = selectedVariant?.price || 0;
@@ -330,7 +341,7 @@ const ProductPage = () => {
 
   // cho phần zoom 2
   const lensSize = 150;
-  const zoomWidth = 570;
+  const zoomWidth = 575;
   const zoomHeight = 570;
   const scale = 3.8; // mức phóng — bạn đang dùng *5
 
@@ -606,7 +617,7 @@ const ProductPage = () => {
                                 muted={true}
                                 height={"530px"}
                                 width={"739px"}
-                                url={currentProduct.video}
+                                url={currentProduct.videoUrl}
                               />
                             </div>
                           ) : (
@@ -661,7 +672,7 @@ const ProductPage = () => {
                 <Swiper
                   loop={false}
                   spaceBetween={10}
-                  slidesPerView={8}
+                  slidesPerView="auto"
                   modules={[Navigation]}
                   onSlideChange={handleThumbChange} // Sync Swiper changes with currentImg
                   onSwiper={(swiper) => {
@@ -669,7 +680,7 @@ const ProductPage = () => {
                   }}
                 >
                   {currentProduct.images.map((img, index) => (
-                    <SwiperSlide key={index}>
+                    <SwiperSlide key={index} style={{ width: 'auto' }}>
                       {index === 0 ? (
                         <button
                           className={`text-[13px] hover:border-[#0096FF] hover:border-2 flex flex-col gap-1 w-[76px] h-[80px] items-center justify-center text-xs text-black font-semibold border rounded-[10px] ${currentImg === index
@@ -776,45 +787,47 @@ const ProductPage = () => {
               <div className="flex items-center gap-2">
                 <div className="flex items-center justify-center gap-1 text-[16px]">
                   <IoStar className="text-yellow-500" />
-                  <span className="text-gray-600 ">4.8</span>
+                  <span className="text-gray-600 ">{currentProduct.avgRating}</span>
                 </div>
                 <span className="text-[#0096FF] text-[16px] cursor-pointer" onClick={() => setOpenSpecsPopup(true)}>Thông số kĩ thuật</span>
               </div>
 
-              {/* Storage options */}
-              <div className="flex ">
-                <p className="w-[18%] text-[16px] font-semibold">Dung lượng</p>
-                <div className="w-[82%] flex gap-4 text-center text-[14px] text-gray-700 font-semibold flex-wrap">
-                  {allVersions.map((version) => {
-                    const capacity = getCapacityValue(version);
-                    const label = capacity >= 1024
-                      ? `${capacity / 1024} TB`
-                      : `${capacity} GB`;
+              {/* Storage options - Only show for phones and tablets */}
+              {isPhoneOrTablet() && (
+                <div className="flex ">
+                  <p className="w-[18%] text-[16px] font-semibold">Dung lượng</p>
+                  <div className="w-[82%] flex gap-4 text-center text-[14px] text-gray-700 font-semibold flex-wrap">
+                    {allVersions.map((version) => {
+                      const capacity = getCapacityValue(version);
+                      const label = capacity >= 1024
+                        ? `${capacity / 1024} TB`
+                        : `${capacity} GB`;
 
-                    const isActive = version.id === currentProduct.id;
+                      const isActive = version.id === currentProduct.id;
 
-                    return (
-                      <button
-                        key={version.id}
-                        onClick={() => setDisplayedProduct(version)}
-                        className={`relative border rounded p-2 min-w-[30px] ${isActive
-                          ? "border-[#0096FF] border-2"
-                          : "border-[#ccc] hover:border-gray-400"
-                          }`}
-                      >
-                        <div className="">{label}</div>
+                      return (
+                        <button
+                          key={version.id}
+                          onClick={() => setDisplayedProduct(version)}
+                          className={`relative border rounded p-2 min-w-[30px] ${isActive
+                            ? "border-[#0096FF] border-2"
+                            : "border-[#ccc] hover:border-gray-400"
+                            }`}
+                        >
+                          <div className="">{label}</div>
 
-                        {isActive && (
-                          <>
-                            <div className="absolute top-0 right-0 w-0 h-0 border-l-[17px] border-t-[17px] border-l-transparent !border-t-[#0096FF] "></div>
-                            <MdCheck className="absolute top-0 right-0 text-white text-[9px]" />
-                          </>
-                        )}
-                      </button>
-                    );
-                  })}
+                          {isActive && (
+                            <>
+                              <div className="absolute top-0 right-0 w-0 h-0 border-l-[17px] border-t-[17px] border-l-transparent !border-t-[#0096FF] "></div>
+                              <MdCheck className="absolute top-0 right-0 text-white text-[9px]" />
+                            </>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Color selection */}
               <div className="flex">

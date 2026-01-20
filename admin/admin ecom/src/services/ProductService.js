@@ -17,6 +17,18 @@ class ProductService {
   getAllCategories() {
     return api.get("/product-service/category/getAll");
   }
+
+  // Xóa danh sách sản phẩm
+  DeleteListProduct(productIds) {
+    return api.delete("/product-service/product/list", {
+      params: { productIds: productIds.join(",") },
+    });
+  }
+
+  // Xóa tất cả sản phẩm
+  DeleteAll() {
+    return api.delete("/product-service/product/all");
+  }
 }
 
 export default new ProductService();

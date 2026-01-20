@@ -193,7 +193,7 @@ const ProductViewDetails = ({ clickedIndex, isOpen, onClose, product }) => {
               muted
               height="500px"
               width="800px"
-              url={product.video}
+              url={product.videoUrl}
             />
           </div>
         )}

@@ -155,7 +155,7 @@ const ProductCard = ({ product }) => {
 
       {/* CONTENT */}
       <div className="flex flex-col gap-3 p-4 flex-1">
-        <div className="text-[16px] text-gray-800 h-[38px] overflow-hidden">
+        <div className="text-[15px] text-gray-800 h-[44px] overflow-hidden">
           {product.name}
         </div>
 
