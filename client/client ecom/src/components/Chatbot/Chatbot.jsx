@@ -6,6 +6,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useNavigate } from 'react-router-dom';
 
+import { getOrCreateConversationId } from '../../utils/conversationUtils';
+
 const Chatbot = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([
@@ -21,6 +23,9 @@ const Chatbot = () => {
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef(null);
     const navigate = useNavigate();
+
+    // Get conversation ID on component mount
+    const [conversationId] = useState(() => getOrCreateConversationId());
 
     const toggleChat = () => {
         setIsOpen(!isOpen);
@@ -62,7 +67,7 @@ const Chatbot = () => {
             const payload = {
                 message: text,
                 user_id: "log_gen_user", // TODO: Replace with actual user ID if available
-                conversation_id: "log_gen_session" // TODO: Manage session ID
+                conversation_id: conversationId
             };
 
             const response = await chatbotApi.sendMessage(payload);
