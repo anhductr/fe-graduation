@@ -12,7 +12,7 @@ export const LoginProvider = ({ children }) => {
   const login = async (username, password) => {
     try {
       const res = await axios.post(
-        "/api/v1/user-service/auth/login",
+        "/api/v1/user-service/auth/admin/login",
         { username, password },
         { headers: { "Content-Type": "application/json" } }
       );
