@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaComments, FaTimes, FaPaperPlane, FaRobot, FaUser, FaInfoCircle, FaBoxOpen, FaExchangeAlt } from 'react-icons/fa';
 import chatbotApi from '../../services/chatbotApi';
+
+import { getSuggestedProductsByIds, getCateUnderRoot } from '../../services/searchApi';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useNavigate } from 'react-router-dom';
@@ -14,9 +16,8 @@ const Chatbot = () => {
         {
             id: 1,
             text: "Xin chào! Tôi có thể giúp gì cho bạn? Tôi có thể tư vấn về sản phẩm, chính sách, hoặc hỗ trợ khách hàng.",
-            role: 'bot',
-            type: 'general',
-            quick_actions: []
+
+            quick_actions: [{ label: "Xem danh mục", action: "view_categories" }, { label: "Chat trực tiếp", action: "direct_chat" }]
         }
     ]);
     const [inputValue, setInputValue] = useState("");
@@ -86,6 +87,53 @@ const Chatbot = () => {
                     quick_actions: botRes.quick_actions,
                     policy_type: botRes.policy_type
                 };
+
+                // Enrich product data if available
+                if (botRes.products && botRes.products.length > 0) {
+                    try {
+                        const productIds = botRes.products.map(p => p.id);
+                        const productsResponse = await getSuggestedProductsByIds({
+                            productIds,
+                            recomentedType: "chatbot_suggestion",
+                            page: 1,
+                            size: productIds.length
+                        });
+
+                        const fetchedProducts = productsResponse?.result?.productGetVMList ||
+                            productsResponse?.content ||
+                            productsResponse?.data ||
+                            [];
+
+                        let enrichedProducts = [];
+
+                        if (Array.isArray(fetchedProducts)) {
+                            enrichedProducts = fetchedProducts;
+                        } else if (Array.isArray(fetchedProducts?.items)) {
+                            enrichedProducts = fetchedProducts.items;
+                        }
+
+                        // Map fetched details back to bot products
+                        if (enrichedProducts.length > 0) {
+                            botMessage.products = botRes.products.map(bp => {
+                                const detailed = enrichedProducts.find(dp => dp.id === bp.id);
+                                if (detailed) {
+                                    return {
+                                        ...bp,
+                                        ...detailed, // Merge detailed info
+                                        image: detailed.thumbnailUrl ? [detailed.thumbnailUrl] : bp.image, // Prefer thumbnail
+                                        price: detailed.price || bp.price,
+                                        name: detailed.name || bp.name
+                                    };
+                                }
+                                return bp;
+                            });
+                        }
+                    } catch (err) {
+                        console.error("Failed to fetch full product details for chatbot:", err);
+                        // Continue with original basic info if fetch fails
+                    }
+                }
+
                 setMessages(prev => [...prev, botMessage]);
             } else {
                 // Fallback for error or unexpected format
@@ -109,11 +157,57 @@ const Chatbot = () => {
         }
     };
 
-    const handleQuickAction = (action) => {
+    const handleQuickAction = async (action) => {
         if (action.action === 'ask_policy' && action.label) {
             handleSendMessage(null, action.label);
         } else if (action.action === 'view_product' && action.product_id) {
             handleNavigateToProduct(action.product_id, "chi-tiet-san-pham");
+        } else if (action.action === 'view_categories') {
+            setMessages(prev => [...prev, {
+                id: Date.now(),
+                text: "Xem danh mục sản phẩm",
+                role: 'user'
+            }]);
+            setIsLoading(true);
+            try {
+                const response = await getCateUnderRoot();
+                const categories = response?.result?.categoryGetVM || [];
+
+                const botMessage = {
+                    id: Date.now() + 1,
+                    text: "Dưới đây là các danh mục sản phẩm chính của chúng tôi:",
+                    role: 'bot',
+                    type: 'category_list',
+                    categories: categories
+                };
+                setMessages(prev => [...prev, botMessage]);
+
+            } catch (e) {
+                console.error("Error fetching categories", e);
+                setMessages(prev => [...prev, {
+                    id: Date.now() + 1,
+                    text: "Xin lỗi, không thể lấy danh sách danh mục lúc này.",
+                    role: 'bot'
+                }]);
+            } finally {
+                setIsLoading(false);
+            }
+
+        } else if (action.action === 'direct_chat') {
+            setMessages(prev => [...prev, {
+                id: Date.now(),
+                text: "Chat trực tiếp",
+                role: 'user'
+            }]);
+
+            setTimeout(() => {
+                setMessages(prev => [...prev, {
+                    id: Date.now() + 1,
+                    text: "Bạn có thể chat trực tiếp với chúng tôi qua Fanpage: [Facebook FPT Shop](https://www.facebook.com/FPTShopOnline/)",
+                    role: 'bot'
+                }]);
+            }, 500);
+
         } else if (action.label) {
             handleSendMessage(null, action.label);
         }
@@ -157,7 +251,9 @@ const Chatbot = () => {
                             >
                                 <div className="h-28 bg-gray-100 flex items-center justify-center relative">
                                     {product.image && product.image.length > 0 ? (
-                                        <img src={product.image[0]} alt={product.name} className="w-full h-full object-cover" />
+                                        <img src={product.image[0]} alt={product.name} className="w-full h-full object-contain p-2" />
+                                    ) : product.thumbnailUrl ? (
+                                        <img src={product.thumbnailUrl} alt={product.name} className="w-full h-full object-contain p-2" />
                                     ) : (
                                         <FaBoxOpen className="text-gray-300 text-3xl" />
                                     )}
@@ -168,7 +264,12 @@ const Chatbot = () => {
                                 <div className="p-2 flex flex-col flex-1">
                                     <h4 className="font-semibold text-xs text-gray-800 line-clamp-2 mb-1" title={product.name}>{product.name}</h4>
                                     <div className="mt-auto">
-                                        <span className="text-red-600 font-bold text-sm block">{formatPrice(product.price)}</span>
+                                        <div className="flex flex-col">
+                                            <span className="text-red-600 font-bold text-sm block">{formatPrice(product.price)}</span>
+                                            {product.listPrice && product.listPrice > product.price && (
+                                                <span className="text-gray-400 text-[10px] line-through">{formatPrice(product.listPrice)}</span>
+                                            )}
+                                        </div>
                                         <button
                                             className="mt-2 w-full bg-indigo-50 text-indigo-600 text-xs py-1.5 rounded hover:bg-indigo-100 transition font-medium"
                                             onClick={(e) => { e.stopPropagation(); handleNavigateToProduct(product.id, product.name); }}
@@ -220,6 +321,28 @@ const Chatbot = () => {
                                 </div>
                             ))}
                         </div>
+                    </div>
+                )}
+
+
+
+
+
+                {/* Custom Category List */}
+                {msg.type === 'category_list' && msg.categories && msg.categories.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                        {msg.categories.map((cat) => (
+                            <button
+                                key={cat.id}
+                                onClick={() => {
+                                    navigate(`/search?category=${cat.id}`);
+                                }}
+                                className="px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md hover:border-blue-500 hover:text-blue-600 transition-all text-sm font-medium flex items-center gap-2"
+                            >
+                                <FaBoxOpen className="text-gray-400" />
+                                {cat.name}
+                            </button>
+                        ))}
                     </div>
                 )}
 
