@@ -17,6 +17,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
+import RelatedProducts from "../components/product/RelatedProducts";
 import { FaShoppingCart } from "react-icons/fa";
 import { Box, IconButton, Typography, Dialog, DialogContent, DialogActions, DialogTitle } from "@mui/material";
 import CommentSection from "../components/product/CommentSection";
@@ -290,6 +291,22 @@ const ProductPage = () => {
         name.includes('phone') || name.includes('tablet');
     });
   };
+
+  // Helper to determine category ID (Level 2 from Root) for related products
+  const getRelatedCategoryId = () => {
+    if (!currentProduct?.categories) return null;
+    const cats = currentProduct.categories;
+    const root = cats.find(c => !c.parentId); // Level 0
+    if (!root) return cats[0]?.id; // Fallback
+
+    const level1 = cats.find(c => c.parentId === root.id); // Level 1
+    if (!level1) return root.id;
+
+    const level2 = cats.find(c => c.parentId === level1.id); // Level 2
+    return level2 ? level2.id : level1.id;
+  };
+
+  const relatedCategoryId = getRelatedCategoryId();
 
   // Derived price/discount from selected variant
   const sellPrice = selectedVariant?.sellPrice || 0;
@@ -957,39 +974,7 @@ const ProductPage = () => {
 
 
 
-          <div className="py-5 border-b-2 border-gray-200 flex flex-col gap-8">
-            <h1 className="font-bold text-gray-900 text-lg text-[30px]">
-              Sản phẩm tương tự
-            </h1>
-            <div className="relative">
-              <Swiper
-                loop={true}
-                spaceBetween={34}
-                slidesPerView={5}
-                navigation={{
-                  nextEl: ".relate-next",
-                  prevEl: ".relate-prev",
-                }}
-                modules={[Navigation]}
-                className="!pl-1 !pr-1 !py-2"
-              >
-                {products.map((product, index) => (
-                  <SwiperSlide key={index}>
-                    <ProductCard product={product} />
-                  </SwiperSlide>
-                ))}
-              </Swiper>
-              {/* Nút trái */}
-              <button className="relate-prev absolute left-[-4px] -translate-y-1/2 z-10 text-gray-700 text-3xl transition bg-white/70 top-1/2 w-10 h-20 rounded-r-full flex items-center justify-center shadow-md transition-transform duration-300 ease-in-out hover:scale-110">
-                <IoIosArrowBack />
-              </button>
-
-              {/* Nút phải */}
-              <button className="relate-next absolute right-[-4px] -translate-y-1/2 z-10 text-gray-700 text-3xl transition bg-white/70 top-1/2 w-10 h-20 rounded-l-full flex items-center justify-center shadow-md transition-transform duration-300 ease-in-out hover:scale-110">
-                <IoIosArrowForward />
-              </button>
-            </div>
-          </div>
+          <RelatedProducts categoryId={relatedCategoryId} />
 
           {/* đánh giá, commnet và thông số kỹ thuật*/}
           <div className="flex flex-col py-6 gap-6">
