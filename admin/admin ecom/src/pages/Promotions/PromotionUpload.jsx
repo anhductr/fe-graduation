@@ -100,6 +100,28 @@ export default function PromotionUpload() {
   };
 
   const handleTabChange = (event, newValue) => {
+    // Reset all fields to initial values
+    setName("");
+    setDescription("");
+    setDiscountType("DISCOUNT_PERCENT");
+    setDiscountPercent("");
+    setFixedAmount("");
+    setStartDate(null);
+    setEndDate(null);
+    setMinimumOrderAmount("");
+    setUsageType("UNLIMITED");
+    setUsageLimited("");
+    setUsageLimitPerUser(1);
+    setMaxDiscountAmount("");
+    setSelectedCategories([]);
+    setSelectedProducts([]);
+    setSelectedCampaign(null);
+    setFlashSaleItems([]);
+    setTempProduct(null);
+    setTempDiscountValue("");
+    setInputValueProduct("");
+    setInputValueCategory("");
+
     setTabValue(newValue);
     if (newValue === 0) {
       // Voucher
@@ -108,7 +130,7 @@ export default function PromotionUpload() {
     } else if (newValue === 1) {
       // Discount / Auto
       setPromotionKind("AUTO");
-      if (!applyTo) setApplyTo("ALL");
+      setApplyTo("ALL");
     } else if (newValue === 2) {
       // Flash Sale
       setPromotionKind("FLASH_SALE");
@@ -116,9 +138,6 @@ export default function PromotionUpload() {
       setUsageLimitPerUser(1);
       setUsageType("LIMITED");
       setUsageLimited(1);
-      if (startDate) {
-        setEndDate(dayjs(startDate).add(18, 'hour'));
-      }
     }
   };
 
@@ -467,7 +486,7 @@ export default function PromotionUpload() {
         </div>
 
         <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
-          
+
           {/* === Campaign Selection === */}
           <div className="flex flex-wrap shadow border-0 px-3 py-6 my-[10px] bg-white rounded-[10px] gap-10">
             <div className="w-screen px-4 py-2 font-semibold text-gray-900 text-[20px]">
@@ -954,7 +973,7 @@ export default function PromotionUpload() {
                 />
               )}
               {/* Giới hạn lượt dùng */}
-              {tabValue !== 1 && (
+              {tabValue === 0 && (
                 < div className="">
                   <FormControl component="fieldset">
                     <FormLabel component="legend">Giới hạn lượt sử dụng</FormLabel>
